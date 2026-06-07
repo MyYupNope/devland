@@ -10,6 +10,7 @@
     "deploy": "vite build && cd .. && git add artz/dist && git commit -m \"deploy: update dist\" && git push"
   },
   "devDependencies": {
+    "gh-pages": "^6.3.0",
     "vite": "^5.0.0"
   },
   "dependencies": {
