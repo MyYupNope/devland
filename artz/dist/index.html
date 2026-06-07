@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="description" content="Kinetic particle sculpture — type your message and watch it come alive as an interactive 3D particle display. Hover to disturb, click or spacebar to explode.">
+    <meta property="og:title" content="Kinetic Particle Sculpture">
+    <meta property="og:description" content="Type your message and watch it come alive as an interactive 3D particle display. Dynamic themes, physics-based springs, and audio feedback.">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <title>Kinetic Particle Sculpture</title>
+  <script type="module" crossorigin src="/artz/assets/index-DurLJOhG.js"></script>
+  <link rel="stylesheet" crossorigin href="/artz/assets/index-Boxq882z.css">
+</head>
+<body>
+    <div id="control-panel">
+        <div class="control-row">
+            <div class="control-group">
+                <label for="text-input">Message</label>
+                <div class="input-wrapper">
+                    <input type="text" id="text-input" value="Define your message!" maxlength="25" autocomplete="off" aria-describedby="char-counter">
+                    <span id="char-counter" aria-live="polite">0/25</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="theme-select">Theme</label>
+                <select id="theme-select">
+                    <option value="ember">🔥 Ember</option>
+                    <option value="arctic">❄️ Arctic</option>
+                    <option value="toxic">☣️ Toxic</option>
+                    <option value="neon">⚡ Neon</option>
+                    <option value="sakura">🌸 Sakura</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="font-select">Font</label>
+                <select id="font-select">
+                    <option value="Outfit">Outfit (Sans)</option>
+                    <option value="Playfair Display">Playfair (Serif)</option>
+                    <option value="Fira Code">Fira (Monospace)</option>
+                    <option value="Pacifico">Pacifico (Script)</option>
+                </select>
+            </div>
+
+            <button id="capture-btn" aria-label="Capture screenshot of sculpture">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+                <span>Capture</span>
+            </button>
+        </div>
+
+        <div id="presets-row">
+            <span class="presets-label">Presets:</span>
+            <button class="preset-chip" data-text="KINETIC">Kinetic</button>
+            <button class="preset-chip" data-text="GALAXY">Galaxy</button>
+            <button class="preset-chip" data-text="BREEZE">Breeze</button>
+            <button class="preset-chip" data-text="EXPLODE">Explode</button>
+        </div>
+    </div>
+
+    <div id="overlay" aria-live="polite">Arrows / Drag to rotate • +/- / Pinch to zoom • Double-Click / Space to Explode</div>
+
+</body>
+</html>

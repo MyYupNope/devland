@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description"
+    content="TalentTracker — Premium dashboard to track, filter, and manage job applications with real-time Google Sheets sync.">
+  <title>TalentTracker | Premium Job Application Dashboard</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css?v=18">
+  <!-- Favicon -->
+  <link rel="icon" href="favicon.png" type="image/png">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+</head>
+
+<body>
+  <div class="app-container">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="header-logo">
+        <div class="logo-text">
+          <h1>Job Applications Assistant</h1>
+          <span class="sub-logo-text">Streamline your application process with our premium tools.</span>
+        </div>
+      </div>
+      <div class="sync-status" id="syncStatus">
+        <span class="status-dot pulsing"></span>
+        <span class="status-text">Fetching Live Spreadsheet...</span>
+      </div>
+    </header>
+
+    <!-- Navigation Menu Tabs -->
+    <nav class="app-nav">
+      <button class="nav-btn active" data-tab="home">
+        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+        Home
+      </button>
+      <button class="nav-btn" data-tab="new-application">
+        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        New Application
+      </button>
+      <button class="nav-btn" data-tab="dashboard">
+        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+          <line x1="9" y1="3" x2="9" y2="21" />
+          <line x1="3" y1="9" x2="21" y2="9" />
+        </svg>
+        Dashboard
+      </button>
+    </nav>
+
+
+    <!-- Stats Dashboard Section -->
+    <section class="stats-section" style="display: none;">
+      <div class="stats-header">
+        <h2>
+          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+          Applications Stats
+        </h2>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon companies">
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="16" height="20" x="4" y="2" rx="2" />
+              <line x1="9" x2="15" y1="22" y2="22" />
+              <line x1="9" x2="15" y1="18" y2="18" />
+              <line x1="9" x2="15" y1="14" y2="14" />
+              <line x1="9" x2="15" y1="10" y2="10" />
+              <line x1="9" x2="15" y1="6" y2="6" />
+            </svg>
+          </div>
+          <div class="stat-data">
+            <h3 id="statCompanies">-</h3>
+            <p>Active Companies</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon jobs">
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 12h.01" />
+              <path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+              <path d="M22 13a18.15 18.15 0 0 1-20 0" />
+              <rect width="20" height="12" x="2" y="9" rx="2" />
+            </svg>
+          </div>
+          <div class="stat-data">
+            <h3 id="statJobs">-</h3>
+            <p>Unique Job Roles</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon interviews">
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+          </div>
+          <div class="stat-data">
+            <h3 id="statInterviews">-</h3>
+            <p>Active Interviews</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon success-rate">
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 3H2l8 9.46V19l4 2V12.46z" />
+            </svg>
+          </div>
+          <div class="stat-data">
+            <h3 id="statConversion">-</h3>
+            <p>Conversion Rate</p>
+            <span class="stat-subtitle">Apps reached interview</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Workspace Layout -->
+    <main class="main-layout">
+      <!-- Filters Section -->
+      <section class="filters-section">
+        <div class="filters-header">
+          <h2>
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+            </svg>
+            Filter Applications
+          </h2>
+        </div>
+        <div class="filters-bar">
+          <div class="filters-container">
+            <!-- Filter 1: Company Search-Select -->
+            <div class="filter-group">
+              <label for="companyTrigger">Company Name</label>
+              <div class="custom-select" id="companySelectContainer">
+                <button type="button" class="select-trigger" id="companyTrigger" aria-expanded="false"
+                  aria-haspopup="listbox">
+                  <span class="trigger-text">All Companies</span>
+                  <span class="trigger-arrow">
+                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </span>
+                </button>
+                <div class="select-dropdown" id="companyDropdown">
+                  <div class="select-search-wrapper">
+                    <svg class="search-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                      fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="m21 21-4.3-4.3" />
+                    </svg>
+                    <input type="text" class="select-search" id="companySearch" placeholder="Search companies..."
+                      autocomplete="off">
+                  </div>
+                  <ul class="select-options" id="companyOptions" role="listbox" aria-label="Company options">
+                    <li class="option loading" role="option">Loading options...</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Filter 2: Job Title Search-Select -->
+            <div class="filter-group">
+              <label for="jobTrigger">Job Title</label>
+              <div class="custom-select" id="jobSelectContainer">
+                <button type="button" class="select-trigger" id="jobTrigger" aria-expanded="false"
+                  aria-haspopup="listbox">
+                  <span class="trigger-text">All Job Titles</span>
+                  <span class="trigger-arrow">
+                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </span>
+                </button>
+                <div class="select-dropdown" id="jobDropdown">
+                  <div class="select-search-wrapper">
+                    <svg class="search-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                      fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="m21 21-4.3-4.3" />
+                    </svg>
+                    <input type="text" class="select-search" id="jobSearch" placeholder="Search job titles..."
+                      autocomplete="off">
+                  </div>
+                  <ul class="select-options" id="jobOptions" role="listbox" aria-label="Job title options">
+                    <li class="option loading" role="option">Loading options...</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Filter 3: Application Status Search-Select -->
+            <div class="filter-group">
+              <label for="statusTrigger">Application Status</label>
+              <div class="custom-select" id="statusSelectContainer">
+                <button type="button" class="select-trigger" id="statusTrigger" aria-expanded="false"
+                  aria-haspopup="listbox">
+                  <span class="trigger-text">All Statuses</span>
+                  <span class="trigger-arrow">
+                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </span>
+                </button>
+                <div class="select-dropdown" id="statusDropdown">
+                  <div class="select-search-wrapper">
+                    <svg class="search-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                      fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="m21 21-4.3-4.3" />
+                    </svg>
+                    <input type="text" class="select-search" id="statusSearch" placeholder="Search statuses..."
+                      autocomplete="off">
+                  </div>
+                  <ul class="select-options" id="statusOptions" role="listbox" aria-label="Status options">
+                    <li class="option loading" role="option">Loading options...</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Filter Action (Reset) -->
+            <div class="filter-group action-group">
+              <label class="action-label">&nbsp;</label>
+              <button class="btn-reset" id="btnResetFilters" disabled>
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
+                Reset Filters
+              </button>
+            </div>
+          </div>
+
+          <div class="filters-bar-footer">
+            <p class="filter-tip">Note: Retired and Rejected applications are filtered out automatically.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Registry Results Table -->
+      <section class="results-section">
+        <div class="results-header">
+          <h2>
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <line x1="9" y1="3" x2="9" y2="21" />
+              <line x1="15" y1="3" x2="15" y2="21" />
+              <line x1="3" y1="9" x2="21" y2="9" />
+              <line x1="3" y1="15" x2="21" y2="15" />
+            </svg>
+            Applications Registry
+            <span class="badge" id="resultsCount">0</span>
+          </h2>
+        </div>
+
+        <div class="registry-table-container">
+          <table class="registry-table">
+            <thead>
+              <tr>
+                <th class="sortable-header" data-sort-field="job">Job Title <span class="sort-icon"></span></th>
+                <th class="sortable-header" data-sort-field="company">Company <span class="sort-icon"></span></th>
+                <th class="sortable-header" data-sort-field="status">Status <span class="sort-icon"></span></th>
+                <th class="sortable-header" data-sort-field="date">Applied Date <span class="sort-icon"></span></th>
+                <th class="sortable-header" data-sort-field="suitability">Suitability Score <span
+                    class="sort-icon"></span></th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="registryTableBody">
+              <!-- Skeletons shown during load -->
+              <tr class="table-skeleton">
+                <td colspan="6">
+                  <div class="skeleton-bar"></div>
+                </td>
+              </tr>
+              <tr class="table-skeleton">
+                <td colspan="6">
+                  <div class="skeleton-bar"></div>
+                </td>
+              </tr>
+              <tr class="table-skeleton">
+                <td colspan="6">
+                  <div class="skeleton-bar"></div>
+                </td>
+              </tr>
+              <tr class="table-skeleton">
+                <td colspan="6">
+                  <div class="skeleton-bar"></div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="table-pagination">
+            <div class="pagination-left">
+              <span class="pagination-info" id="paginationInfo">Showing 0 - 0 of 0 rows</span>
+              <div class="rows-per-page">
+                <label for="rowsPerPageSelect">Rows per page:</label>
+                <select id="rowsPerPageSelect">
+                  <option value="10" selected>10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                </select>
+              </div>
+            </div>
+            <div class="pagination-controls">
+              <button id="btnPrevPage" class="btn-pagination" disabled aria-label="Previous page">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m15 18-6-6 6-6" />
+                </svg>
+              </button>
+              <button id="btnNextPage" class="btn-pagination" disabled aria-label="Next page">
+                <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- No Results view -->
+        <div class="no-results hidden" id="noResults">
+          <div class="no-results-icon">
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M8 12h8" />
+              <path d="m12 8-4 4 4 4" />
+            </svg>
+          </div>
+          <h3>No applications found</h3>
+          <p>Try resetting or modifying your filters to broaden your search.</p>
+        </div>
+      </section>
+
+      <!-- Analytics Graph Section -->
+      <section class="analytics-section" style="display: none;">
+        <div class="analytics-header">
+          <h2>
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18" />
+              <path d="m19 9-5 5-4-4-3 3" />
+            </svg>
+            Application Analytics
+          </h2>
+          <div class="analytics-toolbar">
+            <div class="btn-group" id="chartRangeToggle">
+              <button class="btn-toggle active" data-range="all">All Time</button>
+              <button class="btn-toggle" data-range="90">90 Days</button>
+              <button class="btn-toggle" data-range="30">30 Days</button>
+            </div>
+            <div class="analytics-info">
+              <span>Timeline &amp; Distributions</span>
+            </div>
+          </div>
+        </div>
+        <div class="analytics-chart-card">
+          <div class="chart-container">
+            <canvas id="analyticsChart"></canvas>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- New Application Form Section -->
+    <section class="new-application-section" style="display: none;">
+
+
+      <div class="form-header d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+          <svg class="form-header-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="12" y1="18" x2="12" y2="12"></line>
+            <line x1="9" y1="15" x2="15" y2="15"></line>
+          </svg>
+          <h2>New Submission</h2>
+        </div>
+        <button type="button" id="reset_btn" class="btn-reset-link" title="Reset Form" aria-label="Reset Form">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Application Form Card -->
+      <div class="card main-form-card">
+        <div class="card-body">
+          <form id="job_opening" novalidate>
+
+            <!-- Job URL -->
+            <div class="form-floating mb-3">
+              <input type="url" class="form-control" id="job_url" name="job_url" placeholder="Job URL" required
+                autocomplete="url">
+              <label for="job_url">Job URL</label>
+              <div class="invalid-feedback">Please provide a valid job URL.</div>
+            </div>
+
+            <!-- Company Name & Job Title Row -->
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <div class="form-floating">
+                  <input type="text" class="form-control" id="company_name" name="company_name"
+                    placeholder="Company Name" required autocomplete="organization">
+                  <label for="company_name">Company Name</label>
+                  <div class="invalid-feedback">Company name is required.</div>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="form-floating">
+                  <input type="text" class="form-control" id="job_title" name="job_title" placeholder="Job Title"
+                    required autocomplete="organization-title">
+                  <label for="job_title">Job Title</label>
+                  <div class="invalid-feedback">Job title is required.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Job Description -->
+            <div class="mb-3">
+              <div class="form-floating">
+                <textarea class="form-control textarea-lg" id="job_description" name="job_description"
+                  placeholder="Job Description" maxlength="15000" required></textarea>
+                <label for="job_description">Job Description</label>
+                <div class="invalid-feedback">Please provide a job description.</div>
+              </div>
+              <div class="text-end mt-1">
+                <small id="job_description_counter" class="char-counter text-muted">0 / 15000</small>
+              </div>
+            </div>
+
+            <!-- Hiring Team -->
+            <div class="form-floating mb-3">
+              <input type="text" class="form-control" id="hiring_team" name="hiring_team" placeholder="Hiring Team"
+                value="Not Defined" autocomplete="off" required>
+              <label for="hiring_team">Hiring Team</label>
+              <div class="invalid-feedback">Hiring team information is required.</div>
+            </div>
+
+            <!-- Company Description -->
+            <div class="mb-3">
+              <div class="form-floating">
+                <textarea class="form-control textarea-lg" id="company_description" name="company_description"
+                  placeholder="Company Description" maxlength="15000" required></textarea>
+                <label for="company_description">Company Description</label>
+                <div class="invalid-feedback">Company description is required.</div>
+              </div>
+              <div class="text-end mt-1">
+                <small id="company_description_counter" class="char-counter text-muted">0 / 15000</small>
+              </div>
+            </div>
+
+            <!-- Submit Button & Status Indicators -->
+            <div class="d-flex align-items-center flex-wrap gap-3 mt-4">
+              <button type="submit" class="btn btn-primary px-5 py-3 d-inline-flex align-items-center gap-2"
+                id="submit_btn">
+                <span>Submit Application</span>
+                <!-- Loading Spinner -->
+                <span class="spinner-border spinner-border-sm text-light hidden" id="job_spin" role="status"
+                  aria-hidden="true"></span>
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Detail Drawer Panel -->
+  <div class="drawer-overlay" id="drawerOverlay"></div>
+  <aside class="details-drawer" id="detailsDrawer">
+    <div class="drawer-header">
+      <div class="drawer-header-left">
+        <!-- Section A: Job Title, Company Name -->
+        <span class="status-badge" id="drawerStatusBadge">-</span>
+        <h2 id="drawerJobTitle">Job Title</h2>
+        <h3 id="drawerCompanyName">Company Name</h3>
+      </div>
+      <button class="btn-close-drawer" id="btnCloseDrawer" aria-label="Close detail panel">
+        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
+      </button>
+    </div>
+    <div class="drawer-body">
+      <!-- Section B: Application Status -->
+      <div class="drawer-section accordion-item active" id="sectionB_Status">
+        <button class="accordion-header" type="button">
+          <h4>Application Status</h4>
+          <span class="accordion-icon">
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </span>
+        </button>
+        <div class="accordion-content">
+          <div class="accordion-content-inner">
+            <div class="info-group status-matrix-grid">
+              <div class="info-row-block">
+                <span class="info-label">Applied Date</span>
+                <span class="info-value" id="drawerDate">-</span>
+              </div>
+              <div class="info-row-block" id="sectionComments">
+                <span class="info-label">Comments</span>
+                <div class="comments-box" id="drawerComments">-</div>
+              </div>
+              <div class="info-row-block" id="sectionFollowUp">
+                <span class="info-label">Follow-up</span>
+                <span class="info-value" id="drawerFollowUp">-</span>
+              </div>
+              <div class="info-row-block">
+                <span class="info-label">Hiring Team</span>
+                <span class="info-value" id="drawerHiringTeam">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section C: Job Details -->
+      <div class="drawer-section accordion-item" id="sectionC_Details">
+        <button class="accordion-header" type="button">
+          <h4>Job Details</h4>
+          <span class="accordion-icon">
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </span>
+        </button>
+        <div class="accordion-content">
+          <div class="accordion-content-inner">
+            <div class="info-group details-matrix-grid">
+              <div class="info-row-block">
+                <div class="description-header">
+                  <span class="info-label">Job Description</span>
+                  <a href="#" target="_blank" class="inline-link-btn" id="linkJobUrl">
+                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                      <polyline points="15 3 21 3 21 9" />
+                      <line x1="10" x2="21" y1="14" y2="3" />
+                    </svg>
+                    View Job URL
+                  </a>
+                </div>
+                <div class="text-block" id="drawerJobDescription">-</div>
+              </div>
+              <div class="info-row-block">
+                <div class="description-header">
+                  <span class="info-label">Company Description</span>
+                  <a href="#" target="_blank" class="inline-link-btn secondary" id="linkCompanyFolder">
+                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path
+                        d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+                    </svg>
+                    Drive Folder
+                  </a>
+                </div>
+                <div class="text-block" id="drawerCompanyDescription">-</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section D: Job vs CV Suitability -->
+      <div class="drawer-section accordion-item" id="sectionD_Suitability">
+        <button class="accordion-header" type="button">
+          <h4>Job Suitability</h4>
+          <span class="accordion-icon">
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </span>
+        </button>
+        <div class="accordion-content">
+          <div class="accordion-content-inner">
+            <div class="info-group suitability-matrix-grid">
+              <div class="info-row-block" id="drawerSuitabilityScoreContainer">
+                <span class="info-label">Job Suitability Score</span>
+                <div>
+                  <span class="score-badge" id="drawerSuitabilityScore">-</span>
+                </div>
+              </div>
+              <div class="info-row-block" id="sectionSuitabilityEval">
+                <span class="info-label">Job Suitability Evaluation</span>
+                <div class="suitability-box" id="drawerSuitabilityEval">-</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section E: Job Interview -->
+      <div class="drawer-section accordion-item" id="sectionE_JobInterview">
+        <button class="accordion-header" type="button">
+          <h4>Job Interview</h4>
+          <span class="accordion-icon">
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </span>
+        </button>
+        <div class="accordion-content">
+          <div class="accordion-content-inner">
+            <div class="info-group interview-matrix-grid">
+              <div class="info-row-block" id="sectionInterviewCompany">
+                <div class="description-header">
+                  <span class="info-label">Interview Company</span>
+                  <button type="button" class="btn-copy-html" id="btnCopyInterviewCompany" title="Copy HTML">
+                    <svg class="icon-copy" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    <svg class="icon-check" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                      style="display: none;">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </button>
+                </div>
+                <div class="text-block markdown-content" id="drawerInterviewCompany">-</div>
+              </div>
+              <div class="info-row-block" id="sectionInterviewPreparation">
+                <div class="description-header">
+                  <span class="info-label">Interview Preparation</span>
+                  <button type="button" class="btn-copy-html" id="btnCopyInterviewPreparation" title="Copy HTML">
+                    <svg class="icon-copy" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    <svg class="icon-check" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                      style="display: none;">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </button>
+                </div>
+                <div class="text-block markdown-content" id="drawerInterviewPreparation">-</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Bootstrap Bundle JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+    crossorigin="anonymous"></script>
+
+  <!-- Application Logic -->
+  <script src="app.js?v=23"></script>
+</body>
+
+</html>
