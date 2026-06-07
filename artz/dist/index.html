@@ -1,55 +1,68 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Kinetic particle sculpture — type your message and watch it come alive as an interactive 3D particle display. Hover to disturb, click or spacebar to explode.">
-    <meta property="og:title" content="Kinetic Particle Sculpture">
-    <meta property="og:description" content="Type your message and watch it come alive as an interactive 3D particle display. Dynamic themes, physics-based springs, and audio feedback.">
-    <meta property="og:type" content="website">
-    <meta name="twitter:card" content="summary_large_image">
+    <meta name="description"
+        content="Kinetic particle sculpture — type your message and watch it come alive as an interactive 3D particle display. Hover to disturb, tap 5x to explode.">
     <title>Kinetic Particle Sculpture</title>
-  <script type="module" crossorigin src="/artz/assets/index-DurLJOhG.js"></script>
-  <link rel="stylesheet" crossorigin href="/artz/assets/index-Boxq882z.css">
+    
+    <!-- [5.1] Canonical Link -->
+    <link rel="canonical" href="https://myyupnope.github.io/artz/">
+    
+    <!-- [5.2] Social Preview Meta Tags -->
+    <meta property="og:title" content="Kinetic Particle Sculpture">
+    <meta property="og:description" content="Type your message and watch it come alive as an interactive 3D particle display. Hover to disturb, tap 5x to explode.">
+    <meta property="og:image" content="https://myyupnope.github.io/artz/preview.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://myyupnope.github.io/artz/preview.png">
+
+    <!-- [1.5] Google Fonts Preconnect and Non-Blocking Loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Outfit:wght@300;400;600&family=Pacifico&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+  <script type="module" crossorigin src="/artz/assets/index-BrzcEg4F.js"></script>
+  <link rel="stylesheet" crossorigin href="/artz/assets/index-CxUDs1nX.css">
 </head>
+
 <body>
+    <!-- [2.1 / 5.3] Fully Expanded Control Panel -->
     <div id="control-panel">
         <div class="control-row">
             <div class="control-group">
-                <label for="text-input">Message</label>
+                <label for="text-input">Text</label>
                 <div class="input-wrapper">
-                    <input type="text" id="text-input" value="Define your message!" maxlength="25" autocomplete="off" aria-describedby="char-counter">
-                    <span id="char-counter" aria-live="polite">0/25</span>
+                    <input type="text" id="text-input" value="Define your message!" maxlength="25" autocomplete="off">
+                    <span id="char-counter">0/25</span>
                 </div>
             </div>
 
             <div class="control-group">
                 <label for="theme-select">Theme</label>
                 <select id="theme-select">
-                    <option value="ember">🔥 Ember</option>
-                    <option value="arctic">❄️ Arctic</option>
-                    <option value="toxic">☣️ Toxic</option>
-                    <option value="neon">⚡ Neon</option>
-                    <option value="sakura">🌸 Sakura</option>
+                    <option value="ember">Ember</option>
+                    <option value="arctic">Arctic</option>
+                    <option value="toxic">Toxic</option>
+                    <option value="neon">Neon</option>
+                    <option value="sakura">Sakura</option>
                 </select>
             </div>
 
             <div class="control-group">
                 <label for="font-select">Font</label>
                 <select id="font-select">
-                    <option value="Outfit">Outfit (Sans)</option>
-                    <option value="Playfair Display">Playfair (Serif)</option>
-                    <option value="Fira Code">Fira (Monospace)</option>
-                    <option value="Pacifico">Pacifico (Script)</option>
+                    <option value="Outfit">Outfit</option>
+                    <option value="Fira Code">Fira Code</option>
+                    <option value="Pacifico">Pacifico</option>
+                    <option value="Playfair Display">Playfair Display</option>
                 </select>
             </div>
 
-            <button id="capture-btn" aria-label="Capture screenshot of sculpture">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                    <circle cx="12" cy="13" r="4"></circle>
-                </svg>
-                <span>Capture</span>
+            <button id="capture-btn" title="Capture Screenshot">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 2px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                Capture
             </button>
         </div>
 
@@ -62,7 +75,14 @@
         </div>
     </div>
 
-    <div id="overlay" aria-live="polite">Arrows / Drag to rotate • +/- / Pinch to zoom • Double-Click / Space to Explode</div>
+    <!-- [4.3] Empty text Toast alert element -->
+    <div id="toast"></div>
+
+    <!-- [3.2] Screen Reader Live Announcements -->
+    <div id="sr-announce" class="sr-only" aria-live="polite"></div>
+
+    <div id="overlay">Arrows / 2-Finger Slide to rotate • +/- / Pinch to zoom • Tap 5x to Explode</div>
 
 </body>
+
 </html>

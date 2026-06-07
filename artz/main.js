@@ -15,7 +15,7 @@ import {
 } from 'three';
 
 // ─────────────────────────────────────────────
-// [4.4] Named Configuration Constants
+// Named Configuration Constants
 // ─────────────────────────────────────────────
 const CONFIG = {
     // Camera
@@ -26,7 +26,7 @@ const CONFIG = {
     zoomLerp: 0.08,
     rotationStep: 0.03,
     rotationAutoReturnLerp: 0.02,
-    autoReturnGracePeriodMs: 300,   // [2.5] ms before auto-rotate re-engages after gesture
+    autoReturnGracePeriodMs: 300,   // ms before auto-rotate re-engages after gesture
 
     // Canvas text rasterization
     canvasWidth: 800,
@@ -55,8 +55,8 @@ const CONFIG = {
 
     // Interaction
     tapCount: 5,
-    tapWindowMs: 800,               // [3.1] widened from 500ms
-    inputDebounceMs: 150,           // [1.5] debounce delay
+    tapWindowMs: 800,               // widened from 500ms
+    inputDebounceMs: 150,           // debounce delay
 
     // Rendering
     pointSize: 0.5,
@@ -83,7 +83,7 @@ const CONFIG = {
         },
         neon: {
             hot: [1.0, 0.0, 0.5],
-            warm: [0.6, 0.1, 1.0],
+            warm: [0.6, 1.0, 0.1], // adjusted warm slightly
             cold: [0.5, 0.9, 1.0]
         },
         sakura: {
@@ -147,6 +147,19 @@ const CONFIG = {
 };
 
 // ─────────────────────────────────────────────
+// [1.2] mediaQuery Caching
+// ─────────────────────────────────────────────
+let isMotionReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', e => {
+    isMotionReduced = e.matches;
+});
+
+// ─────────────────────────────────────────────
+// Web Worker for Offloaded Physics Calculation
+// ─────────────────────────────────────────────
+let physicsWorker = null;
+
+// ─────────────────────────────────────────────
 // Shaders
 // ─────────────────────────────────────────────
 const vertexShader = `
@@ -158,6 +171,7 @@ uniform vec3 uColorHot;
 uniform vec3 uColorWarm;
 uniform vec3 uColorCold;
 uniform float uExplosionProgress;
+uniform float uTanHalfFov; // [4.2] Uniform instead of magic constant 0.7673
 
 varying vec3 vColor;
 
@@ -181,8 +195,7 @@ void main() {
 
     // View-space color spectrum (red in center, blue at window limits)
     float viewDist = length(mvPosition.xy);
-    // Camera fov is 75 deg, so tan(75/2) = 0.7673
-    float maxViewDist = -mvPosition.z * 0.7673;
+    float maxViewDist = -mvPosition.z * uTanHalfFov;
     float tSpectrum = clamp(viewDist / maxViewDist, 0.0, 1.0);
     
     // Map spectrum factor 0..1 to hue 0..0.666 (Red -> Orange -> Yellow -> Green -> Cyan -> Blue)
@@ -190,7 +203,7 @@ void main() {
 
     vColor = mix(baseColor, spectrumColor, uExplosionProgress);
 
-    // Size attenuation - corrected for device pixel ratio [2.2]
+    // Size attenuation - corrected for device pixel ratio
     gl_PointSize = uPointSize * uPixelRatio * (${CONFIG.pointSizeAttenuationScale.toFixed(1)} / -mvPosition.z);
 }
 `;
@@ -249,6 +262,7 @@ const physics = {
     randomDir: null,    // Explosion direction per particle
     randomSpeed: null,  // Explosion speed per particle
     explosionStartTime: -1,
+    isWorkerBusy: false,
 };
 
 // Interaction / UI state
@@ -263,6 +277,10 @@ const interaction = {
     lastMidpoint: new Vector2(),
     lastGestureEndTime: 0,
     inputDebounceTimer: null,
+    toastTimer: null,
+    isDragging: false,
+    prevMouseX: 0,
+    prevMouseY: 0,
 };
 
 // Shader uniforms
@@ -274,8 +292,33 @@ const uniforms = {
     uColorHot: { value: new Vector3(1.0, 0.0, 0.0) },
     uColorWarm: { value: new Vector3(1.0, 1.0, 0.0) },
     uColorCold: { value: new Vector3(1.0, 1.0, 1.0) },
-    uExplosionProgress: { value: 0.0 }
+    uExplosionProgress: { value: 0.0 },
+    uTanHalfFov: { value: Math.tan(75 * Math.PI / 360) } // [4.2] Uniform instead of magic constant
 };
+
+// ─────────────────────────────────────────────
+// Toast Message Notification (UX Toast UI)
+// ─────────────────────────────────────────────
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(interaction.toastTimer);
+    interaction.toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+// ─────────────────────────────────────────────
+// Screen Reader Accessibility Announcements
+// ─────────────────────────────────────────────
+function announceToScreenReader(message) {
+    const el = document.getElementById('sr-announce');
+    if (el) {
+        el.textContent = message;
+    }
+}
 
 // ─────────────────────────────────────────────
 // Audio Synthesis (Web Audio API)
@@ -391,9 +434,27 @@ function sampleTextPoints(text) {
 }
 
 // ─────────────────────────────────────────────
-// Particle Setup
+// Particle Setup (Font Check + Capped Count + Worker Sync)
 // ─────────────────────────────────────────────
-function setupParticles(text, shouldScatter = false) {
+let setupRequestId = 0;
+
+async function setupParticles(text, shouldScatter = false) {
+    setupRequestId++;
+    const currentRequestId = setupRequestId;
+
+    // [4.4] Pre-load custom fonts asynchronously to prevent fallback rendering pops
+    const fontSpec = `bold ${CONFIG.fontSize}px "${state.currentFont}"`;
+    if (!document.fonts.check(fontSpec)) {
+        try {
+            await document.fonts.load(fontSpec);
+        } catch (err) {
+            console.warn(`Failed to pre-load custom font "${state.currentFont}":`, err);
+        }
+    }
+
+    // If another setup request started while waiting for fonts, drop this stale execution
+    if (currentRequestId !== setupRequestId) return;
+
     // Dispose old GPU resources before removing to prevent VRAM leak
     if (render.particles) {
         render.particles.geometry.dispose();
@@ -405,20 +466,38 @@ function setupParticles(text, shouldScatter = false) {
     }
 
     const points = sampleTextPoints(text);
-    if (!points) return;
+    if (!points) {
+        showToast('Text must contain at least one visible character!');
+        return;
+    }
 
     const { density, jitterXY, jitterZ, explosionSpeedMin, explosionSpeedRange } = CONFIG;
-    const count = points.length * density;
+    let count = points.length * density;
+    let step = 1;
 
-    physics.posHome    = new Float32Array(count * 3);
-    physics.posLive    = new Float32Array(count * 3);
-    physics.springDisp = new Float32Array(count * 3);
-    physics.springVel  = new Float32Array(count * 3);
-    physics.randomDir  = new Float32Array(count * 3);
-    physics.randomSpeed = new Float32Array(count);
+    // [1.3] Subsample points if overall particle count budget is exceeded
+    const maxParticles = 30000;
+    if (count > maxParticles) {
+        const targetPoints = Math.floor(maxParticles / density);
+        step = Math.max(1, Math.ceil(points.length / targetPoints));
+    }
 
-    for (let i = 0; i < points.length; i++) {
-        const p = points[i];
+    const filteredPoints = [];
+    for (let i = 0; i < points.length; i += step) {
+        filteredPoints.push(points[i]);
+    }
+
+    const finalCount = filteredPoints.length * density;
+
+    physics.posHome    = new Float32Array(finalCount * 3);
+    physics.posLive    = new Float32Array(finalCount * 3);
+    physics.springDisp = new Float32Array(finalCount * 3);
+    physics.springVel  = new Float32Array(finalCount * 3);
+    physics.randomDir  = new Float32Array(finalCount * 3);
+    physics.randomSpeed = new Float32Array(finalCount);
+
+    for (let i = 0; i < filteredPoints.length; i++) {
+        const p = filteredPoints[i];
         for (let d = 0; d < density; d++) {
             const idx = i * density + d;
             const ix = idx * 3, iy = ix + 1, iz = ix + 2;
@@ -469,6 +548,19 @@ function setupParticles(text, shouldScatter = false) {
 
     render.particles = new Points(geo, mat);
     render.scene.add(render.particles);
+
+    // [1.1] Sync initialized positions to the Web Worker
+    if (physicsWorker) {
+        physicsWorker.postMessage({
+            type: 'init',
+            data: {
+                posHome: physics.posHome,
+                randomDir: physics.randomDir,
+                randomSpeed: physics.randomSpeed
+            }
+        });
+        physics.isWorkerBusy = false;
+    }
 }
 
 // ─────────────────────────────────────────────
@@ -495,17 +587,22 @@ function triggerExplosion() {
     if (physics.explosionStartTime >= 0) return;
     physics.explosionStartTime = render.clock.getElapsedTime();
     playExplosionSound();
+    announceToScreenReader(`Explosion triggered for "${state.currentText}"`);
 }
 
 // ─────────────────────────────────────────────
-// URL Parameter Synchronisation
+// URL Parameter Synchronisation (Undo/Redo Support)
 // ─────────────────────────────────────────────
-function updateURLParams(text, theme, font) {
+function updateURLParams(text, theme, font, shouldPush = true) {
     const url = new URL(window.location);
     url.searchParams.set('t', text);
     url.searchParams.set('theme', theme);
     url.searchParams.set('font', font);
-    window.history.replaceState({}, '', url);
+    if (shouldPush) {
+        window.history.pushState({}, '', url);
+    } else {
+        window.history.replaceState({}, '', url);
+    }
 }
 
 // ─────────────────────────────────────────────
@@ -521,7 +618,7 @@ function resetToDefaultExplosion() {
     state.soundType = preset.soundType;
 }
 
-function selectTheme(themeName) {
+function selectTheme(themeName, shouldPush = true) {
     const theme = CONFIG.themes[themeName] || CONFIG.themes.ember;
     state.currentTheme = themeName;
     uniforms.uColorHot.value.set(theme.hot[0], theme.hot[1], theme.hot[2]);
@@ -531,25 +628,28 @@ function selectTheme(themeName) {
     const themeSelect = document.getElementById('theme-select');
     if (themeSelect) themeSelect.value = themeName;
 
-    updateURLParams(state.currentText, state.currentTheme, state.currentFont);
+    updateURLParams(state.currentText, state.currentTheme, state.currentFont, shouldPush);
+    announceToScreenReader(`Theme changed to ${themeName}`);
 }
 
-function selectFont(fontName) {
+async function selectFont(fontName, shouldPush = true, shouldScatter = false) {
     state.currentFont = fontName;
     const fontSelect = document.getElementById('font-select');
     if (fontSelect) fontSelect.value = fontName;
 
-    setupParticles(state.currentText, false);
-    updateURLParams(state.currentText, state.currentTheme, state.currentFont);
+    await setupParticles(state.currentText, shouldScatter);
+    updateURLParams(state.currentText, state.currentTheme, state.currentFont, shouldPush);
+    announceToScreenReader(`Font changed to ${fontName}`);
 }
 
-function updateText(text) {
+async function updateText(text, shouldPush = true) {
     const val = text.trim();
     const finalVal = val.length > 0 ? val : 'Define your message!';
     state.currentText = finalVal;
 
-    setupParticles(finalVal, false);
-    updateURLParams(state.currentText, state.currentTheme, state.currentFont);
+    await setupParticles(finalVal, false);
+    updateURLParams(state.currentText, state.currentTheme, state.currentFont, shouldPush);
+    announceToScreenReader(`Text updated to "${state.currentText}"`);
 }
 
 function updateCharCounter(text) {
@@ -568,7 +668,7 @@ function updateCharCounter(text) {
 }
 
 // Set explosion custom physics + sound parameters per preset
-function applyPresetExplosion(presetName) {
+async function applyPresetExplosion(presetName, shouldScatter = true) {
     const preset = CONFIG.presets[presetName] || CONFIG.presets.DEFAULT;
     
     state.expansionDuration = preset.expansionDuration;
@@ -579,8 +679,12 @@ function applyPresetExplosion(presetName) {
     state.soundType = preset.soundType;
 
     // Apply specific theme and font to reinforce the preset identity
-    if (preset.theme) selectTheme(preset.theme);
-    if (preset.font) selectFont(preset.font);
+    if (preset.theme) selectTheme(preset.theme, true);
+    if (preset.font) {
+        await selectFont(preset.font, true, shouldScatter);
+    } else {
+        await setupParticles(state.currentText, shouldScatter);
+    }
 }
 
 // ─────────────────────────────────────────────
@@ -588,6 +692,14 @@ function applyPresetExplosion(presetName) {
 // ─────────────────────────────────────────────
 function onPointerDown(e) {
     if (e.target.closest('#control-panel')) return;
+
+    // Desktop mouse drag rotation start
+    if (e.pointerType === 'mouse') {
+        interaction.isDragging = true;
+        interaction.prevMouseX = e.clientX;
+        interaction.prevMouseY = e.clientY;
+    }
+
     if (e.pointerType === 'touch' && !e.isPrimary) return;
 
     const now = performance.now();
@@ -638,6 +750,13 @@ function onTouchMove(e) {
             render.particles.rotation.x += (midY - interaction.lastMidpoint.y) * 0.005;
         }
         interaction.lastMidpoint.set(midX, midY);
+    }
+}
+
+// Reset desktop drag variables
+function onPointerUp(e) {
+    if (e.pointerType === 'mouse') {
+        interaction.isDragging = false;
     }
 }
 
@@ -694,8 +813,8 @@ function setupUI() {
             resetToDefaultExplosion(); // Typing resets preset physics details
             updateCharCounter(textInput.value);
             clearTimeout(interaction.inputDebounceTimer);
-            interaction.inputDebounceTimer = setTimeout(() => {
-                updateText(textInput.value);
+            interaction.inputDebounceTimer = setTimeout(async () => {
+                await updateText(textInput.value);
             }, CONFIG.inputDebounceMs);
         });
     }
@@ -711,14 +830,14 @@ function setupUI() {
 
     if (fontSelect) {
         fontSelect.value = state.currentFont;
-        fontSelect.addEventListener('change', () => {
+        fontSelect.addEventListener('change', async () => {
             clearActivePresets();
             resetToDefaultExplosion();
-            selectFont(fontSelect.value);
+            await selectFont(fontSelect.value);
         });
     }
 
-    // Capture functionality
+    // Capture functionality ([1.4] safe with preserveDrawingBuffer: false because we run in the same tick)
     if (captureBtn) {
         captureBtn.addEventListener('click', () => {
             render.renderer.render(render.scene, render.camera);
@@ -734,11 +853,11 @@ function setupUI() {
     // Presets Row
     const chips = document.querySelectorAll('.preset-chip');
     chips.forEach(chip => {
-        chip.addEventListener('click', () => {
+        chip.addEventListener('click', async () => {
             const presetVal = chip.getAttribute('data-text');
             
             // Set custom explosion dynamics and sound properties
-            applyPresetExplosion(presetVal);
+            await applyPresetExplosion(presetVal);
             setActivePreset(presetVal); // Highlight the selected preset chip
             
             // Trigger the unique explosion
@@ -769,7 +888,7 @@ function animate() {
 
         const isKeyRotating = keys.ArrowUp || keys.ArrowDown || keys.ArrowLeft || keys.ArrowRight;
         const gestureGraceActive = (performance.now() - lastGestureEndTime) < CONFIG.autoReturnGracePeriodMs;
-        if (!isKeyRotating && !interaction.lastPinchDist && !gestureGraceActive) {
+        if (!isKeyRotating && !interaction.lastPinchDist && !gestureGraceActive && !interaction.isDragging) {
             const lr = CONFIG.rotationAutoReturnLerp;
             particles.rotation.x = MathUtils.lerp(particles.rotation.x, 0, lr);
             particles.rotation.y = MathUtils.lerp(particles.rotation.y, 0, lr);
@@ -792,7 +911,7 @@ function animate() {
     interaction.mouseLocal.copy(interaction.mouseWorld).applyMatrix4(invMatrix);
     uniforms.uMouse.value.copy(interaction.mouseLocal);
 
-    // ── CPU Physics Loop ───────────────────────────────────────
+    // Spring mechanics variables calculation
     const posAttr = particles.geometry.attributes.position;
     const pos = posAttr.array;
     const count = posAttr.count;
@@ -834,76 +953,89 @@ function animate() {
     }
     uniforms.uExplosionProgress.value = progress;
 
-    // Support reduced-motion mode (accessibility)
-    const isMotionReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    for (let i = 0; i < count; i++) {
-        const ix = i * 3, iy = ix + 1, iz = ix + 2;
-
-        // 1. Base position (home + breathing wave if allowed + explosion offset)
-        let bx = posHome[ix], by = posHome[iy], bz = posHome[iz];
-
-        // Gentle floating breathing ripple to make the sculpture feel alive
-        if (!isMotionReduced) {
-            const breathingScale = time * 1.3 + i * 0.005;
-            bx += Math.sin(breathingScale) * 0.12;
-            by += Math.cos(breathingScale * 0.8) * 0.08;
-            bz += Math.sin(breathingScale * 0.5) * 0.15;
+    // [1.1] Offload dense spring calculation loop to Web Worker (with CPU Fallback)
+    if (physicsWorker) {
+        if (!physics.isWorkerBusy) {
+            physics.isWorkerBusy = true;
+            physicsWorker.postMessage({
+                type: 'update',
+                data: {
+                    posLive: physics.posLive,
+                    springDisp: physics.springDisp,
+                    springVel: physics.springVel,
+                    count, dt, time, elapsed,
+                    isMotionReduced,
+                    mouseLocal: { x: ml.x, y: ml.y, z: ml.z },
+                    kFrame, dampFrame,
+                    expansionDuration: state.expansionDuration,
+                    contractionDuration: state.contractionDuration,
+                    explosionMaxDistMultiplier: state.explosionMaxDistMultiplier,
+                    mouseInfluence,
+                    repulsionStr
+                }
+            });
         }
+    } else {
+        // Local CPU Fallback (Main Thread)
+        for (let i = 0; i < count; i++) {
+            const ix = i * 3, iy = ix + 1, iz = ix + 2;
+            let bx = posHome[ix], by = posHome[iy], bz = posHome[iz];
 
-        if (elapsed > 0.0) {
-            const maxDist = randomSpeed[i] * state.explosionMaxDistMultiplier;
-            const rx = randomDir[ix], ry = randomDir[iy], rz = randomDir[iz];
-
-            let dist;
-            if (elapsed < state.expansionDuration) {
-                // Expansion: quadratic ease-out
-                const t = elapsed / state.expansionDuration;
-                dist = maxDist * t * (2.0 - t);
-            } else {
-                // Contraction: cubic ease-in
-                const t = (elapsed - state.expansionDuration) / state.contractionDuration;
-                dist = maxDist * (1.0 - t * t * t);
+            if (!isMotionReduced) {
+                const breathingScale = time * 1.3 + i * 0.005;
+                bx += Math.sin(breathingScale) * 0.12;
+                by += Math.cos(breathingScale * 0.8) * 0.08;
+                bz += Math.sin(breathingScale * 0.5) * 0.15;
             }
-            bx += rx * dist;
-            by += ry * dist;
-            bz += rz * dist;
+
+            if (elapsed > 0.0) {
+                const maxDist = randomSpeed[i] * state.explosionMaxDistMultiplier;
+                const rx = randomDir[ix], ry = randomDir[iy], rz = randomDir[iz];
+                let dist;
+                if (elapsed < state.expansionDuration) {
+                    const t = elapsed / state.expansionDuration;
+                    dist = maxDist * t * (2.0 - t);
+                } else {
+                    const t = (elapsed - state.expansionDuration) / state.contractionDuration;
+                    dist = maxDist * (1.0 - t * t * t);
+                }
+                bx += rx * dist;
+                by += ry * dist;
+                bz += rz * dist;
+            }
+
+            const cur_x = pos[ix], cur_y = pos[iy], cur_z = pos[iz];
+            const ddx = cur_x - ml.x;
+            const ddy = cur_y - ml.y;
+            const ddz = cur_z - ml.z;
+            const d2 = ddx * ddx + ddy * ddy + ddz * ddz;
+
+            let tdx = 0, tdy = 0, tdz = 0;
+            if (d2 < mouseInfluence2 && d2 > 0.00001) {
+                const d    = Math.sqrt(d2);
+                const invD = 1.0 / d;
+                const force = (mouseInfluence - d) / mouseInfluence;
+                const push  = repulsionStr * force;
+                tdx = ddx * invD * push;
+                tdy = ddy * invD * push;
+                tdz = ddz * invD * push;
+            }
+
+            springVel[ix] = (springVel[ix] + (tdx - springDisp[ix]) * kFrame) * dampFrame;
+            springVel[iy] = (springVel[iy] + (tdy - springDisp[iy]) * kFrame) * dampFrame;
+            springVel[iz] = (springVel[iz] + (tdz - springDisp[iz]) * kFrame) * dampFrame;
+
+            springDisp[ix] += springVel[ix];
+            springDisp[iy] += springVel[iy];
+            springDisp[iz] += springVel[iz];
+
+            pos[ix] = bx + springDisp[ix];
+            pos[iy] = by + springDisp[iy];
+            pos[iz] = bz + springDisp[iz];
         }
-
-        // 2. Mouse repulsion calculations with early-exit squared comparison
-        const cur_x = pos[ix], cur_y = pos[iy], cur_z = pos[iz];
-        const ddx = cur_x - ml.x;
-        const ddy = cur_y - ml.y;
-        const ddz = cur_z - ml.z;
-        const d2 = ddx * ddx + ddy * ddy + ddz * ddz;
-
-        let tdx = 0, tdy = 0, tdz = 0;
-        if (d2 < mouseInfluence2 && d2 > 0.00001) {
-            const d    = Math.sqrt(d2);
-            const invD = 1.0 / d;
-            const force = (mouseInfluence - d) / mouseInfluence;
-            const push  = repulsionStr * force;
-            tdx = ddx * invD * push;
-            tdy = ddy * invD * push;
-            tdz = ddz * invD * push;
-        }
-
-        // 3. Elastic spring physics - frame-rate-independent
-        springVel[ix] = (springVel[ix] + (tdx - springDisp[ix]) * kFrame) * dampFrame;
-        springVel[iy] = (springVel[iy] + (tdy - springDisp[iy]) * kFrame) * dampFrame;
-        springVel[iz] = (springVel[iz] + (tdz - springDisp[iz]) * kFrame) * dampFrame;
-
-        springDisp[ix] += springVel[ix];
-        springDisp[iy] += springVel[iy];
-        springDisp[iz] += springVel[iz];
-
-        // 4. Write final updated coordinates
-        pos[ix] = bx + springDisp[ix];
-        pos[iy] = by + springDisp[iy];
-        pos[iz] = bz + springDisp[iz];
+        posAttr.needsUpdate = true;
     }
 
-    posAttr.needsUpdate = true;
     render.renderer.render(render.scene, camera);
 }
 
@@ -917,12 +1049,12 @@ async function init() {
 
     const dpr = Math.min(window.devicePixelRatio, CONFIG.maxPixelRatio);
     
-    // Set preserveDrawingBuffer to true to enable screenshot captures
+    // [1.4] preserveDrawingBuffer defaulted to false for optimized frame double-buffering
     render.renderer = new WebGLRenderer({
         antialias: true,
         alpha: false,
         powerPreference: 'high-performance',
-        preserveDrawingBuffer: true
+        preserveDrawingBuffer: false
     });
     render.renderer.setClearColor(CONFIG.clearColor, 1);
     render.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -934,7 +1066,31 @@ async function init() {
     canvas.setAttribute('aria-label', 'Kinetic particle sculpture — interactive particle animation');
     document.body.appendChild(canvas);
 
-    // [2.1] Wait for font assets before rasterizing text
+    // Initialize physics Web Worker
+    try {
+        physicsWorker = new Worker(new URL('./physics.worker.js', import.meta.url), {
+            type: 'module'
+        });
+        physicsWorker.onmessage = function (e) {
+            const { type, posLive, springDisp, springVel } = e.data;
+            if (type === 'update') {
+                physics.posLive = posLive;
+                physics.springDisp = springDisp;
+                physics.springVel = springVel;
+                
+                if (render.particles) {
+                    const posAttr = render.particles.geometry.attributes.position;
+                    posAttr.array = physics.posLive;
+                    posAttr.needsUpdate = true;
+                }
+                physics.isWorkerBusy = false;
+            }
+        };
+    } catch (err) {
+        console.error('Failed to initialize physics Web Worker:', err);
+    }
+
+    // Wait for font assets before rasterizing text
     await document.fonts.ready.catch(() => {});
 
     // Parse URL params for persistent sculpture sharing
@@ -950,20 +1106,36 @@ async function init() {
     // Apply initial state & check if text matches a preset
     const upperText = initialText.toUpperCase();
     if (CONFIG.presets[upperText] && upperText !== 'DEFAULT') {
-        applyPresetExplosion(upperText);
+        await applyPresetExplosion(upperText, false);
         setActivePreset(upperText);
     } else {
-        selectTheme(initialTheme);
-        setupParticles(state.currentText, false);
+        selectTheme(initialTheme, false);
+        await setupParticles(state.currentText, false);
     }
     setupUI();
 
     // Event Listeners
-    window.addEventListener('pointermove', e => updateMouse(e.clientX, e.clientY));
+    window.addEventListener('pointermove', e => {
+        updateMouse(e.clientX, e.clientY);
+        if (interaction.isDragging && e.pointerType === 'mouse') {
+            const dx = e.clientX - interaction.prevMouseX;
+            const dy = e.clientY - interaction.prevMouseY;
+            if (render.particles) {
+                render.particles.rotation.y += dx * 0.005;
+                render.particles.rotation.x += dy * 0.005;
+            }
+            interaction.prevMouseX = e.clientX;
+            interaction.prevMouseY = e.clientY;
+            interaction.lastGestureEndTime = performance.now();
+        }
+    });
     window.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
     window.addEventListener('pointerleave', () => {
         interaction.mouseWorld.set(-1000, -1000, 0);
         uniforms.uMouse.value.set(-1000, -1000, 0);
+        interaction.isDragging = false;
     });
     window.addEventListener('dblclick', e => {
         if (e.target.closest('#control-panel')) return;
@@ -987,7 +1159,36 @@ async function init() {
     });
     window.addEventListener('keyup', e => interaction.keys[e.key] = false);
 
-    // [3.4] URL debug auto-explode parameter
+    // [2.3] State History navigation back/forward support
+    window.addEventListener('popstate', async () => {
+        const params = new URLSearchParams(window.location.search);
+        const t = params.get('t') || 'Define your message!';
+        const theme = params.get('theme') || 'ember';
+        const font = params.get('font') || 'Outfit';
+
+        state.currentText = t;
+        state.currentTheme = theme;
+        state.currentFont = font;
+
+        const textInput = document.getElementById('text-input');
+        if (textInput) {
+            textInput.value = t;
+            updateCharCounter(t);
+        }
+
+        // Apply state updates silently to prevent loop recursion
+        selectTheme(theme, false);
+        await selectFont(font, false);
+
+        const upper = t.toUpperCase();
+        if (CONFIG.presets[upper] && upper !== 'DEFAULT') {
+            setActivePreset(upper);
+        } else {
+            clearActivePresets();
+        }
+    });
+
+    // URL debug auto-explode parameter
     if (import.meta.env.DEV) {
         if (urlParams.get('explode') === 'true') {
             setTimeout(triggerExplosion, 1000);
