@@ -222,7 +222,7 @@ void main() {
 
 // Global configuration state
 const state = {
-    currentText: 'Define your message!',
+    currentText: 'Define your message here!',
     currentTheme: 'ember',
     currentFont: 'Outfit',
 
@@ -644,7 +644,7 @@ async function selectFont(fontName, shouldPush = true, shouldScatter = false) {
 
 async function updateText(text, shouldPush = true) {
     const val = text.trim();
-    const finalVal = val.length > 0 ? val : 'Define your message!';
+    const finalVal = val.length > 0 ? val : 'Define your message here!';
     state.currentText = finalVal;
 
     await setupParticles(finalVal, false);
@@ -1095,7 +1095,7 @@ async function init() {
 
     // Parse URL params for persistent sculpture sharing
     const urlParams = new URLSearchParams(window.location.search);
-    const initialText = urlParams.get('t') || 'Define your message!';
+    const initialText = urlParams.get('t') || 'Define your message here!';
     const initialTheme = urlParams.get('theme') || 'ember';
     const initialFont = urlParams.get('font') || 'Outfit';
 
@@ -1162,7 +1162,7 @@ async function init() {
     // [2.3] State History navigation back/forward support
     window.addEventListener('popstate', async () => {
         const params = new URLSearchParams(window.location.search);
-        const t = params.get('t') || 'Define your message!';
+        const t = params.get('t') || 'Define your message here!';
         const theme = params.get('theme') || 'ember';
         const font = params.get('font') || 'Outfit';
 
