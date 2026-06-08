@@ -769,7 +769,7 @@ body {
 }
 
 .table-action-btn:hover {
-  background-color: var(--color-primary-light);
+  background-color: transparent;
 }
 
 .table-action-btn svg {
@@ -1032,7 +1032,7 @@ body {
   width: 100vw;
   max-width: 100vw;
   height: 100vh;
-  background: #e2e8f0; /* Darker grey than main page (#f8f9fa) */
+  background: #f1f3f4; /* Slightly darker than main page background (#f8f9fa) */
   border-left: 1px solid var(--color-border);
   box-shadow: -4px 0 24px rgba(60, 64, 67, 0.15);
   z-index: 100;
@@ -1047,9 +1047,9 @@ body {
 }
 
 .drawer-header {
-  padding: 2rem 2.5rem;
-  background: var(--color-surface); /* White background for header */
-  border-bottom: 1px solid var(--color-border);
+  padding: 2rem 2.5rem 0.75rem 2.5rem;
+  background: transparent;
+  border-bottom: none;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -1080,7 +1080,7 @@ body {
 }
 
 .btn-close-drawer {
-  background: var(--color-bg);
+  background: transparent;
   border: none;
   color: var(--color-text-secondary);
   padding: 0.6rem;
@@ -1105,13 +1105,11 @@ body {
 .drawer-body {
   flex-grow: 1;
   overflow-y: auto;
-  padding: 2.5rem 2.5rem 80vh 2.5rem;
+  padding: 1.5rem 2.5rem 2.5rem 2.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
 }
-
-
 
 .score-badge {
   background-color: var(--color-primary);
@@ -1129,107 +1127,198 @@ body {
 .score-badge.score-5 { background-color: var(--color-score-5); } /* Green */
 
 #drawerSuitabilityScore {
-  font-size: 2rem;
-  padding: 0.3rem 0.9rem;
-  border-radius: var(--radius-md);
-  display: inline-block;
+  font-size: inherit;
+  padding: 0;
+  border-radius: 0;
+  display: inline;
+  line-height: 1;
+  background: none !important;
+  color: inherit !important;
+}
+
+/* Card Container wrapper for Drawer Body content */
+.drawer-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+/* Remove secondary card borders/shadows/padding when nested inside the drawer-card */
+.drawer-tab-pane .info-group {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* Tab Component Styles (Pill container design matching Home tab menu .app-nav) */
+.drawer-tabs {
+  display: inline-flex;
+  background: var(--color-surface);
+  border-radius: 100px;
+  padding: 0.4rem;
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.12), 0 1px 2px rgba(60, 64, 67, 0.24);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  gap: 0.25rem;
+  margin-bottom: 1.25rem;
+  align-self: flex-start; /* Keeps it left-aligned */
+}
+
+.drawer-tab {
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  padding: 0.55rem 1.35rem;
+  border-radius: 100px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all var(--transition-base);
+  outline: none;
+}
+
+.drawer-tab svg {
+  width: 16px !important;
+  height: 16px !important;
+  transition: transform var(--transition-base);
+  pointer-events: none;
+}
+
+.drawer-tab:hover {
+  color: var(--color-text-primary);
+  background-color: #e8eaed;
+}
+
+.drawer-tab:hover svg {
+  transform: scale(1.05);
+}
+
+.drawer-tab.active {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(26, 115, 232, 0.25);
+}
+
+.drawer-tab.active svg {
+  color: #ffffff;
+}
+
+.drawer-tab.disabled {
+  opacity: 0.35;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.drawer-tab:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Tab Pane active state */
+.drawer-tab-pane {
+  display: none;
+  animation: fadeInTab 0.3s ease-out;
+}
+
+.drawer-tab-pane.active {
+  display: block;
+}
+
+@keyframes fadeInTab {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Suitability Score Circle Indicator */
+.suitability-score-circle-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem 0;
+  width: 100%;
+}
+
+.suitability-score-circle {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.score-circle-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.score-circle-bg {
+  fill: none;
+  stroke: #dadce0;
+  stroke-width: 8;
+}
+
+.score-circle-fill {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.4s ease;
+  stroke-dasharray: 251.2;
+  stroke-dashoffset: 251.2;
+}
+
+/* Color coding by suitability score */
+.suitability-score-circle.score-1 .score-circle-fill { stroke: var(--color-score-1); }
+.suitability-score-circle.score-2 .score-circle-fill { stroke: var(--color-score-2); }
+.suitability-score-circle.score-3 .score-circle-fill { stroke: var(--color-score-3); }
+.suitability-score-circle.score-4 .score-circle-fill { stroke: var(--color-score-4); }
+.suitability-score-circle.score-5 .score-circle-fill { stroke: var(--color-score-5); }
+
+.score-circle-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
 }
 
-/* Accordion Styles */
-.drawer-section {
-  display: flex;
-  flex-direction: column;
-}
-
-.drawer-section.hidden {
-  display: none !important;
-}
-
-.accordion-item {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  padding-bottom: 1rem;
-}
-
-.accordion-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.accordion-header {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: transparent;
-  border: none;
-  padding: 0.85rem 0;
-  cursor: pointer;
-  outline: none;
-  text-align: left;
-  font-family: inherit;
-  transition: color var(--transition-base);
-}
-
-.accordion-header:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-.accordion-header h4 {
-  font-size: 0.95rem;
-  font-weight: 500;
+.score-circle-value {
+  font-size: 2.25rem;
+  font-weight: 700;
   color: var(--color-text-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-left: 3px solid var(--color-primary);
-  padding-left: 0.75rem;
-  margin: 0;
-  transition: color var(--transition-base);
+  transition: color 0.4s ease;
 }
 
-.accordion-header:hover h4 {
-  color: var(--color-primary);
-}
+.suitability-score-circle.score-1 .score-circle-value { color: var(--color-score-1); }
+.suitability-score-circle.score-2 .score-circle-value { color: var(--color-score-2); }
+.suitability-score-circle.score-3 .score-circle-value { color: var(--color-score-3); }
+.suitability-score-circle.score-4 .score-circle-value { color: var(--color-score-4); }
+.suitability-score-circle.score-5 .score-circle-value { color: var(--color-score-5); }
 
-.accordion-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.score-circle-max {
+  font-size: 0.85rem;
   color: var(--color-text-secondary);
-  transition: transform var(--transition-base), color var(--transition-base);
-}
-
-.accordion-icon svg {
-  width: 18px;
-  height: 18px;
-}
-
-.accordion-header:hover .accordion-icon {
-  color: var(--color-primary);
-}
-
-.accordion-item.active .accordion-icon {
-  transform: rotate(180deg);
-  color: var(--color-primary);
-}
-
-/* Accordion Expand/Collapse Animation */
-.accordion-content {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
-}
-
-.accordion-item.active .accordion-content {
-  grid-template-rows: 1fr;
-}
-
-.accordion-content-inner {
-  min-height: 0;
-  padding-top: 0.75rem;
+  font-weight: 500;
+  margin-top: 0.25rem;
 }
 
 
@@ -1246,6 +1335,11 @@ body {
   white-space: pre-wrap;
   max-height: 280px;
   overflow-y: auto;
+}
+
+#drawerJobDescription,
+#drawerCompanyDescription {
+  max-height: 560px;
 }
 
 /* Comments Box Styling */
@@ -1437,7 +1531,7 @@ body {
   box-sizing: border-box;
 }
 
-/* Desktop layout for Job Interview (2x1 side-by-side) */
+/* Desktop layout for Job Interview */
 @media (min-width: 641px) {
   .interview-matrix-grid > div {
     padding: 0;
@@ -1470,6 +1564,11 @@ body {
     padding-top: 1.25rem;
     padding-bottom: 0;
   }
+}
+
+#drawerInterviewCompany,
+#drawerInterviewPreparation {
+  max-height: 560px;
 }
 .info-row {
   display: flex;
@@ -1703,27 +1802,41 @@ body {
 /* Markdown Content Styling for Details Drawer */
 .text-block.markdown-content {
   white-space: normal;
-  height: 560px;         /* Fixed height - twice the default 280px - always expanded */
-  max-height: none;      /* Remove any max-height cap */
-  font-size: 0.8rem;
-  line-height: 1.35;
-  padding: 0.75rem 1rem;
+  height: auto;
+  max-height: 500px;
+  overflow-y: auto;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  padding: 1rem 1.25rem;
 }
 
 .text-block.markdown-content p {
-  margin: 0 0 0.3em 0;
+  margin: 0 0 0.75rem 0;
 }
 
 .text-block.markdown-content p:last-child {
   margin-bottom: 0;
 }
 
-.text-block.markdown-content h1,
-.text-block.markdown-content h2,
-.text-block.markdown-content h3 {
+.text-block.markdown-content h1 {
+  font-size: 1.25rem;
   font-weight: 600;
   color: var(--color-text-primary);
-  margin: 0.5rem 0 0.15rem 0;
+  margin: 1.25rem 0 0.5rem 0;
+}
+
+.text-block.markdown-content h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 1rem 0 0.4rem 0;
+}
+
+.text-block.markdown-content h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0.85rem 0 0.3rem 0;
 }
 
 .text-block.markdown-content h1:first-child,
@@ -1734,15 +1847,15 @@ body {
 
 .text-block.markdown-content ul,
 .text-block.markdown-content ol {
-  margin: 0 0 0.3em 1rem; /* No top margin, tight bottom, compact indent */
+  margin: 0.5rem 0 0.75rem 1.5rem;
   padding: 0;
 }
 
 .text-block.markdown-content li {
-  margin: 0;             /* Zero gap between bullet items */
+  margin: 0.25rem 0;
   padding: 0;
   color: var(--color-text-secondary);
-  list-style-position: inside;
+  list-style-position: outside;
 }
 
 .text-block.markdown-content strong {

@@ -518,7 +518,7 @@
         <h3 id="drawerCompanyName">Company Name</h3>
       </div>
       <button class="btn-close-drawer" id="btnCloseDrawer" aria-label="Close detail panel">
-        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        <svg aria-hidden="true" width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 6 6 18" />
           <path d="m6 6 12 12" />
@@ -526,168 +526,161 @@
       </button>
     </div>
     <div class="drawer-body">
-      <!-- Section B: Application Status -->
-      <div class="drawer-section accordion-item active" id="sectionB_Status">
-        <button class="accordion-header" type="button">
-          <h4>Application Status</h4>
-          <span class="accordion-icon">
-            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </span>
+      <!-- Tab Navigation Bar -->
+      <div class="drawer-tabs" role="tablist" aria-label="Application details tabs">
+        <button class="drawer-tab active" id="tabOverview" role="tab" aria-selected="true" aria-controls="sectionB_Status">
+          <svg aria-hidden="true" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 16v-4" />
+            <path d="M12 8h.01" />
+          </svg>
+          Overview
         </button>
-        <div class="accordion-content">
-          <div class="accordion-content-inner">
-            <div class="info-group status-matrix-grid">
-              <div class="info-row-block">
-                <span class="info-label">Applied Date</span>
-                <span class="info-value" id="drawerDate">-</span>
-              </div>
-              <div class="info-row-block" id="sectionComments">
-                <span class="info-label">Comments</span>
-                <div class="comments-box" id="drawerComments">-</div>
-              </div>
-              <div class="info-row-block" id="sectionFollowUp">
-                <span class="info-label">Follow-up</span>
-                <span class="info-value" id="drawerFollowUp">-</span>
-              </div>
-              <div class="info-row-block">
-                <span class="info-label">Hiring Team</span>
-                <span class="info-value" id="drawerHiringTeam">-</span>
-              </div>
+        <button class="drawer-tab" id="tabDetails" role="tab" aria-selected="false" aria-controls="sectionC_Details">
+          <svg aria-hidden="true" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+            <rect width="20" height="14" x="2" y="6" rx="2" />
+          </svg>
+          Job Details
+        </button>
+        <button class="drawer-tab" id="tabSuitability" role="tab" aria-selected="false" aria-controls="sectionD_Suitability">
+          <svg aria-hidden="true" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="8" r="7" />
+            <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
+          </svg>
+          Suitability
+        </button>
+        <button class="drawer-tab" id="tabInterview" role="tab" aria-selected="false" aria-controls="sectionE_JobInterview">
+          <svg aria-hidden="true" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+          Interview
+        </button>
+      </div>
+
+      <div class="drawer-card">
+        <!-- Section B: Application Status -->
+        <div class="drawer-tab-pane active" id="sectionB_Status" role="tabpanel" aria-labelledby="tabOverview">
+          <div class="info-group status-matrix-grid">
+            <div class="info-row-block">
+              <span class="info-label">Applied Date</span>
+              <span class="info-value" id="drawerDate">-</span>
+            </div>
+            <div class="info-row-block" id="sectionComments">
+              <span class="info-label">Comments</span>
+              <div class="comments-box" id="drawerComments">-</div>
+            </div>
+            <div class="info-row-block" id="sectionFollowUp">
+              <span class="info-label">Follow-up</span>
+              <span class="info-value" id="drawerFollowUp">-</span>
+            </div>
+            <div class="info-row-block">
+              <span class="info-label">Hiring Team</span>
+              <span class="info-value" id="drawerHiringTeam">-</span>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Section C: Job Details -->
-      <div class="drawer-section accordion-item" id="sectionC_Details">
-        <button class="accordion-header" type="button">
-          <h4>Job Details</h4>
-          <span class="accordion-icon">
-            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </span>
-        </button>
-        <div class="accordion-content">
-          <div class="accordion-content-inner">
-            <div class="info-group details-matrix-grid">
-              <div class="info-row-block">
-                <div class="description-header">
-                  <span class="info-label">Job Description</span>
-                  <a href="#" target="_blank" class="inline-link-btn" id="linkJobUrl">
-                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                      <polyline points="15 3 21 3 21 9" />
-                      <line x1="10" x2="21" y1="14" y2="3" />
-                    </svg>
-                    View Job URL
-                  </a>
-                </div>
-                <div class="text-block" id="drawerJobDescription">-</div>
+        <!-- Section C: Job Details -->
+        <div class="drawer-tab-pane" id="sectionC_Details" role="tabpanel" aria-labelledby="tabDetails">
+          <div class="info-group details-matrix-grid">
+            <div class="info-row-block">
+              <div class="description-header">
+                <span class="info-label">Job Description</span>
+                <a href="#" target="_blank" class="inline-link-btn" id="linkJobUrl">
+                  <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    <polyline points="15 3 21 3 21 9" />
+                    <line x1="10" x2="21" y1="14" y2="3" />
+                  </svg>
+                  View Job URL
+                </a>
               </div>
-              <div class="info-row-block">
-                <div class="description-header">
-                  <span class="info-label">Company Description</span>
-                  <a href="#" target="_blank" class="inline-link-btn secondary" id="linkCompanyFolder">
-                    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path
-                        d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
-                    </svg>
-                    Drive Folder
-                  </a>
-                </div>
-                <div class="text-block" id="drawerCompanyDescription">-</div>
+              <div class="text-block" id="drawerJobDescription">-</div>
+            </div>
+            <div class="info-row-block">
+              <div class="description-header">
+                <span class="info-label">Company Description</span>
+                <a href="#" target="_blank" class="inline-link-btn secondary" id="linkCompanyFolder">
+                  <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                      d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+                  </svg>
+                  Drive Folder
+                </a>
               </div>
+              <div class="text-block" id="drawerCompanyDescription">-</div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Section D: Job vs CV Suitability -->
-      <div class="drawer-section accordion-item" id="sectionD_Suitability">
-        <button class="accordion-header" type="button">
-          <h4>Job Suitability</h4>
-          <span class="accordion-icon">
-            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </span>
-        </button>
-        <div class="accordion-content">
-          <div class="accordion-content-inner">
-            <div class="info-group suitability-matrix-grid">
-              <div class="info-row-block" id="drawerSuitabilityScoreContainer">
-                <span class="info-label">Job Suitability Score</span>
-                <div>
-                  <span class="score-badge" id="drawerSuitabilityScore">-</span>
+        <!-- Section D: Job vs CV Suitability -->
+        <div class="drawer-tab-pane" id="sectionD_Suitability" role="tabpanel" aria-labelledby="tabSuitability">
+          <div class="info-group suitability-matrix-grid">
+            <div class="info-row-block" id="drawerSuitabilityScoreContainer">
+              <span class="info-label">Job Suitability Score</span>
+              <div class="suitability-score-circle-wrapper">
+                <div class="suitability-score-circle" id="suitabilityScoreCircle">
+                  <svg class="score-circle-svg" viewBox="0 0 100 100">
+                    <!-- Background track -->
+                    <circle class="score-circle-bg" cx="50" cy="50" r="40" />
+                    <!-- Active fill segment -->
+                    <circle class="score-circle-fill" id="scoreCircleFill" cx="50" cy="50" r="40" />
+                  </svg>
+                  <div class="score-circle-text">
+                    <span class="score-circle-value" id="drawerSuitabilityScore">-</span>
+                    <span class="score-circle-max">/ 5</span>
+                  </div>
                 </div>
               </div>
-              <div class="info-row-block" id="sectionSuitabilityEval">
-                <span class="info-label">Job Suitability Evaluation</span>
-                <div class="suitability-box" id="drawerSuitabilityEval">-</div>
-              </div>
+            </div>
+            <div class="info-row-block" id="sectionSuitabilityEval">
+              <span class="info-label">Job Suitability Evaluation</span>
+              <div class="suitability-box" id="drawerSuitabilityEval">-</div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Section E: Job Interview -->
-      <div class="drawer-section accordion-item" id="sectionE_JobInterview">
-        <button class="accordion-header" type="button">
-          <h4>Job Interview</h4>
-          <span class="accordion-icon">
-            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </span>
-        </button>
-        <div class="accordion-content">
-          <div class="accordion-content-inner">
-            <div class="info-group interview-matrix-grid">
-              <div class="info-row-block" id="sectionInterviewCompany">
-                <div class="description-header">
-                  <span class="info-label">Interview Company</span>
-                  <button type="button" class="btn-copy-html" id="btnCopyInterviewCompany" title="Copy HTML">
-                    <svg class="icon-copy" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
-                    <svg class="icon-check" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                      style="display: none;">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  </button>
-                </div>
-                <div class="text-block markdown-content" id="drawerInterviewCompany">-</div>
+        <!-- Section E: Job Interview -->
+        <div class="drawer-tab-pane" id="sectionE_JobInterview" role="tabpanel" aria-labelledby="tabInterview">
+          <div class="info-group interview-matrix-grid">
+            <div class="info-row-block" id="sectionInterviewCompany">
+              <div class="description-header">
+                <span class="info-label">Interview Company</span>
+                <button type="button" class="btn-copy-html" id="btnCopyInterviewCompany" title="Copy HTML">
+                  <svg class="icon-copy" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  <svg class="icon-check" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    style="display: none;">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </button>
               </div>
-              <div class="info-row-block" id="sectionInterviewPreparation">
-                <div class="description-header">
-                  <span class="info-label">Interview Preparation</span>
-                  <button type="button" class="btn-copy-html" id="btnCopyInterviewPreparation" title="Copy HTML">
-                    <svg class="icon-copy" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
-                    <svg class="icon-check" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                      style="display: none;">
-                      <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                  </button>
-                </div>
-                <div class="text-block markdown-content" id="drawerInterviewPreparation">-</div>
+              <div class="text-block markdown-content" id="drawerInterviewCompany">-</div>
+            </div>
+            <div class="info-row-block" id="sectionInterviewPreparation">
+              <div class="description-header">
+                <span class="info-label">Interview Preparation</span>
+                <button type="button" class="btn-copy-html" id="btnCopyInterviewPreparation" title="Copy HTML">
+                  <svg class="icon-copy" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  <svg class="icon-check" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    style="display: none;">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </button>
               </div>
+              <div class="text-block markdown-content" id="drawerInterviewPreparation">-</div>
             </div>
           </div>
         </div>

@@ -222,9 +222,10 @@ void main() {
 
 // Global configuration state
 const state = {
-    currentText: 'Define your message here!',
+    currentText: 'Bring your message!',
     currentTheme: 'ember',
     currentFont: 'Outfit',
+    activePreset: null,  // Tracks which preset chip is currently selected
 
     // Unique explosion properties dynamically set by presets
     expansionDuration: CONFIG.presets.DEFAULT.expansionDuration,
@@ -618,6 +619,25 @@ function resetToDefaultExplosion() {
     state.soundType = preset.soundType;
 }
 
+// Apply active preset's settings, or pick a random preset if none is selected.
+// Used by dblclick / Space / multi-tap shortcuts.
+function applyActiveOrRandomPreset() {
+    if (state.activePreset) {
+        // Settings already loaded when user clicked the preset chip — nothing to do.
+        return;
+    }
+    // No preset selected: pick a random named preset (exclude DEFAULT).
+    const namedPresets = Object.keys(CONFIG.presets).filter(k => k !== 'DEFAULT');
+    const pick = namedPresets[Math.floor(Math.random() * namedPresets.length)];
+    const preset = CONFIG.presets[pick];
+    state.expansionDuration = preset.expansionDuration;
+    state.contractionDuration = preset.contractionDuration;
+    state.explosionMaxDistMultiplier = preset.explosionMaxDistMultiplier;
+    state.soundPitch = preset.soundPitch;
+    state.soundDuration = preset.soundDuration;
+    state.soundType = preset.soundType;
+}
+
 function selectTheme(themeName, shouldPush = true) {
     const theme = CONFIG.themes[themeName] || CONFIG.themes.ember;
     state.currentTheme = themeName;
@@ -644,7 +664,7 @@ async function selectFont(fontName, shouldPush = true, shouldScatter = false) {
 
 async function updateText(text, shouldPush = true) {
     const val = text.trim();
-    const finalVal = val.length > 0 ? val : 'Define your message here!';
+    const finalVal = val.length > 0 ? val : 'Bring your message!';
     state.currentText = finalVal;
 
     await setupParticles(finalVal, false);
@@ -709,7 +729,7 @@ function onPointerDown(e) {
     interaction.lastClickTime = now;
 
     if (interaction.clickCount >= CONFIG.tapCount) {
-        resetToDefaultExplosion(); // Double-click/Taps use default balance
+        applyActiveOrRandomPreset(); // Use active preset or random if none selected
         triggerExplosion();
         interaction.clickCount = 0;
     }
@@ -776,6 +796,7 @@ function onResize() {
 
 // Highlight the active preset button, clear others
 function setActivePreset(presetName) {
+    state.activePreset = presetName;
     const chips = document.querySelectorAll('.preset-chip');
     chips.forEach(chip => {
         if (chip.getAttribute('data-text') === presetName) {
@@ -788,6 +809,7 @@ function setActivePreset(presetName) {
 
 // Clear all preset highlights
 function clearActivePresets() {
+    state.activePreset = null;
     const chips = document.querySelectorAll('.preset-chip');
     chips.forEach(chip => {
         chip.classList.remove('active');
@@ -1095,7 +1117,7 @@ async function init() {
 
     // Parse URL params for persistent sculpture sharing
     const urlParams = new URLSearchParams(window.location.search);
-    const initialText = urlParams.get('t') || 'Define your message here!';
+    const initialText = urlParams.get('t') || 'Bring your message!';
     const initialTheme = urlParams.get('theme') || 'ember';
     const initialFont = urlParams.get('font') || 'Outfit';
 
@@ -1139,7 +1161,7 @@ async function init() {
     });
     window.addEventListener('dblclick', e => {
         if (e.target.closest('#control-panel')) return;
-        resetToDefaultExplosion(); // Double-clicks use default settings
+        applyActiveOrRandomPreset(); // Use active preset or random if none selected
         triggerExplosion();
     });
     window.addEventListener('touchstart', onTouchStart, { passive: false });
@@ -1152,7 +1174,7 @@ async function init() {
         if (e.code === 'Space') {
             if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') {
                 e.preventDefault();
-                resetToDefaultExplosion(); // Keyboard spacebar uses default settings
+                applyActiveOrRandomPreset(); // Use active preset or random if none selected
                 triggerExplosion();
             }
         }
@@ -1162,7 +1184,7 @@ async function init() {
     // [2.3] State History navigation back/forward support
     window.addEventListener('popstate', async () => {
         const params = new URLSearchParams(window.location.search);
-        const t = params.get('t') || 'Define your message here!';
+        const t = params.get('t') || 'Bring your message!';
         const theme = params.get('theme') || 'ember';
         const font = params.get('font') || 'Outfit';
 

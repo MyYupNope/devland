@@ -640,58 +640,41 @@ function setupEventListeners() {
   btnCloseDrawer.addEventListener('click', closeDetailsDrawer);
   drawerOverlay.addEventListener('click', closeDetailsDrawer);
   
-  // Accordion Toggle Event Listeners
-  const accordionItems = detailsDrawer.querySelectorAll('.accordion-item');
-  accordionItems.forEach(item => {
-    const header = item.querySelector('.accordion-header');
-    if (header) {
-      header.addEventListener('click', () => {
-        const isAlreadyActive = item.classList.contains('active');
-        
-        // Close all accordion items in detailsDrawer
-        accordionItems.forEach(i => i.classList.remove('active'));
-        
-        // Toggle current one
-        if (!isAlreadyActive) {
-          item.classList.add('active');
-          
-          // Smooth scroll the expanded section to the top of the drawer body
-          const container = detailsDrawer.querySelector('.drawer-body');
-          if (container) {
-            const items = Array.from(detailsDrawer.querySelectorAll('.accordion-item'));
-            const clickedIndex = items.indexOf(item);
-            
-            const containerStyle = window.getComputedStyle(container);
-            const paddingTop = parseFloat(containerStyle.paddingTop) || 0;
-            const gap = parseFloat(containerStyle.gap) || 0;
-            
-            let accumulatedHeight = 0;
-            for (let i = 0; i < clickedIndex; i++) {
-              const currentItem = items[i];
-              if (!currentItem.classList.contains('hidden')) {
-                const headerEl = currentItem.querySelector('.accordion-header');
-                const headerHeight = headerEl ? headerEl.offsetHeight : 0;
-                
-                const itemStyle = window.getComputedStyle(currentItem);
-                const paddingBottom = parseFloat(itemStyle.paddingBottom) || 0;
-                const borderBottom = parseFloat(itemStyle.borderBottomWidth) || 0;
-                
-                accumulatedHeight += headerHeight + paddingBottom + borderBottom;
-                accumulatedHeight += gap;
-              }
-            }
-            
-            const targetScrollTop = accumulatedHeight + paddingTop;
-            
-            container.scrollTo({
-              top: targetScrollTop,
-              behavior: 'smooth'
-            });
-          }
-        }
-      });
-    }
+  // Drawer Tab Click Event Listeners
+  const drawerTabs = detailsDrawer.querySelectorAll('.drawer-tab');
+  drawerTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      if (!tab.classList.contains('disabled')) {
+        selectTab(tab.id);
+      }
+    });
   });
+
+  // Drawer Tabs Keyboard Navigation (Arrow keys Left/Right)
+  const drawerTabsContainer = detailsDrawer.querySelector('.drawer-tabs');
+  if (drawerTabsContainer) {
+    drawerTabsContainer.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const tabs = Array.from(drawerTabsContainer.querySelectorAll('.drawer-tab'));
+        const enabledTabs = tabs.filter(t => !t.classList.contains('disabled'));
+        const activeIndex = enabledTabs.findIndex(t => t.classList.contains('active'));
+        
+        let nextIndex = activeIndex;
+        if (e.key === 'ArrowRight') {
+          nextIndex = (activeIndex + 1) % enabledTabs.length;
+        } else if (e.key === 'ArrowLeft') {
+          nextIndex = (activeIndex - 1 + enabledTabs.length) % enabledTabs.length;
+        }
+        
+        const nextTab = enabledTabs[nextIndex];
+        if (nextTab) {
+          selectTab(nextTab.id);
+          nextTab.focus();
+        }
+      }
+    });
+  }
 
   // ESC Key to close dropdowns and drawer
   document.addEventListener('keydown', (e) => {
@@ -1304,6 +1287,35 @@ function renderTable() {
 }
 
 /**
+ * Switch Active Drawer Tab
+ */
+function selectTab(tabId) {
+  const tabs = document.querySelectorAll('.drawer-tab');
+  const panes = document.querySelectorAll('.drawer-tab-pane');
+  
+  tabs.forEach(tab => {
+    if (tab.id === tabId) {
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+    } else {
+      tab.classList.remove('active');
+      tab.setAttribute('aria-selected', 'false');
+    }
+  });
+  
+  const selectedTabEl = document.getElementById(tabId);
+  const targetPaneId = selectedTabEl ? selectedTabEl.getAttribute('aria-controls') : '';
+  
+  panes.forEach(pane => {
+    if (pane.id === targetPaneId) {
+      pane.classList.add('active');
+    } else {
+      pane.classList.remove('active');
+    }
+  });
+}
+
+/**
  * Open Details Drawer
  */
 function openDetailsDrawer(app) {
@@ -1351,21 +1363,41 @@ function openDetailsDrawer(app) {
     drawerFollowUp.textContent = 'Not Specified';
   }
   
-  // Suitability Info
+  // Suitability Info & Circle Redesign
   const score = (app['Job_Suitability'] || app['Job Suitability'] || '').trim();
   const evaluation = (app['Job_Suitability_Evaluation'] || app['Job Suitability Evaluation'] || '').trim();
-  const sectionD = document.getElementById('sectionD_Suitability');
+  const tabSuitability = document.getElementById('tabSuitability');
   
-  if (score || evaluation) {
-    if (sectionD) sectionD.classList.remove('hidden');
+  const hasSuitability = !!(score || evaluation);
+  if (hasSuitability) {
+    if (tabSuitability) {
+      tabSuitability.classList.remove('disabled');
+      tabSuitability.removeAttribute('disabled');
+    }
+    
+    // Circle progress render
+    const fillElement = document.getElementById('scoreCircleFill');
+    const circleContainer = document.getElementById('suitabilityScoreCircle');
+    
     if (score) {
       drawerSuitabilityScore.textContent = score;
       const scoreNum = parseInt(score, 10);
       const scoreClass = !isNaN(scoreNum) && scoreNum >= 1 && scoreNum <= 5 ? `score-${scoreNum}` : '';
-      drawerSuitabilityScore.className = `score-badge ${scoreClass}`;
+      
+      if (circleContainer) {
+        circleContainer.className = `suitability-score-circle ${scoreClass}`;
+      }
+      
+      if (fillElement) {
+        const scorePercent = !isNaN(scoreNum) && scoreNum >= 1 && scoreNum <= 5 ? scoreNum / 5 : 0;
+        fillElement.style.strokeDashoffset = 251.2 * (1 - scorePercent);
+      }
+      
       drawerSuitabilityScoreContainer.style.display = '';
     } else {
       drawerSuitabilityScoreContainer.style.display = 'none';
+      if (fillElement) fillElement.style.strokeDashoffset = 251.2;
+      if (circleContainer) circleContainer.className = 'suitability-score-circle';
     }
 
     if (evaluation) {
@@ -1375,7 +1407,10 @@ function openDetailsDrawer(app) {
       sectionSuitabilityEval.classList.add('hidden');
     }
   } else {
-    if (sectionD) sectionD.classList.add('hidden');
+    if (tabSuitability) {
+      tabSuitability.classList.add('disabled');
+      tabSuitability.setAttribute('disabled', 'true');
+    }
   }
 
   // Comments
@@ -1406,10 +1441,14 @@ function openDetailsDrawer(app) {
   // Job Interview Info
   const interviewCompany = (app['Interview_Company'] || '').trim();
   const interviewPrep = (app['Interview_Preparation'] || '').trim();
-  const sectionE = document.getElementById('sectionE_JobInterview');
+  const tabInterview = document.getElementById('tabInterview');
 
-  if (interviewCompany || interviewPrep) {
-    if (sectionE) sectionE.classList.remove('hidden');
+  const hasInterview = !!(interviewCompany || interviewPrep);
+  if (hasInterview) {
+    if (tabInterview) {
+      tabInterview.classList.remove('disabled');
+      tabInterview.removeAttribute('disabled');
+    }
 
     const btnCopyCompany = document.getElementById('btnCopyInterviewCompany');
     const btnCopyPrep = document.getElementById('btnCopyInterviewPreparation');
@@ -1421,18 +1460,14 @@ function openDetailsDrawer(app) {
     drawerInterviewPreparation.innerHTML = interviewPrep ? parseMarkdown(interviewPrep) : '-';
     if (btnCopyPrep) btnCopyPrep.style.display = interviewPrep ? '' : 'none';
   } else {
-    if (sectionE) sectionE.classList.add('hidden');
+    if (tabInterview) {
+      tabInterview.classList.add('disabled');
+      tabInterview.setAttribute('disabled', 'true');
+    }
   }
 
-  // Reset Accordion: set first section (Section B) to active, others to inactive
-  const accordionItems = detailsDrawer.querySelectorAll('.accordion-item');
-  accordionItems.forEach((item, index) => {
-    if (index === 0) {
-      item.classList.add('active');
-    } else {
-      item.classList.remove('active');
-    }
-  });
+  // Default to the first tab (Overview)
+  selectTab('tabOverview');
 
   // Show Drawer and Overlay
   drawerOverlay.classList.add('active');
