@@ -499,21 +499,27 @@ let selectedStatus = null;
 
 let currentPage = 1;
 let rowsPerPage = 10;
-let selectedChartRange = 'all';
 
 let companySelect, jobSelect, statusSelect;
 
 // DOM Elements
 const syncStatusEl = document.getElementById('syncStatus');
+const statTotalEl = document.getElementById('statTotal');
+const statActiveAppsEl = document.getElementById('statActiveApps');
 const statCompaniesEl = document.getElementById('statCompanies');
 const statJobsEl = document.getElementById('statJobs');
 const statInterviewsEl = document.getElementById('statInterviews');
 const statConversionEl = document.getElementById('statConversion');
+const statRejectionRateEl = document.getElementById('statRejectionRate');
+const statAvgSuitabilityEl = document.getElementById('statAvgSuitability');
+const statThisWeekEl = document.getElementById('statThisWeek');
+const statThisMonthEl = document.getElementById('statThisMonth');
 
 const btnResetFilters = document.getElementById('btnResetFilters');
 const registryTableBody = document.getElementById('registryTableBody');
 const noResultsEl = document.getElementById('noResults');
 const resultsCountEl = document.getElementById('resultsCount');
+const activeInterviewsCountEl = document.getElementById('activeInterviewsCount');
 let currentSortVal = 'date-desc';
 
 // Custom Select Dropdowns
@@ -737,27 +743,7 @@ function setupEventListeners() {
     });
   }
 
-  // Chart range toggle listener
-  const rangeToggleContainer = document.getElementById('chartRangeToggle');
-  if (rangeToggleContainer) {
-    rangeToggleContainer.addEventListener('click', (e) => {
-      const btn = e.target.closest('.btn-toggle');
-      if (!btn) return;
-      
-      rangeToggleContainer.querySelectorAll('.btn-toggle').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      
-      selectedChartRange = btn.getAttribute('data-range');
-      
-      if (rawApplications.length > 0) {
-        try {
-          initAnalyticsChart(rawApplications);
-        } catch (error) {
-          console.error("Failed to render chart on range toggle:", error);
-        }
-      }
-    });
-  }
+  // Chart range toggle listener has been removed as timeframe filtering is no longer active.
 
   // Copy HTML buttons in Job Interview accordion
   const btnCopyCompany = document.getElementById('btnCopyInterviewCompany');
@@ -955,53 +941,110 @@ function parseAndInitializeData(csvText) {
     return status !== 'retired' && status !== 'rejected';
   });
 
-  // Calculate high level overview metrics
-  calculateStatistics();
-
   // Populate dynamic filters & render lists
   updateFiltersUI();
   applyFilters();
 
-  // Render bottom analytics graph
-  try {
-    initAnalyticsChart(rawApplications);
-  } catch (error) {
-    console.error("Failed to render initial analytics chart:", error);
-  }
+  // Render all dashboard widgets
+  renderAllDashboardWidgets(rawApplications);
 }
 
 /**
  * Calculates dashboard statistics based on active applications
  */
 function calculateStatistics() {
-  // Count unique companies in active applications
+  // Total Applications
+  if (statTotalEl) statTotalEl.textContent = rawApplications.length;
+
+  // Active Applications (not Rejected, not Retired)
+  if (statActiveAppsEl) statActiveAppsEl.textContent = activeApplications.length;
+
+  // Count unique companies in raw applications (all-time)
   const uniqueCompanies = new Set(
-    activeApplications.map(app => (app['Company Name'] || '').trim()).filter(name => name !== '')
+    rawApplications.map(app => (app['Company Name'] || '').trim()).filter(name => name !== '')
   );
   statCompaniesEl.textContent = uniqueCompanies.size;
 
-  // Count unique job titles in active applications
+  // Count unique job titles in raw applications (all-time)
   const uniqueJobs = new Set(
-    activeApplications.map(app => (app['Job Title'] || '').trim()).filter(title => title !== '')
+    rawApplications.map(app => (app['Job Title'] || '').trim()).filter(title => title !== '')
   );
   statJobsEl.textContent = uniqueJobs.size;
 
-  // Count interviewing/interview applications
-  const interviewApps = activeApplications.filter(app => {
+  // Count interviewing/interview applications in raw applications
+  const interviewApps = rawApplications.filter(app => {
     const status = (app['Application Status'] || '').trim().toLowerCase();
     return status.includes('interview');
   });
   statInterviewsEl.textContent = interviewApps.length;
 
   // Calculate Conversion Rate: reached "interview" or beyond (offer, ready)
-  const conversionApps = activeApplications.filter(app => {
+  const conversionApps = rawApplications.filter(app => {
     const status = (app['Application Status'] || '').trim().toLowerCase();
     return status.includes('interview') || status === 'offer' || status === 'ready';
   });
-  const conversionRate = activeApplications.length > 0
-    ? Math.round((conversionApps.length / activeApplications.length) * 100)
+  const conversionRate = rawApplications.length > 0
+    ? Math.round((conversionApps.length / rawApplications.length) * 100)
     : 0;
   statConversionEl.textContent = `${conversionRate}%`;
+
+  // Rejection Rate
+  const rejectedApps = rawApplications.filter(app => {
+    const status = (app['Application Status'] || '').trim().toLowerCase();
+    return status === 'rejected';
+  });
+  const rejectionRate = rawApplications.length > 0
+    ? Math.round((rejectedApps.length / rawApplications.length) * 100)
+    : 0;
+  if (statRejectionRateEl) statRejectionRateEl.textContent = `${rejectionRate}%`;
+
+  // Average Suitability Score
+  let totalSuitability = 0;
+  let suitabilityCount = 0;
+  rawApplications.forEach(app => {
+    const suitabilityVal = (app['Job_Suitability'] || app['Job Suitability'] || '').trim();
+    const score = parseFloat(suitabilityVal);
+    if (!isNaN(score)) {
+      totalSuitability += score;
+      suitabilityCount++;
+    }
+  });
+  const avgSuitability = suitabilityCount > 0 ? (totalSuitability / suitabilityCount).toFixed(1) : '0.0';
+  if (statAvgSuitabilityEl) statAvgSuitabilityEl.textContent = `${avgSuitability}/5`;
+
+  // Application Velocity (This Week / This Month)
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Calendar week starts on Monday
+  const currentDay = today.getDay();
+  const distanceToMonday = currentDay === 0 ? 6 : currentDay - 1;
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - distanceToMonday);
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  // Calendar month starts on 1st
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  let appsThisWeek = 0;
+  let appsThisMonth = 0;
+
+  rawApplications.forEach(app => {
+    const dateStr = (app['Create Date'] || '').trim();
+    if (!dateStr) return;
+    const appDate = parseDate(dateStr);
+    appDate.setHours(0, 0, 0, 0);
+
+    if (appDate >= startOfWeek) {
+      appsThisWeek++;
+    }
+    if (appDate >= startOfMonth) {
+      appsThisMonth++;
+    }
+  });
+
+  if (statThisWeekEl) statThisWeekEl.textContent = appsThisWeek;
+  if (statThisMonthEl) statThisMonthEl.textContent = appsThisMonth;
 }
 
 /**
@@ -1658,46 +1701,24 @@ function parseMarkdown(text) {
   return result.join('\n');
 }
 
-let analyticsChartInstance = null;
+let cumulativeSubmissionsChartInstance = null;
 
-/**
- * Initialize and render the bottom analytics timeline chart using Chart.js
- */
-function initAnalyticsChart(applications) {
-  // Apply date range filter
-  let chartApps = applications;
-  if (selectedChartRange !== 'all') {
-    const daysLimit = parseInt(selectedChartRange, 10);
-    const limitDate = new Date();
-    limitDate.setDate(limitDate.getDate() - daysLimit);
-    limitDate.setHours(0, 0, 0, 0);
-    
-    chartApps = applications.filter(app => {
-      const date = parseDate(app['Create Date']);
-      return date >= limitDate;
-    });
-  }
+function initCumulativeSubmissionsChart(applications) {
+  const canvasEl = document.getElementById('cumulativeSubmissionsChart');
+  if (!canvasEl) return;
+  const ctx = canvasEl.getContext('2d');
 
   // 1. Group applications by date
   const dateMap = {};
   
-  chartApps.forEach(app => {
+  applications.forEach(app => {
     const dateStr = (app['Create Date'] || '').trim();
     if (!dateStr) return;
     
     if (!dateMap[dateStr]) {
-      dateMap[dateStr] = { submissions: 0, rejected: 0, interviews: 0 };
+      dateMap[dateStr] = 0;
     }
-    
-    dateMap[dateStr].submissions++;
-    
-    const status = (app['Application Status'] || '').trim().toLowerCase();
-    if (status === 'rejected') {
-      dateMap[dateStr].rejected++;
-    }
-    if (status.includes('interview')) {
-      dateMap[dateStr].interviews++;
-    }
+    dateMap[dateStr]++;
   });
 
   // 2. Sort dates chronologically
@@ -1705,22 +1726,15 @@ function initAnalyticsChart(applications) {
     return parseDate(a) - parseDate(b);
   });
 
-  // 3. Prepare datasets
-  const submissionsData = [];
-  const rejectedData = [];
-  const interviewsData = [];
-  
+  // 3. Prepare cumulative dataset
+  let runningTotal = 0;
+  const cumulativeData = [];
   sortedDates.forEach(date => {
-    submissionsData.push(dateMap[date].submissions);
-    rejectedData.push(dateMap[date].rejected);
-    interviewsData.push(dateMap[date].interviews);
+    runningTotal += dateMap[date];
+    cumulativeData.push(runningTotal);
   });
 
   // 4. Render Chart
-  const canvasEl = document.getElementById('analyticsChart');
-  if (!canvasEl) return;
-  const ctx = canvasEl.getContext('2d');
-  
   const chartLabels = sortedDates.map(dateStr => {
     const date = parseDate(dateStr);
     const day = String(date.getDate()).padStart(2, '0');
@@ -1730,46 +1744,27 @@ function initAnalyticsChart(applications) {
     return `${day}-${month} (${weekdayLetter})`;
   });
 
-  if (analyticsChartInstance) {
-    analyticsChartInstance.destroy();
+  const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim() || '#1a73e8';
+  const textColor = getComputedStyle(document.documentElement).getPropertyValue('--color-text-secondary').trim() || '#5f6368';
+
+  if (cumulativeSubmissionsChartInstance) {
+    cumulativeSubmissionsChartInstance.destroy();
   }
 
-  analyticsChartInstance = new Chart(ctx, {
+  cumulativeSubmissionsChartInstance = new Chart(ctx, {
     type: 'line',
     data: {
       labels: chartLabels,
       datasets: [
         {
           label: 'Total Submissions',
-          data: submissionsData,
-          borderColor: '#1a73e8', // Primary Blue
-          backgroundColor: 'rgba(26, 115, 232, 0.08)',
+          data: cumulativeData,
+          borderColor: primaryColor,
+          backgroundColor: primaryColor + '14', // translucent
           fill: true,
           tension: 0.35,
           borderWidth: 3,
-          pointBackgroundColor: '#1a73e8',
-          pointHoverRadius: 6
-        },
-        {
-          label: 'Interviews Scheduled',
-          data: interviewsData,
-          borderColor: '#f9ab00', // Warning Yellow/Amber
-          backgroundColor: 'rgba(249, 171, 0, 0.08)',
-          fill: true,
-          tension: 0.35,
-          borderWidth: 3,
-          pointBackgroundColor: '#f9ab00',
-          pointHoverRadius: 6
-        },
-        {
-          label: 'Rejected Applications',
-          data: rejectedData,
-          borderColor: '#d93025', // Error Red
-          backgroundColor: 'rgba(217, 48, 37, 0.08)',
-          fill: true,
-          tension: 0.35,
-          borderWidth: 3,
-          pointBackgroundColor: '#d93025',
+          pointBackgroundColor: primaryColor,
           pointHoverRadius: 6
         }
       ]
@@ -1786,7 +1781,7 @@ function initAnalyticsChart(applications) {
               size: 12,
               weight: '500'
             },
-            color: '#5f6368'
+            color: textColor
           }
         },
         tooltip: {
@@ -1810,7 +1805,7 @@ function initAnalyticsChart(applications) {
           },
           ticks: {
             font: { family: 'Roboto, sans-serif', size: 11 },
-            color: '#5f6368'
+            color: textColor
           }
         },
         y: {
@@ -1818,10 +1813,10 @@ function initAnalyticsChart(applications) {
             color: 'rgba(0, 0, 0, 0.05)'
           },
           ticks: {
-            stepSize: 1,
+            stepSize: 5,
             precision: 0,
             font: { family: 'Roboto, sans-serif', size: 11 },
-            color: '#5f6368'
+            color: textColor
           },
           min: 0
         }
@@ -1829,6 +1824,385 @@ function initAnalyticsChart(applications) {
     }
   });
 }
+
+let statusSplitChartInstance = null;
+
+function initStatusSplitChart(applications) {
+  const canvasEl = document.getElementById('statusSplitChart');
+  if (!canvasEl) return;
+  
+  const ctx = canvasEl.getContext('2d');
+  
+  let rejected = 0;
+  let applied = 0;
+  let interviews = 0;
+  let other = 0;
+  
+  applications.forEach(app => {
+    const status = (app['Application Status'] || '').trim().toLowerCase();
+    if (status === 'rejected') rejected++;
+    else if (status.includes('interview')) interviews++;
+    else if (status === 'applied') applied++;
+    else if (status) other++;
+  });
+  
+  const data = [rejected, applied, interviews];
+  const labels = ['Rejected', 'Applied (Pending)', 'Interviews'];
+  
+  const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim() || '#1a73e8';
+  const warningColor = getComputedStyle(document.documentElement).getPropertyValue('--color-warning').trim() || '#f9ab00';
+  const errorColor = getComputedStyle(document.documentElement).getPropertyValue('--color-error').trim() || '#d93025';
+  const textColor = getComputedStyle(document.documentElement).getPropertyValue('--color-text-secondary').trim() || '#5f6368';
+  
+  const colors = [errorColor, primaryColor, warningColor];
+  
+  if (other > 0) {
+    data.push(other);
+    labels.push('Other');
+    colors.push('#70757a');
+  }
+  
+  if (statusSplitChartInstance) {
+    statusSplitChartInstance.destroy();
+  }
+  
+  statusSplitChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Status Split',
+        data: data,
+        backgroundColor: colors,
+        borderRadius: 6,
+        maxBarThickness: 45
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          backgroundColor: '#202124',
+          titleFont: { family: 'Roboto, sans-serif', size: 12, weight: 'bold' },
+          bodyFont: { family: 'Roboto, sans-serif', size: 12 },
+          cornerRadius: 8,
+          callbacks: {
+            label: (item) => {
+              const total = data.reduce((a, b) => a + b, 0);
+              const val = data[item.dataIndex];
+              const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+              return ` ${item.label}: ${val} (${pct}%)`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: {
+            font: { family: 'Roboto, sans-serif', size: 11 },
+            color: textColor
+          }
+        },
+        y: {
+          grid: { color: 'rgba(0, 0, 0, 0.05)' },
+          ticks: {
+            stepSize: 5,
+            precision: 0,
+            font: { family: 'Roboto, sans-serif', size: 11 },
+            color: textColor
+          },
+          min: 0
+        }
+      }
+    }
+  });
+}
+
+let suitabilityBarChartInstance = null;
+
+function initSuitabilityBarChart(applications) {
+  const canvasEl = document.getElementById('suitabilityBarChart');
+  if (!canvasEl) return;
+  
+  const ctx = canvasEl.getContext('2d');
+  
+  const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  
+  applications.forEach(app => {
+    const scoreVal = (app['Job_Suitability'] || app['Job Suitability'] || '').trim();
+    const score = parseInt(scoreVal, 10);
+    if (score >= 1 && score <= 5) {
+      counts[score]++;
+    }
+  });
+  
+  const labels = ['Score 1', 'Score 2', 'Score 3', 'Score 4', 'Score 5'];
+  const data = [counts[1], counts[2], counts[3], counts[4], counts[5]];
+  
+  const color1 = getComputedStyle(document.documentElement).getPropertyValue('--color-score-1').trim() || '#d93025';
+  const color2 = getComputedStyle(document.documentElement).getPropertyValue('--color-score-2').trim() || '#ff8da1';
+  const color3 = getComputedStyle(document.documentElement).getPropertyValue('--color-score-3').trim() || '#f9ab00';
+  const color4 = getComputedStyle(document.documentElement).getPropertyValue('--color-score-4').trim() || '#8bc34a';
+  const color5 = getComputedStyle(document.documentElement).getPropertyValue('--color-score-5').trim() || '#1e8e3e';
+  const textColor = getComputedStyle(document.documentElement).getPropertyValue('--color-text-secondary').trim() || '#5f6368';
+  
+  const colors = [color1, color2, color3, color4, color5];
+  
+  if (suitabilityBarChartInstance) {
+    suitabilityBarChartInstance.destroy();
+  }
+  
+  suitabilityBarChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Applications',
+        data: data,
+        backgroundColor: colors,
+        borderRadius: 4,
+        maxBarThickness: 30
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          backgroundColor: '#202124',
+          titleFont: { family: 'Roboto, sans-serif', size: 12, weight: 'bold' },
+          bodyFont: { family: 'Roboto, sans-serif', size: 12 },
+          cornerRadius: 8
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: {
+            font: { family: 'Roboto, sans-serif', size: 11 },
+            color: textColor
+          }
+        },
+        y: {
+          grid: { color: 'rgba(0, 0, 0, 0.05)' },
+          ticks: {
+            stepSize: 5,
+            precision: 0,
+            font: { family: 'Roboto, sans-serif', size: 11 },
+            color: textColor
+          },
+          min: 0
+        }
+      }
+    }
+  });
+}
+
+let topCompaniesChartInstance = null;
+
+function initTopCompaniesChart(applications) {
+  const canvasEl = document.getElementById('topCompaniesChart');
+  if (!canvasEl) return;
+  
+  const ctx = canvasEl.getContext('2d');
+  
+  const companyCounts = {};
+  applications.forEach(app => {
+    const company = (app['Company Name'] || '').trim();
+    if (company) {
+      companyCounts[company] = (companyCounts[company] || 0) + 1;
+    }
+  });
+  
+  const sortedCompanies = Object.entries(companyCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8);
+    
+  const labels = sortedCompanies.map(item => item[0]);
+  const data = sortedCompanies.map(item => item[1]);
+  
+  const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim() || '#1a73e8';
+  const textColor = getComputedStyle(document.documentElement).getPropertyValue('--color-text-secondary').trim() || '#5f6368';
+  
+  if (topCompaniesChartInstance) {
+    topCompaniesChartInstance.destroy();
+  }
+  
+  topCompaniesChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Applications',
+        data: data,
+        backgroundColor: primaryColor + 'cc',
+        hoverBackgroundColor: primaryColor,
+        borderRadius: 4,
+        maxBarThickness: 20
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          backgroundColor: '#202124',
+          titleFont: { family: 'Roboto, sans-serif', size: 12, weight: 'bold' },
+          bodyFont: { family: 'Roboto, sans-serif', size: 12 },
+          cornerRadius: 8
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(0, 0, 0, 0.05)' },
+          ticks: {
+            stepSize: 1,
+            precision: 0,
+            font: { family: 'Roboto, sans-serif', size: 11 },
+            color: textColor
+          },
+          min: 0
+        },
+        y: {
+          grid: { display: false },
+          ticks: {
+            font: { family: 'Roboto, sans-serif', size: 10 },
+            color: textColor
+          }
+        }
+      }
+    }
+  });
+}
+
+function getLastComment(commentsStr) {
+  if (!commentsStr) return 'No comments available.';
+  const lines = commentsStr.split('\n')
+    .map(line => line.trim())
+    .filter(line => line !== '');
+  if (lines.length === 0) return 'No comments available.';
+  return lines[lines.length - 1];
+}
+
+function parseCommentLine(line) {
+  const match = line.match(/^\[(.*?)\]\s*(.*)$/);
+  if (match) {
+    return `<span class="comment-date">[${escapeHtml(match[1])}]</span> <span class="comment-text">${escapeHtml(match[2])}</span>`;
+  }
+  return escapeHtml(line);
+}
+
+function renderActiveInterviewsPanel(applications) {
+  const sectionEl = document.getElementById('activeInterviewsSection');
+  const gridEl = document.getElementById('activeInterviewsGrid');
+  if (!sectionEl || !gridEl) return;
+  
+  const interviewApps = applications.filter(app => {
+    const status = (app['Application Status'] || '').trim().toLowerCase();
+    return status.includes('interview');
+  });
+  
+  const activeTabBtn = document.querySelector('.nav-btn.active');
+  const isHomeTab = activeTabBtn ? activeTabBtn.getAttribute('data-tab') === 'home' : true;
+  
+  if (interviewApps.length === 0 || !isHomeTab) {
+    sectionEl.style.display = 'none';
+    return;
+  }
+  
+  sectionEl.style.display = '';
+  if (activeInterviewsCountEl) {
+    activeInterviewsCountEl.textContent = interviewApps.length;
+  }
+  gridEl.innerHTML = '';
+  
+  interviewApps.forEach(app => {
+    const company = (app['Company Name'] || '').trim();
+    const title = (app['Job Title'] || '').trim();
+    const scoreVal = (app['Job_Suitability'] || app['Job Suitability'] || '').trim();
+    const commentsVal = (app['Comments'] || '').trim();
+    const followUpVal = (app['Follow-Up'] || '').trim();
+    
+    const scoreNum = parseInt(scoreVal, 10);
+    const scoreClass = !isNaN(scoreNum) && scoreNum >= 1 && scoreNum <= 5 ? `score-${scoreNum}` : '';
+    
+    const lastCommentLine = getLastComment(commentsVal);
+    const formattedComment = parseCommentLine(lastCommentLine);
+    
+    let followUpHtml = '';
+    if (followUpVal) {
+      const isUrl = followUpVal.startsWith('http://') || followUpVal.startsWith('https://');
+      if (isUrl) {
+        followUpHtml = `
+          <a href="${escapeHtml(followUpVal)}" target="_blank" class="interview-btn">
+            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
+            Follow Up
+          </a>`;
+      } else {
+        followUpHtml = `<span class="followup-text">Follow Up: ${escapeHtml(followUpVal)}</span>`;
+      }
+    }
+    
+    const card = document.createElement('div');
+    card.className = 'interview-card';
+    card.innerHTML = `
+      <div class="interview-card-header">
+        <div>
+          <h4 class="interview-company">${escapeHtml(company)}</h4>
+          <p class="interview-title">${escapeHtml(title)}</p>
+        </div>
+        ${scoreVal ? `<span class="score-badge ${scoreClass}">Suitability: ${escapeHtml(scoreVal)}</span>` : ''}
+      </div>
+      <div class="interview-card-body">
+        <div class="interview-latest-activity">
+          <span class="activity-label">Latest Activity</span>
+          <div class="activity-content">${formattedComment}</div>
+        </div>
+      </div>
+      <div class="interview-card-footer">
+        ${followUpHtml}
+        <button type="button" class="interview-btn secondary view-detail-trigger">
+          View Details
+          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </button>
+      </div>
+    `;
+    
+    card.querySelector('.view-detail-trigger').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openDetailsDrawer(app);
+    });
+    
+    gridEl.appendChild(card);
+  });
+}
+
+function renderAllDashboardWidgets(applications) {
+  if (applications.length === 0) return;
+  try {
+    calculateStatistics();
+    initCumulativeSubmissionsChart(applications);
+    initStatusSplitChart(applications);
+    initSuitabilityBarChart(applications);
+    initTopCompaniesChart(applications);
+    renderActiveInterviewsPanel(applications);
+  } catch (error) {
+    console.error("Error rendering dashboard widgets:", error);
+  }
+}
+
 
 /**
  * Tab Navigation Management
@@ -1840,6 +2214,7 @@ function initTabNavigation() {
   const navButtons = document.querySelectorAll('.nav-btn');
   const filtersSection = document.querySelector('.filters-section');
   const resultsSection = document.querySelector('.results-section');
+  const activeInterviewsSection = document.getElementById('activeInterviewsSection');
   const statsSection = document.querySelector('.stats-section');
   const analyticsSection = document.querySelector('.analytics-section');
   const newApplicationSection = document.querySelector('.new-application-section');
@@ -1857,27 +2232,32 @@ function initTabNavigation() {
     if (targetTab === 'home') {
       if (filtersSection) filtersSection.style.display = '';
       if (resultsSection) resultsSection.style.display = '';
+      if (activeInterviewsSection && rawApplications.length > 0) {
+        renderActiveInterviewsPanel(rawApplications);
+      }
       if (statsSection) statsSection.style.display = 'none';
       if (analyticsSection) analyticsSection.style.display = 'none';
       if (newApplicationSection) newApplicationSection.style.display = 'none';
     } else if (targetTab === 'dashboard') {
       if (filtersSection) filtersSection.style.display = 'none';
       if (resultsSection) resultsSection.style.display = 'none';
+      if (activeInterviewsSection) activeInterviewsSection.style.display = 'none';
       if (statsSection) statsSection.style.display = '';
       if (analyticsSection) analyticsSection.style.display = '';
       if (newApplicationSection) newApplicationSection.style.display = 'none';
 
-      // Re-trigger chart render to ensure correct layout and scaling
+      // Re-trigger widget render to ensure correct layout and scaling
       if (rawApplications.length > 0) {
         try {
-          initAnalyticsChart(rawApplications);
+          renderAllDashboardWidgets(rawApplications);
         } catch (error) {
-          console.error("Failed to render analytics chart on tab switch:", error);
+          console.error("Failed to render dashboard widgets on tab switch:", error);
         }
       }
     } else if (targetTab === 'new-application') {
       if (filtersSection) filtersSection.style.display = 'none';
       if (resultsSection) resultsSection.style.display = 'none';
+      if (activeInterviewsSection) activeInterviewsSection.style.display = 'none';
       if (statsSection) statsSection.style.display = 'none';
       if (analyticsSection) analyticsSection.style.display = 'none';
       if (newApplicationSection) newApplicationSection.style.display = '';
@@ -1938,7 +2318,7 @@ function serializeApplicationsToCSV(apps) {
     'Application Status', 'Comments', 'Company Name', 'Job Title', 'Job Description',
     'Company Description', 'Job URL', 'Create Date', 'Company_Folder', 'Job_Suitability',
     'Job_Suitability_Evaluation', 'Hiring Team', 'Follow-Up', 'Interview_Company',
-    'Interview_Company_Notes', 'Interview_Preparation', 'Interview_Preparation_Notes'
+    'Interview_Preparation'
   ];
   
   const csvRows = [headers.join(',')];
