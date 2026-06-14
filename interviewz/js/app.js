@@ -610,6 +610,7 @@ function parseAndInitializeData(csvText) {
 
   updateFiltersUI();
   applyFilters(true);
+  calculateStatistics();
 
   // Render all dashboard widgets
   renderAllDashboardWidgets(state.rawApplications);
