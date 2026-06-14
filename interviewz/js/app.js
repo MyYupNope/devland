@@ -1164,7 +1164,7 @@ function initTabNavigation() {
     });
 
     if (dom.fabBtn) {
-      if (targetTab === 'new-application') {
+      if (targetTab === 'new-application' || targetTab === 'resume') {
         dom.fabBtn.style.display = 'none';
       } else {
         dom.fabBtn.style.display = 'flex';
