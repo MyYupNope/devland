@@ -206,19 +206,6 @@ function setupEventListeners() {
     });
   }
 
-  // Listen for system preference changes (only applies if no manual preference is saved)
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-    if (!localStorage.getItem('theme')) {
-      if (e.matches) {
-        document.documentElement.classList.remove('theme-light');
-        document.documentElement.classList.add('theme-dark');
-      } else {
-        document.documentElement.classList.remove('theme-dark');
-        document.documentElement.classList.add('theme-light');
-      }
-      updateThemeUI();
-    }
-  });
 
   // Refresh Button
   const btnHeaderRefresh = document.getElementById('btnHeaderRefresh');
