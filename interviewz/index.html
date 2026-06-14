@@ -12,11 +12,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
   <!-- Stylesheet -->
   <link rel="stylesheet" href="css/styles.css?v=37">
+  <link rel="stylesheet" href="css/resume.css?v=1">
   <!-- Favicon -->
   <link rel="icon" href="assets/favicon.png" type="image/png">
   <!-- Chart.js CDN -->
@@ -93,6 +95,7 @@
             <button class="topbar-nav-btn active" data-tab="home" data-bs-dismiss="offcanvas" data-bs-target="#topbarNavbar">Home</button>
             <button class="topbar-nav-btn" data-tab="dashboard" data-bs-dismiss="offcanvas" data-bs-target="#topbarNavbar">Dashboard</button>
             <button class="topbar-nav-btn" data-tab="new-application" data-bs-dismiss="offcanvas" data-bs-target="#topbarNavbar">New Application</button>
+            <button class="topbar-nav-btn" data-tab="resume" data-bs-dismiss="offcanvas" data-bs-target="#topbarNavbar">Resume</button>
           </nav>
         </div>
       </div>
@@ -690,6 +693,828 @@
         </div>
       </div>
     </section>
+
+    <!-- ==========================================
+         RESUME SECTION
+         ========================================== -->
+    <section class="resume-section tab-hidden">
+      <!-- Section 1: Hero -->
+      <header class="resume-hero">
+        <canvas id="resumeHeroCanvas"></canvas>
+        <div class="resume-hero-content resume-animate">
+          <div class="resume-avatar">
+            <img src="assets/avatar.png" alt="Rodrigo Matias" class="resume-avatar-img">
+          </div>
+          <h1 class="resume-hero-name">Rodrigo Matias</h1>
+          <div class="resume-hero-title-container">
+            <span class="resume-hero-title" id="resumeTypingTarget"></span>
+          </div>
+          <p class="resume-hero-tagline">
+            I turn complex business challenges into scalable digital solutions — from CRM transformations spanning continents to Generative AI initiatives redefining marketing. 20 years of making technology work for people, not the other way around.
+          </p>
+          <div class="resume-hero-ctas">
+            <a href="https://www.linkedin.com/in/rodrigo-gc-matias/" target="_blank" rel="noopener noreferrer" class="resume-btn resume-btn-primary">
+              <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+              LinkedIn
+            </a>
+            <a href="mailto:rodrigo.gc.matias@gmail.com" class="resume-btn resume-btn-secondary">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              Email Me
+            </a>
+            <a href="introduction/RodrigoMatias_CV_2026_EN_Original.md" target="_blank" class="resume-btn resume-btn-secondary">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+              View Original CV
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <!-- Section 2: Strategic Pillars -->
+      <section class="resume-container resume-pillars">
+        <div class="resume-title-block resume-animate">
+          <span class="resume-pre-title">Core Strategy</span>
+          <h2 class="resume-title">Five Dimensions of Impact</h2>
+          <div class="resume-title-line"></div>
+        </div>
+
+        <div class="resume-pillars-grid resume-stagger">
+          <!-- Card 1 -->
+          <article class="resume-card resume-pillar-card" style="--accent-color: var(--rm-accent-teal); --accent-color-glow: rgba(5, 222, 186, 0.15);">
+            <div class="resume-pillar-icon">
+              <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 18a4 4 0 0 0-8 0m8 0h4m-12 0H4M8 11V7m0 4h8m0 0V7m-4-4v4m-4-1a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg>
+            </div>
+            <h3>
+              Digital Transformation Architect
+              <span class="resume-pillar-expand-icon">▼</span>
+            </h3>
+            <ul class="resume-pillar-bullets">
+              <li><strong>CRM Transformation:</strong> Led Contracts Management & Data Migration for J&J EMEA compliance program (Cignon to MS Dynamics).</li>
+              <li><strong>Omnichannel Programs:</strong> Co-led CDP integrations & marketing solutions in SAFE Agile Release Train.</li>
+            </ul>
+            <div class="resume-pillar-extra">
+              <ul class="resume-pillar-bullets">
+                <li><strong>Platform rollouts:</strong> Guided sector pilots and general availability for global application stacks.</li>
+                <li><strong>Virtualization:</strong> Evaluated Win10 tablets/iPad Pro for modern single device strategies.</li>
+              </ul>
+              <div class="resume-pillar-badges">
+                <span class="resume-pillar-badge">Dynamics 365</span>
+                <span class="resume-pillar-badge">SAFE Agile</span>
+                <span class="resume-pillar-badge">CDP</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 2 -->
+          <article class="resume-card resume-pillar-card" style="--accent-color: var(--rm-accent-amber); --accent-color-glow: rgba(255, 174, 0, 0.15);">
+            <div class="resume-pillar-icon">
+              <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </div>
+            <h3>
+              Process Automation & Digitization
+              <span class="resume-pillar-expand-icon">▼</span>
+            </h3>
+            <ul class="resume-pillar-bullets">
+              <li><strong>Digital Acceleration Service:</strong> Created regional Low-Code service, intaking and delivering automation across NA/EMEA.</li>
+              <li><strong>Power Platform & RPA:</strong> Built solutions saving hundreds of manual process hours.</li>
+            </ul>
+            <div class="resume-pillar-extra">
+              <ul class="resume-pillar-bullets">
+                <li><strong>Events Forecasting:</strong> Custom automation tool tracking EMEA training session confirmations and forecasting.</li>
+                <li><strong>Continuous Improvement:</strong> Evaluated processes against SLAs/KPIs to drive operational efficiency.</li>
+              </ul>
+              <div class="resume-pillar-badges">
+                <span class="resume-pillar-badge">Power Automate</span>
+                <span class="resume-pillar-badge">Power Apps</span>
+                <span class="resume-pillar-badge">RPA</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 3 -->
+          <article class="resume-card resume-pillar-card" style="--accent-color: var(--rm-accent-coral); --accent-color-glow: rgba(255, 87, 127, 0.15);">
+            <div class="resume-pillar-icon">
+              <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1 0-4.12 2.5 2.5 0 0 1 0-4.88A2.5 2.5 0 0 1 9.5 2zM14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 0-4.12 2.5 2.5 0 0 0 0-4.88A2.5 2.5 0 0 0 14.5 2z"/></svg>
+            </div>
+            <h3>
+              Generative AI & Innovation
+              <span class="resume-pillar-expand-icon">▼</span>
+            </h3>
+            <ul class="resume-pillar-bullets">
+              <li><strong>Marketing GenAI PoCs:</strong> Ran content generation initiatives for omnichannel marketing.</li>
+              <li><strong>RAG & Prompts:</strong> Evaluated UX, prompt stores, and Retrieval-Augmented Generation features.</li>
+            </ul>
+            <div class="resume-pillar-extra">
+              <ul class="resume-pillar-bullets">
+                <li><strong>Training & CoP:</strong> Delivered technology curriculum for the J&J Generative AI Community of Practice.</li>
+                <li><strong>Innovation Ninja:</strong> Certified catalyst leading workshops to discover next-generation technology opportunities.</li>
+              </ul>
+              <div class="resume-pillar-badges">
+                <span class="resume-pillar-badge">Generative AI</span>
+                <span class="resume-pillar-badge">Prompt Design</span>
+                <span class="resume-pillar-badge">RAG</span>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="resume-pillars-grid-bottom resume-stagger">
+          <!-- Card 4 -->
+          <article class="resume-card resume-pillar-card" style="--accent-color: var(--rm-accent-violet); --accent-color-glow: rgba(130, 87, 255, 0.15);">
+            <div class="resume-pillar-icon">
+              <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3v18h18M7 16l4-4 4 4 5-8"/></svg>
+            </div>
+            <h3>
+              Data-Driven Decision Making
+              <span class="resume-pillar-expand-icon">▼</span>
+            </h3>
+            <ul class="resume-pillar-bullets">
+              <li><strong>Insights Framework:</strong> Created Adoption & Value Realization dashboards using Power BI and ETL streams.</li>
+              <li><strong>Nexthink Analytics:</strong> Monitored client metrics to optimize end-user performance and optimize license costs.</li>
+            </ul>
+            <div class="resume-pillar-extra">
+              <ul class="resume-pillar-bullets">
+                <li><strong>Data Migration:</strong> Managed local data validation, mapping, and consolidation cycles for CRM switch.</li>
+                <li><strong>Business Intelligence:</strong> Built tools for territory alignments, performance management, and sales forecasts.</li>
+              </ul>
+              <div class="resume-pillar-badges">
+                <span class="resume-pillar-badge">Power BI</span>
+                <span class="resume-pillar-badge">Nexthink</span>
+                <span class="resume-pillar-badge">ETL</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 5 -->
+          <article class="resume-card resume-pillar-card" style="--accent-color: var(--rm-accent-mint); --accent-color-glow: rgba(0, 230, 255, 0.15);">
+            <div class="resume-pillar-icon">
+              <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/></svg>
+            </div>
+            <h3>
+              Global Service Delivery
+              <span class="resume-pillar-expand-icon">▼</span>
+            </h3>
+            <ul class="resume-pillar-bullets">
+              <li><strong>Cross-Regional Teams:</strong> Led multi-region global operations (NA, LA, EMEA, ASPAC) for mobile device lifecycle management.</li>
+              <li><strong>Community Founder:</strong> Established 3 Community of Practice portals promoting tool sharing.</li>
+            </ul>
+            <div class="resume-pillar-extra">
+              <ul class="resume-pillar-bullets">
+                <li><strong>Support Frameworks:</strong> Coordinated L1/L2/L3 support escalations and SOX compliance.</li>
+                <li><strong>Vendor Alignment:</strong> Strategic vendor evaluations to optimize Service Level Agreements (SLAs).</li>
+              </ul>
+              <div class="resume-pillar-badges">
+                <span class="resume-pillar-badge">ITIL</span>
+                <span class="resume-pillar-badge">Service Delivery</span>
+                <span class="resume-pillar-badge">Team Leadership</span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- Section 3: Career Timeline -->
+      <section class="resume-container resume-timeline-section">
+        <div class="resume-title-block resume-animate">
+          <span class="resume-pre-title">My Background</span>
+          <h2 class="resume-title">A Journey of Continuous Elevation</h2>
+          <div class="resume-title-line"></div>
+        </div>
+
+        <div class="resume-timeline-container resume-animate">
+          <div class="resume-timeline-nav">
+            <button class="resume-timeline-nav-btn" id="timelineScrollLeft" aria-label="Scroll Left">◀</button>
+            <button class="resume-timeline-nav-btn" id="timelineScrollRight" aria-label="Scroll Right">▶</button>
+          </div>
+
+          <div class="resume-timeline-outer">
+            <div class="resume-timeline-inner">
+              <div class="resume-timeline-line-track"></div>
+              
+              <div class="resume-timeline-node-item" data-index="0">
+                <div class="resume-timeline-node-dot"></div>
+                <span class="resume-timeline-node-year">2000 - 2001</span>
+                <h4 class="resume-timeline-node-title">Maintenance & Repair Tech</h4>
+                <p class="resume-timeline-node-company">StepPro Lda.</p>
+                <div class="resume-timeline-node-details-mobile" style="display:none;">
+                  <ul class="resume-timeline-achievements">
+                    <li>Maintained and repaired audio-visual and medical device equipment.</li>
+                    <li>Developed core troubleshooting and diagnostic skills.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="resume-timeline-node-item" data-index="1">
+                <div class="resume-timeline-node-dot"></div>
+                <span class="resume-timeline-node-year">2002 - 2003</span>
+                <h4 class="resume-timeline-node-title">IT Trainee</h4>
+                <p class="resume-timeline-node-company">BPI Bank</p>
+                <div class="resume-timeline-node-details-mobile" style="display:none;">
+                  <ul class="resume-timeline-achievements">
+                    <li>Supported procurement logistics and database tracking as an IT trainee.</li>
+                    <li>Streamlined supplier inventory records.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="resume-timeline-node-item" data-index="2">
+                <div class="resume-timeline-node-dot"></div>
+                <span class="resume-timeline-node-year">2004</span>
+                <h4 class="resume-timeline-node-title">IT Software Tester</h4>
+                <p class="resume-timeline-node-company">Novabase</p>
+                <div class="resume-timeline-node-details-mobile" style="display:none;">
+                  <ul class="resume-timeline-achievements">
+                    <li>Performed software quality assurance and system verification.</li>
+                    <li>Logged and tracked defects to ensure high quality releases.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="resume-timeline-node-item" data-index="3">
+                <div class="resume-timeline-node-dot"></div>
+                <span class="resume-timeline-node-year">2005</span>
+                <h4 class="resume-timeline-node-title">Web Dev & Consultant</h4>
+                <p class="resume-timeline-node-company">Areagest</p>
+                <div class="resume-timeline-node-details-mobile" style="display:none;">
+                  <ul class="resume-timeline-achievements">
+                    <li>Developed and tested web-based accounting solutions.</li>
+                    <li>Provided technology advisory for local business clients.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="resume-timeline-node-item" data-index="4">
+                <div class="resume-timeline-node-dot"></div>
+                <span class="resume-timeline-node-year">2005 - 2008</span>
+                <h4 class="resume-timeline-node-title">IT Analyst, Portugal</h4>
+                <p class="resume-timeline-node-company">J&J Medical Devices</p>
+                <div class="resume-timeline-node-details-mobile" style="display:none;">
+                  <ul class="resume-timeline-achievements">
+                    <li>Implemented transformational web/commercial applications (e.g. KAM Intranet, SMS Sales Info).</li>
+                    <li>Oversaw local IT systems support (ERP, CRM, BI).</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="resume-timeline-node-item" data-index="5">
+                <div class="resume-timeline-node-dot"></div>
+                <span class="resume-timeline-node-year">2008 - 2012</span>
+                <h4 class="resume-timeline-node-title">IT Sr. Analyst, Iberia</h4>
+                <p class="resume-timeline-node-company">J&J Medical Devices</p>
+                <div class="resume-timeline-node-details-mobile" style="display:none;">
+                  <ul class="resume-timeline-achievements">
+                    <li>Aligned Portuguese/Spanish cluster business goals with IT resource allocation.</li>
+                    <li>Developed custom commercial BI models, sales forecasts, and stock tools.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="resume-timeline-node-item" data-index="6">
+                <div class="resume-timeline-node-dot"></div>
+                <span class="resume-timeline-node-year">2012 - 2014</span>
+                <h4 class="resume-timeline-node-title">IT Sr. Analyst, SFE EMEA</h4>
+                <p class="resume-timeline-node-company">J&J Medical Devices</p>
+                <div class="resume-timeline-node-details-mobile" style="display:none;">
+                  <ul class="resume-timeline-achievements">
+                    <li>Co-led Sales Force Effectiveness frameworks and e-detailing solutions across EMEA regions.</li>
+                    <li>Standardized mobile metrics to support regional sales force deployment.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="resume-timeline-node-item" data-index="7">
+                <div class="resume-timeline-node-dot"></div>
+                <span class="resume-timeline-node-year">2014 - 2016</span>
+                <h4 class="resume-timeline-node-title">IT Lead, Mobility Global</h4>
+                <p class="resume-timeline-node-company">J&J Medical Devices</p>
+                <div class="resume-timeline-node-details-mobile" style="display:none;">
+                  <ul class="resume-timeline-achievements">
+                    <li>Supervised global operations team (NA, LA, EMEA, ASPAC).</li>
+                    <li>Managed Apple/Android mobile device & application lifecycles using MDM tools.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="resume-timeline-node-item" data-index="8">
+                <div class="resume-timeline-node-dot"></div>
+                <span class="resume-timeline-node-year">2016 - 2023</span>
+                <h4 class="resume-timeline-node-title">IT Lead, Productivity Global</h4>
+                <p class="resume-timeline-node-company">J&J Medical Devices</p>
+                <div class="resume-timeline-node-details-mobile" style="display:none;">
+                  <ul class="resume-timeline-achievements">
+                    <li>Founded Digital Acceleration Service (Low-Code/No-Code process digitization).</li>
+                    <li>Co-created P&C Insights Framework (Power BI + Nexthink dashboards).</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div class="resume-timeline-node-item" data-index="9">
+                <div class="resume-timeline-node-dot"></div>
+                <span class="resume-timeline-node-year">2023 - 2024</span>
+                <h4 class="resume-timeline-node-title">IT Lead / PM, Omnichannel EMEA</h4>
+                <p class="resume-timeline-node-company">J&J Medical Devices</p>
+                <div class="resume-timeline-node-details-mobile" style="display:none;">
+                  <ul class="resume-timeline-achievements">
+                    <li>Led Contracts & Data Migration for J&J EMEA CRM transformation (MS Dynamics conversion).</li>
+                    <li>Ran marketing Generative AI PoCs & Customer Data Platform integration.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="resume-timeline-details-area">
+            <article class="resume-card resume-timeline-detail-card" data-index="0">
+              <div class="resume-timeline-detail-grid">
+                <div class="resume-timeline-detail-meta">
+                  <h4>StepPro Lda.</h4>
+                  <p>2000 - 2001</p>
+                </div>
+                <ul class="resume-timeline-achievements">
+                  <li><strong>Equipment Maintenance:</strong> Diagnostics, repair, and configuration of medical devices and professional audio-visual setups.</li>
+                  <li><strong>Hands-on Foundations:</strong> Gained practical hardware engineering and troubleshooting capabilities.</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="resume-card resume-timeline-detail-card" data-index="1">
+              <div class="resume-timeline-detail-grid">
+                <div class="resume-timeline-detail-meta">
+                  <h4>BPI Bank</h4>
+                  <p>2002 - 2003</p>
+                </div>
+                <ul class="resume-timeline-achievements">
+                  <li><strong>IT Traineeship:</strong> Supported procurement and logistics department with database management and process tracking.</li>
+                  <li><strong>Process Optimization:</strong> Streamlined supplier record-keeping systems to enhance logistics coordination.</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="resume-card resume-timeline-detail-card" data-index="2">
+              <div class="resume-timeline-detail-grid">
+                <div class="resume-timeline-detail-meta">
+                  <h4>Novabase</h4>
+                  <p>2004</p>
+                </div>
+                <ul class="resume-timeline-achievements">
+                  <li><strong>Software QA:</strong> Conducted system testing, regression checks, and defect logging for large corporate software releases.</li>
+                  <li><strong>Quality Standards:</strong> Ensured client-facing platforms complied with strict software performance benchmarks.</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="resume-card resume-timeline-detail-card" data-index="3">
+              <div class="resume-timeline-detail-grid">
+                <div class="resume-timeline-detail-meta">
+                  <h4>Areagest</h4>
+                  <p>2005</p>
+                </div>
+                <ul class="resume-timeline-achievements">
+                  <li><strong>Accounting Solutions:</strong> Designed and developed modules for web-based enterprise accounting software.</li>
+                  <li><strong>Consulting Services:</strong> Provided IT consulting, network setups, and technical solutions for client offices.</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="resume-card resume-timeline-detail-card" data-index="4">
+              <div class="resume-timeline-detail-grid">
+                <div class="resume-timeline-detail-meta">
+                  <h4>J&J Medical, PT</h4>
+                  <p>2005 - 2008</p>
+                </div>
+                <ul class="resume-timeline-achievements">
+                  <li><strong>Custom Application Development:</strong> Designed and implemented internal intranet portals, SMS sales reporting pipelines, and account management tools.</li>
+                  <li><strong>Operations Support:</strong> Acted as local support lead for CRM, ERP, and Sales Force Effectiveness systems, supporting daily and quarterly sales cycles.</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="resume-card resume-timeline-detail-card" data-index="5">
+              <div class="resume-timeline-detail-grid">
+                <div class="resume-timeline-detail-meta">
+                  <h4>J&J Medical, Iberia</h4>
+                  <p>2008 - 2012</p>
+                </div>
+                <ul class="resume-timeline-achievements">
+                  <li><strong>Cluster Integration:</strong> Participated in aligning IT strategies and project timelines for the Spanish and Portuguese commercial sectors.</li>
+                  <li><strong>Commercial Tooling:</strong> Developed performance monitoring intranets, inventory systems, and account planning databases in desktop/web environments.</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="resume-card resume-timeline-detail-card" data-index="6">
+              <div class="resume-timeline-detail-grid">
+                <div class="resume-timeline-detail-meta">
+                  <h4>J&J Medical, SFE EMEA</h4>
+                  <p>2012 - 2014</p>
+                </div>
+                <ul class="resume-timeline-achievements">
+                  <li><strong>Salesforce Enablement:</strong> Deployed regional e-detailing standards and Sales Force Effectiveness models to harmonize CRM usage.</li>
+                  <li><strong>Service Assessment:</strong> Collaborated with cross-functional sales operations teams to map analytics requirements to software architectures.</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="resume-card resume-timeline-detail-card" data-index="7">
+              <div class="resume-timeline-detail-grid">
+                <div class="resume-timeline-detail-meta">
+                  <h4>J&J Mobility Global</h4>
+                  <p>2014 - 2016</p>
+                </div>
+                <ul class="resume-timeline-achievements">
+                  <li><strong>Global Operations Management:</strong> Led an international operations crew overseeing Apple/Android catalog deployments.</li>
+                  <li><strong>MDM Infrastructure:</strong> Maintained security policies, MDM profiles (AirWatch/Intune), and application certification streams.</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="resume-card resume-timeline-detail-card" data-index="8">
+              <div class="resume-timeline-detail-grid">
+                <div class="resume-timeline-detail-meta">
+                  <h4>J&J Productivity Global</h4>
+                  <p>2016 - 2023</p>
+                </div>
+                <ul class="resume-timeline-achievements">
+                  <li><strong>Digital Acceleration (DAS):</strong> Designed and managed a low-code service delivering custom apps (Power Platform) across NA/EMEA.</li>
+                  <li><strong>Insights Framework:</strong> Built adoption dashboard metrics using Power BI and Nexthink client data, optimizing licenses and software spending.</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="resume-card resume-timeline-detail-card" data-index="9">
+              <div class="resume-timeline-detail-grid">
+                <div class="resume-timeline-detail-meta">
+                  <h4>J&J Omnichannel EMEA</h4>
+                  <p>2023 - 2024</p>
+                </div>
+                <ul class="resume-timeline-achievements">
+                  <li><strong>HCP CRM Transformation:</strong> Core team member responsible for Contracts management modules and legacy data migrations during MS Dynamics switch.</li>
+                  <li><strong>Generative AI PoCs:</strong> Evaluated content generators, prompt store designs, and RAG frameworks. Team trainer in J&J Generative AI Community of Practice.</li>
+                </ul>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 4: Impact Metrics -->
+      <section class="resume-container resume-metrics">
+        <div class="resume-title-block resume-animate">
+          <span class="resume-pre-title">Performance</span>
+          <h2 class="resume-title">By the Numbers</h2>
+          <div class="resume-title-line"></div>
+        </div>
+
+        <div class="resume-metrics-grid resume-stagger">
+          <article class="resume-card resume-metric-card">
+            <div class="resume-metric-number-container">
+              <span class="resume-metric-number" id="metricYears">0</span>
+              <span class="resume-metric-suffix">+</span>
+            </div>
+            <h4 class="resume-metric-label">Years of Experience</h4>
+            <p class="resume-metric-desc">Building and managing corporate IT systems.</p>
+            <div class="resume-metric-watermark">YR</div>
+          </article>
+
+          <article class="resume-card resume-metric-card">
+            <div class="resume-metric-number-container">
+              <span class="resume-metric-number" id="metricRegions">0</span>
+            </div>
+            <h4 class="resume-metric-label">Global Regions</h4>
+            <p class="resume-metric-desc">Managing stakeholders across NA, LA, EMEA, and ASPAC.</p>
+            <div class="resume-metric-watermark">RG</div>
+          </article>
+
+          <article class="resume-card resume-metric-card">
+            <div class="resume-metric-number-container">
+              <span class="resume-metric-number" id="metricSolutions">0</span>
+              <span class="resume-metric-suffix">+</span>
+            </div>
+            <h4 class="resume-metric-label">Solutions Delivered</h4>
+            <p class="resume-metric-desc">Low-Code automations, dashboards, and custom business tools.</p>
+            <div class="resume-metric-watermark">SL</div>
+          </article>
+
+          <article class="resume-card resume-metric-card">
+            <div class="resume-metric-number-container">
+              <span class="resume-metric-number" id="metricLanguages">0</span>
+            </div>
+            <h4 class="resume-metric-label">Languages</h4>
+            <p class="resume-metric-desc">English (Fluent), Portuguese (Native), Spanish (Intermediate).</p>
+            <div class="resume-metric-watermark">LN</div>
+          </article>
+        </div>
+      </section>
+
+      <!-- Section 5: Skills Constellation -->
+      <section class="resume-container resume-skills">
+        <div class="resume-title-block resume-animate">
+          <span class="resume-pre-title">Capabilities</span>
+          <h2 class="resume-title">The Toolkit</h2>
+          <div class="resume-title-line"></div>
+        </div>
+
+        <div class="resume-skills-layout resume-animate">
+          <div class="resume-skills-info">
+            <h3>Interactive Competencies</h3>
+            <p>
+              Hover over the orbital rings or individual skill nodes to highlight connected capabilities across domains. 
+              My experience sits at the intersection of business strategy, execution management, data insights, and automation tech.
+            </p>
+            <div class="resume-skills-legend">
+              <div class="resume-skills-legend-item">
+                <span class="resume-skills-legend-dot" style="--ring-color: var(--rm-accent-teal);"></span>
+                <span>Transformation & Strategy</span>
+              </div>
+              <div class="resume-skills-legend-item">
+                <span class="resume-skills-legend-dot" style="--ring-color: var(--rm-accent-amber);"></span>
+                <span>Project Management & Delivery</span>
+              </div>
+              <div class="resume-skills-legend-item">
+                <span class="resume-skills-legend-dot" style="--ring-color: var(--rm-accent-violet);"></span>
+                <span>Data & Analytics</span>
+              </div>
+              <div class="resume-skills-legend-item">
+                <span class="resume-skills-legend-dot" style="--ring-color: var(--rm-accent-coral);"></span>
+                <span>Technical & Automation</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="resume-skills-visual">
+            <div class="resume-skills-center">
+              <span>Core<br>Skills</span>
+            </div>
+            
+            <div class="resume-skills-ring resume-skills-ring-1">
+              <span class="resume-skill-node skill-t1" data-id="s-plan" data-related="a-genai,d-mbi,p-agile">Strategic Planning</span>
+              <span class="resume-skill-node skill-t2" data-id="c-change" data-related="p-agile,d-mbi">Change Management</span>
+              <span class="resume-skill-node skill-t3" data-id="s-design" data-related="a-pp,a-rpa,d-mbi">Solution Design</span>
+              <span class="resume-skill-node skill-t4" data-id="s-engage" data-related="p-water,p-agile">Stakeholder Engagement</span>
+            </div>
+
+            <div class="resume-skills-ring resume-skills-ring-2">
+              <span class="resume-skill-node skill-p1" data-id="p-agile" data-related="s-plan,c-change,p-safe">Agile / Scrum</span>
+              <span class="resume-skill-node skill-p2" data-id="p-water" data-related="s-engage,p-sdlc">Waterfall</span>
+              <span class="resume-skill-node skill-p3" data-id="p-safe" data-related="p-agile">SAFE Framework</span>
+              <span class="resume-skill-node skill-p4" data-id="p-sdlc" data-related="p-water,s-design">SDLC</span>
+              <span class="resume-skill-node skill-p5" data-id="p-jira" data-related="p-agile">Jira & Confluence</span>
+            </div>
+
+            <div class="resume-skills-ring resume-skills-ring-3">
+              <span class="resume-skill-node skill-d1" data-id="d-mbi" data-related="s-plan,d-pbi">Data-Driven Decisions</span>
+              <span class="resume-skill-node skill-d2" data-id="d-pbi" data-related="d-mbi,d-etl">Power BI</span>
+              <span class="resume-skill-node skill-d3" data-id="d-etl" data-related="d-pbi,a-pp">Data ETL/ELT</span>
+              <span class="resume-skill-node skill-d4" data-id="d-next" data-related="d-mbi">Nexthink Analytics</span>
+              <span class="resume-skill-node skill-d5" data-id="d-mig" data-related="p-sdlc">Data Migration</span>
+            </div>
+
+            <div class="resume-skills-ring resume-skills-ring-4">
+              <span class="resume-skill-node skill-a1" data-id="a-genai" data-related="s-plan,a-rag,a-prompt">Generative AI</span>
+              <span class="resume-skill-node skill-a2" data-id="a-pp" data-related="s-design,d-etl">Power Platform</span>
+              <span class="resume-skill-node skill-a3" data-id="a-rpa" data-related="s-design,a-pp">RPA Tools</span>
+              <span class="resume-skill-node skill-a4" data-id="a-rag" data-related="a-genai,a-prompt">RAG & Prompt Eng</span>
+              <span class="resume-skill-node skill-a5" data-id="a-share" data-related="a-pp">SharePoint/Dataverse</span>
+            </div>
+          </div>
+
+          <div class="resume-skills-fallback">
+            <div class="resume-skills-fallback-category" style="--fallback-color: var(--rm-accent-teal);">
+              <h4 class="resume-skills-fallback-title">Transformation & Strategy</h4>
+              <div class="resume-skills-fallback-list">
+                <span class="resume-skills-fallback-tag">Strategic Planning</span>
+                <span class="resume-skills-fallback-tag">Change Management</span>
+                <span class="resume-skills-fallback-tag">Solution Design</span>
+                <span class="resume-skills-fallback-tag">Stakeholder Engagement</span>
+              </div>
+            </div>
+
+            <div class="resume-skills-fallback-category" style="--fallback-color: var(--rm-accent-amber);">
+              <h4 class="resume-skills-fallback-title">Project Management & Delivery</h4>
+              <div class="resume-skills-fallback-list">
+                <span class="resume-skills-fallback-tag">Agile / Scrum / Kanban</span>
+                <span class="resume-skills-fallback-tag">Waterfall</span>
+                <span class="resume-skills-fallback-tag">SAFE 5 PO/PM</span>
+                <span class="resume-skills-fallback-tag">SDLC</span>
+                <span class="resume-skills-fallback-tag">Jira & Confluence</span>
+              </div>
+            </div>
+
+            <div class="resume-skills-fallback-category" style="--fallback-color: var(--rm-accent-violet);">
+              <h4 class="resume-skills-fallback-title">Data & Analytics</h4>
+              <div class="resume-skills-fallback-list">
+                <span class="resume-skills-fallback-tag">Data-Driven Decisions</span>
+                <span class="resume-skills-fallback-tag">Power BI</span>
+                <span class="resume-skills-fallback-tag">Data ETL/ELT</span>
+                <span class="resume-skills-fallback-tag">Nexthink Analytics</span>
+                <span class="resume-skills-fallback-tag">Data Migration</span>
+              </div>
+            </div>
+
+            <div class="resume-skills-fallback-category" style="--fallback-color: var(--rm-accent-coral);">
+              <h4 class="resume-skills-fallback-title">Technical & Automation</h4>
+              <div class="resume-skills-fallback-list">
+                <span class="resume-skills-fallback-tag">Generative AI</span>
+                <span class="resume-skills-fallback-tag">Power Platform</span>
+                <span class="resume-skills-fallback-tag">RPA (Robotic Process Automation)</span>
+                <span class="resume-skills-fallback-tag">RAG & Prompt Engineering</span>
+                <span class="resume-skills-fallback-tag">SharePoint / Dataverse</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 6: Education & Certifications -->
+      <section class="resume-container resume-education">
+        <div class="resume-title-block resume-animate">
+          <span class="resume-pre-title">Credentials</span>
+          <h2 class="resume-title">Always Learning</h2>
+          <div class="resume-title-line"></div>
+        </div>
+
+        <div class="resume-education-grid resume-stagger">
+          <article class="resume-card resume-edu-card-featured">
+            <div class="resume-edu-header">
+              <div>
+                <span class="resume-edu-institution">Instituto Superior Técnico, Lisboa</span>
+                <h3 class="resume-edu-heading">Licentiate in Electrical and Computer Engineering</h3>
+                <p style="margin-top: 6px; font-size: 0.9rem; color: var(--rm-text-secondary);">Major in Control and Robotics</p>
+              </div>
+              <span class="resume-edu-date">Graduated 2003</span>
+            </div>
+            <p class="resume-metric-desc" style="max-width: 800px;">
+              Comprehensive 5-year curriculum at Lisbon's premier engineering institute, combining computational logic, feedback control architectures, software engineering and real world robotics exploration.
+            </p>
+          </article>
+
+          <section>
+            <h4 class="resume-edu-group-title" style="--accent-color: var(--rm-accent-coral);">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              AI & Automation
+            </h4>
+            <div class="resume-edu-cert-list">
+              <div class="resume-edu-cert-item">
+                <div>
+                  <div class="resume-edu-cert-name">Generative AI for Business</div>
+                  <div class="resume-edu-cert-issuer">Johnson & Johnson</div>
+                </div>
+                <span class="resume-edu-cert-badge" style="--badge-bg: rgba(255,87,127,0.1); --badge-color: var(--rm-accent-coral);">GenAI</span>
+              </div>
+              <div class="resume-edu-cert-item">
+                <div>
+                  <div class="resume-edu-cert-name">AI Programming with Python</div>
+                  <div class="resume-edu-cert-issuer">Udacity</div>
+                </div>
+                <span class="resume-edu-cert-badge" style="--badge-bg: rgba(255,87,127,0.1); --badge-color: var(--rm-accent-coral);">Python</span>
+              </div>
+              <div class="resume-edu-cert-item">
+                <div>
+                  <div class="resume-edu-cert-name">PL-100: Power Platform App Maker</div>
+                  <div class="resume-edu-cert-issuer">Microsoft</div>
+                </div>
+                <span class="resume-edu-cert-badge" style="--badge-bg: rgba(255,87,127,0.1); --badge-color: var(--rm-accent-coral);">Low-Code</span>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h4 class="resume-edu-group-title" style="--accent-color: var(--rm-accent-amber);">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+              PM & Solution Implementation
+            </h4>
+            <div class="resume-edu-cert-list">
+              <div class="resume-edu-cert-item">
+                <div>
+                  <div class="resume-edu-cert-name">SAFE 5 Product Owner / Manager</div>
+                  <div class="resume-edu-cert-issuer">Scaled Agile</div>
+                </div>
+                <span class="resume-edu-cert-badge" style="--badge-bg: rgba(255,174,0,0.1); --badge-color: var(--rm-accent-amber);">PO/PM</span>
+              </div>
+              <div class="resume-edu-cert-item">
+                <div>
+                  <div class="resume-edu-cert-name">SAFE 5 Agilist Certification</div>
+                  <div class="resume-edu-cert-issuer">Scaled Agile</div>
+                </div>
+                <span class="resume-edu-cert-badge" style="--badge-bg: rgba(255,174,0,0.1); --badge-color: var(--rm-accent-amber);">Agile</span>
+              </div>
+              <div class="resume-edu-cert-item">
+                <div>
+                  <div class="resume-edu-cert-name">Flawless Project Execution (FPX)</div>
+                  <div class="resume-edu-cert-issuer">Johnson & Johnson</div>
+                </div>
+                <span class="resume-edu-cert-badge" style="--badge-bg: rgba(255,174,0,0.1); --badge-color: var(--rm-accent-amber);">J&J</span>
+              </div>
+              <div class="resume-edu-cert-item">
+                <div>
+                  <div class="resume-edu-cert-name">Innovation Ninjas Certification</div>
+                  <div class="resume-edu-cert-issuer">?WhatIf! UK</div>
+                </div>
+                <span class="resume-edu-cert-badge" style="--badge-bg: rgba(255,174,0,0.1); --badge-color: var(--rm-accent-amber);">Innovation</span>
+              </div>
+              <div class="resume-edu-cert-item">
+                <div>
+                  <div class="resume-edu-cert-name">rRDM - Rapid Requirements Management</div>
+                  <div class="resume-edu-cert-issuer">Johnson & Johnson</div>
+                </div>
+                <span class="resume-edu-cert-badge" style="--badge-bg: rgba(255,174,0,0.1); --badge-color: var(--rm-accent-amber);">Reqs</span>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h4 class="resume-edu-group-title" style="--accent-color: var(--rm-accent-violet);">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Leadership
+            </h4>
+            <div class="resume-edu-cert-list">
+              <div class="resume-edu-cert-item">
+                <div>
+                  <div class="resume-edu-cert-name">First Line Leader Program</div>
+                  <div class="resume-edu-cert-issuer">Johnson & Johnson CZ</div>
+                </div>
+                <span class="resume-edu-cert-badge" style="--badge-bg: rgba(130,87,255,0.1); --badge-color: var(--rm-accent-violet);">Management</span>
+              </div>
+              <div class="resume-edu-cert-item">
+                <div>
+                  <div class="resume-edu-cert-name">High Performance Teams Training</div>
+                  <div class="resume-edu-cert-issuer">Johnson & Johnson</div>
+                </div>
+                <span class="resume-edu-cert-badge" style="--badge-bg: rgba(130,87,255,0.1); --badge-color: var(--rm-accent-violet);">Coaching</span>
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h4 class="resume-edu-group-title" style="--accent-color: var(--rm-accent-teal);">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M21 9H3M21 15H3M12 3v18"/></svg>
+              Service Delivery
+            </h4>
+            <div class="resume-edu-cert-list">
+              <div class="resume-edu-cert-item">
+                <div>
+                  <div class="resume-edu-cert-name">Salesforce Certified Administrator</div>
+                  <div class="resume-edu-cert-issuer">Salesforce.com UK</div>
+                </div>
+                <span class="resume-edu-cert-badge" style="--badge-bg: rgba(5,222,186,0.1); --badge-color: var(--rm-accent-teal);">Salesforce</span>
+              </div>
+              <div class="resume-edu-cert-item">
+                <div>
+                  <div class="resume-edu-cert-name">Mobile Devices & Applications Management</div>
+                  <div class="resume-edu-cert-issuer">Johnson & Johnson</div>
+                </div>
+                <span class="resume-edu-cert-badge" style="--badge-bg: rgba(5,222,186,0.1); --badge-color: var(--rm-accent-teal);">Mobility</span>
+              </div>
+              <div class="resume-edu-cert-item">
+                <div>
+                  <div class="resume-edu-cert-name">ITIL Foundation Training</div>
+                  <div class="resume-edu-cert-issuer">Johnson & Johnson</div>
+                </div>
+                <span class="resume-edu-cert-badge" style="--badge-bg: rgba(5,222,186,0.1); --badge-color: var(--rm-accent-teal);">ITIL</span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <!-- Section 7: Contact CTA & Languages -->
+      <section class="resume-container resume-contact-section">
+        <div class="resume-card resume-contact-card resume-animate">
+          <h2 class="resume-contact-title">Let's Build What's Next</h2>
+          <p class="resume-contact-subtitle">
+            Looking for a strategic IT Leader, Business Partner, or automation specialist to drive your next digital evolution? Let's connect.
+          </p>
+          
+          <div class="resume-hero-ctas">
+            <a href="https://www.linkedin.com/in/rodrigo-gc-matias/" target="_blank" rel="noopener noreferrer" class="resume-btn resume-btn-primary">
+              <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+              LinkedIn Profile
+            </a>
+            <a href="mailto:rodrigo.gc.matias@gmail.com" class="resume-btn resume-btn-secondary">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              rodrigo.gc.matias@gmail.com
+            </a>
+          </div>
+
+          <div class="resume-languages-container">
+            <span class="resume-languages-title">Languages</span>
+            <div class="resume-languages-list">
+              <div class="resume-language-badge">
+                <span>🇵🇹 Portuguese</span>
+                <span class="resume-language-level">Native</span>
+              </div>
+              <div class="resume-language-badge">
+                <span>🇬🇧 English</span>
+                <span class="resume-language-level">Fluent</span>
+              </div>
+              <div class="resume-language-badge">
+                <span>🇪🇸 Spanish</span>
+                <span class="resume-language-level">Intermediate</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
   </main>
   </div>
 
@@ -911,6 +1736,7 @@
 
   <!-- Application Logic -->
   <script type="module" src="js/app.js?v=37"></script>
+  <script type="module" src="js/Resume.js?v=1"></script>
 </body>
 
 </html>

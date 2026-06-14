@@ -1,0 +1,7 @@
+{
+  "name": "devland",
+  "version": "1.0.0",
+  "scripts": {
+    "deploy-interviewz": "node deploy.js"
+  }
+}

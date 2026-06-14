@@ -88,8 +88,10 @@ function initDomCache() {
   dom.statsSection = document.querySelector('.stats-section');
   dom.analyticsSection = document.querySelector('.analytics-section');
   dom.newApplicationSection = document.querySelector('.new-application-section');
+  dom.resumeSection = document.querySelector('.resume-section');
   dom.fabBtn = document.getElementById('fabNewApplication');
   dom.syncContainer = document.querySelector('.sync-container');
+  dom.heroBanner = document.querySelector('.hero-banner');
   dom.topbarBrandLink = document.getElementById('topbarBrandLink');
 
   dom.paginationInfo = document.getElementById('paginationInfo');
@@ -1170,6 +1172,7 @@ function initTabNavigation() {
     }
 
     if (targetTab === 'home') {
+      showEl(dom.heroBanner);
       showEl(dom.filtersSection);
       showEl(dom.resultsSection);
       showEl(dom.syncContainer);
@@ -1177,7 +1180,9 @@ function initTabNavigation() {
       hideEl(dom.statsSection);
       hideEl(dom.analyticsSection);
       hideEl(dom.newApplicationSection);
+      hideEl(dom.resumeSection);
     } else if (targetTab === 'dashboard') {
+      showEl(dom.heroBanner);
       hideEl(dom.filtersSection);
       hideEl(dom.resultsSection);
       hideEl(dom.activeInterviewsSection);
@@ -1185,6 +1190,7 @@ function initTabNavigation() {
       showEl(dom.statsSection);
       showEl(dom.analyticsSection);
       hideEl(dom.newApplicationSection);
+      hideEl(dom.resumeSection);
 
       if (state.rawApplications.length > 0) {
         try {
@@ -1194,6 +1200,7 @@ function initTabNavigation() {
         }
       }
     } else if (targetTab === 'new-application') {
+      showEl(dom.heroBanner);
       hideEl(dom.filtersSection);
       hideEl(dom.resultsSection);
       hideEl(dom.activeInterviewsSection);
@@ -1201,9 +1208,25 @@ function initTabNavigation() {
       hideEl(dom.statsSection);
       hideEl(dom.analyticsSection);
       showEl(dom.newApplicationSection);
+      hideEl(dom.resumeSection);
 
       if (!window._formApp) {
         window._formApp = new FormApp();
+      }
+    } else if (targetTab === 'resume') {
+      hideEl(dom.heroBanner);
+      hideEl(dom.filtersSection);
+      hideEl(dom.resultsSection);
+      hideEl(dom.activeInterviewsSection);
+      hideEl(dom.syncContainer);
+      hideEl(dom.statsSection);
+      hideEl(dom.analyticsSection);
+      hideEl(dom.newApplicationSection);
+      showEl(dom.resumeSection);
+
+      // Trigger Resume animations
+      if (window._resumeApp && window._resumeApp.onTabActivated) {
+        window._resumeApp.onTabActivated();
       }
     }
   }
