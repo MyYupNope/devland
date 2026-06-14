@@ -24,10 +24,10 @@ const dom = {};
 function initDomCache() {
   dom.syncStatus = document.getElementById('syncStatus');
   dom.statTotal = document.getElementById('statTotal');
-  dom.statActiveApps = document.getElementById('statActiveApps');
+  dom.statActivePipeline = document.getElementById('statActivePipeline');
   dom.statCompanies = document.getElementById('statCompanies');
   dom.statJobs = document.getElementById('statJobs');
-  dom.statInterviews = document.getElementById('statInterviews');
+  dom.statActiveApps = document.getElementById('statActiveApps');
   dom.statConversion = document.getElementById('statConversion');
   dom.statRejectionRate = document.getElementById('statRejectionRate');
   dom.statAvgSuitability = document.getElementById('statAvgSuitability');
@@ -489,7 +489,7 @@ function fetchData() {
 
       parseAndInitializeData(csvText);
       
-      const lastUpdated = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const lastUpdated = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
       setSyncState('success', `Synced ${lastUpdated}`);
     })
     .catch(error => {
@@ -497,7 +497,7 @@ function fetchData() {
       if (hasLoadedFromCache) {
         const cachedObj = JSON.parse(localStorage.getItem(CACHE_KEY_CSV()) || '{}');
         const syncTime = cachedObj.timestamp
-          ? new Date(cachedObj.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          ? new Date(cachedObj.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
           : 'Cached';
         setSyncState('success', `Offline (${syncTime})`);
       } else {
@@ -621,10 +621,11 @@ function parseAndInitializeData(csvText) {
  */
 function calculateStatistics() {
   if (dom.statTotal) dom.statTotal.textContent = state.rawApplications.length;
-  if (dom.statActiveApps) dom.statActiveApps.textContent = state.activeApplications.length;
+  if (dom.statActivePipeline) dom.statActivePipeline.textContent = state.activeApplications.length;
 
   const uniqueCompanies = new Set();
   const uniqueJobs = new Set();
+  let activeAppsCount = 0;
   let interviewCount = 0;
   let conversionCount = 0;
   let rejectedCount = 0;
@@ -651,6 +652,11 @@ function calculateStatistics() {
     if (job) uniqueJobs.add(job);
 
     const status = (app['Application Status'] || '').trim().toLowerCase();
+    const isActive = status !== '' && status !== 'ready' && status !== 'applied' && status !== 'rejected' && status !== 'withdraw' && status !== 'withdrawn';
+    if (isActive) {
+      activeAppsCount++;
+    }
+
     if (status.includes('interview')) {
       interviewCount++;
       conversionCount++;
@@ -682,7 +688,7 @@ function calculateStatistics() {
 
   if (dom.statCompanies) dom.statCompanies.textContent = uniqueCompanies.size;
   if (dom.statJobs) dom.statJobs.textContent = uniqueJobs.size;
-  if (dom.statInterviews) dom.statInterviews.textContent = interviewCount;
+  if (dom.statActiveApps) dom.statActiveApps.textContent = activeAppsCount;
 
   const conversionRate = state.rawApplications.length > 0
     ? Math.round((conversionCount / state.rawApplications.length) * 100)
@@ -1314,22 +1320,22 @@ async function submitJobInterviewForm() {
 function renderActiveInterviewsPanel(applications) {
   if (!dom.activeInterviewsSection || !dom.activeInterviewsGrid) return;
   
-  const interviewApps = applications.filter(app => {
+  const activeApps = applications.filter(app => {
     const status = (app['Application Status'] || '').trim().toLowerCase();
-    const isInterview = status.includes('interview');
+    const isActive = status !== '' && status !== 'ready' && status !== 'rejected' && status !== 'withdraw' && status !== 'withdrawn' && status !== 'applied';
     
     const matchCompany = !state.selectedCompany || (app['Company Name'] || '').trim() === state.selectedCompany;
     const matchJob = !state.selectedJobTitle || (app['Job Title'] || '').trim() === state.selectedJobTitle;
     const matchStatus = !state.selectedStatus || (app['Application Status'] || '').trim() === state.selectedStatus;
     
-    return isInterview && matchCompany && matchJob && matchStatus;
+    return isActive && matchCompany && matchJob && matchStatus;
   });
   
   const activeTabBtn = document.querySelector('.topbar-nav-btn.active');
   const isHomeTab = activeTabBtn ? activeTabBtn.getAttribute('data-tab') === 'home' : true;
   const hasActiveFilters = !!(state.selectedCompany || state.selectedJobTitle || state.selectedStatus);
   
-  if (interviewApps.length === 0 || !isHomeTab) {
+  if (activeApps.length === 0 || !isHomeTab) {
     if (isHomeTab && hasActiveFilters) {
       dom.activeInterviewsSection.classList.remove('tab-hidden');
       if (dom.activeInterviewsCount) dom.activeInterviewsCount.textContent = '0';
@@ -1342,19 +1348,17 @@ function renderActiveInterviewsPanel(applications) {
   
   dom.activeInterviewsSection.classList.remove('tab-hidden');
   if (dom.activeInterviewsCount) {
-    dom.activeInterviewsCount.textContent = interviewApps.length;
+    dom.activeInterviewsCount.textContent = activeApps.length;
   }
   dom.activeInterviewsGrid.innerHTML = '';
   
-  interviewApps.forEach(app => {
+  activeApps.forEach(app => {
     const company = (app['Company Name'] || '').trim();
     const title = (app['Job Title'] || '').trim();
-    const scoreVal = (app['Job_Suitability'] || '').trim();
+    const status = (app['Application Status'] || '').trim();
+    const statusClass = status.toLowerCase().replace(/\s+/g, '-');
     const commentsVal = (app['Comments'] || '').trim();
     const followUpVal = (app['Follow-Up'] || '').trim();
-    
-    const scoreNum = parseInt(scoreVal, 10);
-    const scoreClass = !isNaN(scoreNum) && scoreNum >= 1 && scoreNum <= 5 ? `score-${scoreNum}` : '';
     
     const lastCommentLine = getLastComment(commentsVal);
     const formattedComment = parseCommentLine(lastCommentLine);
@@ -1383,7 +1387,7 @@ function renderActiveInterviewsPanel(applications) {
           <h4 class="interview-company">${escapeHtml(company)}</h4>
           <p class="interview-title">${escapeHtml(title)}</p>
         </div>
-        ${scoreVal ? `<span class="score-badge ${scoreClass}">Suitability: ${escapeHtml(scoreVal)}</span>` : ''}
+        <span class="status-badge ${statusClass}">${escapeHtml(status)}</span>
       </div>
       <div class="interview-card-body">
         <div class="interview-latest-activity">

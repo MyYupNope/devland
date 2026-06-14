@@ -54,6 +54,28 @@
 
   /* Translucent overlay colors for hovers/badges */
   --color-hover-overlay: rgba(0, 0, 0, 0.05);
+
+  /* Google Sheets dropdown status chip colors (Light Theme) */
+  --bg-status-applied: #e8f0fe;
+  --color-status-applied: #1a73e8;
+
+  --bg-status-interviews: #ffe0b2;
+  --color-status-interviews: #b06000;
+
+  --bg-status-ready: #e1e1e1;
+  --color-status-ready: #3c4043;
+
+  --bg-status-rejected: #fce8e6;
+  --color-status-rejected: #c5221f;
+
+  --bg-status-accepted: #e6f4ea;
+  --color-status-accepted: #137333;
+
+  --bg-status-offer: #c6dbe1;
+  --color-status-offer: #215a6c;
+
+  --bg-status-in-review: #e4f7fb;
+  --color-status-in-review: #007b83;
 }
 
 :root.theme-dark {
@@ -79,6 +101,28 @@
   --shadow-lg: 0 4px 6px 0 rgba(0, 0, 0, 0.5), 0 8px 24px 6px rgba(0, 0, 0, 0.3);
 
   --color-hover-overlay: rgba(255, 255, 255, 0.08);
+
+  /* Google Sheets dropdown status chip colors (Dark Theme) */
+  --bg-status-applied: rgba(26, 115, 232, 0.15);
+  --color-status-applied: #8ab4f8;
+
+  --bg-status-interviews: rgba(249, 171, 0, 0.15);
+  --color-status-interviews: #fdd663;
+
+  --bg-status-ready: rgba(255, 255, 255, 0.1);
+  --color-status-ready: #e8eaed;
+
+  --bg-status-rejected: rgba(217, 48, 37, 0.15);
+  --color-status-rejected: #f28b82;
+
+  --bg-status-accepted: rgba(30, 142, 62, 0.15);
+  --color-status-accepted: #81c995;
+
+  --bg-status-offer: rgba(33, 90, 108, 0.25);
+  --color-status-offer: #8ecbdc;
+
+  --bg-status-in-review: rgba(0, 191, 165, 0.15);
+  --color-status-in-review: #80cbc4;
 }
 
 /* ==========================================================================
@@ -1202,38 +1246,47 @@ body {
 }
 
 .status-badge.applied {
-  color: var(--color-primary);
-  background: var(--color-primary-light);
+  color: var(--color-status-applied);
+  background: var(--bg-status-applied);
 }
 
-.status-badge.interviews {
-  color: var(--color-warning);
-  background: var(--bg-warning-light);
+.status-badge.interviews,
+.status-badge.interview {
+  color: var(--color-status-interviews);
+  background: var(--bg-status-interviews);
 }
 
 .status-badge.ready {
-  color: var(--color-text-secondary);
-  background: var(--bg-surface-variant);
+  color: var(--color-status-ready);
+  background: var(--bg-status-ready);
 }
 
-.status-badge.accepted {
-  color: var(--color-success);
-  background: var(--bg-success-light);
+.status-badge.accepted,
+.status-badge.accept {
+  color: var(--color-status-accepted);
+  background: var(--bg-status-accepted);
 }
 
-.status-badge.rejected {
-  color: var(--color-error);
-  background: var(--bg-error-light);
+.status-badge.rejected,
+.status-badge.reject {
+  color: var(--color-status-rejected);
+  background: var(--bg-status-rejected);
 }
 
-.status-badge.offer {
-  color: #1e8e3e;
-  background: rgba(30, 142, 62, 0.1);
+.status-badge.offer,
+.status-badge.offers {
+  color: var(--color-status-offer);
+  background: var(--bg-status-offer);
 }
 
 .status-badge.in-review {
-  color: var(--color-primary);
-  background: var(--color-primary-light);
+  color: var(--color-status-in-review);
+  background: var(--bg-status-in-review);
+}
+
+.status-badge.retired {
+  color: var(--color-text-secondary);
+  background: var(--bg-surface-variant);
 }
 
 /* ==========================================================================
@@ -1316,7 +1369,7 @@ body {
   line-height: 1.5;
 }
 
-/* Empty state for the Active Interview Pipeline when filters yield no results */
+/* Empty state for the Active Applications when filters yield no results */
 .no-results-pipeline {
   padding: 1.5rem;
   text-align: center;
