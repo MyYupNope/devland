@@ -1212,6 +1212,11 @@ body {
 }
 
 .status-badge.ready {
+  color: var(--color-text-secondary);
+  background: var(--bg-surface-variant);
+}
+
+.status-badge.accepted {
   color: var(--color-success);
   background: var(--bg-success-light);
 }

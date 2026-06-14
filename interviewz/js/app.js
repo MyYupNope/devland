@@ -654,7 +654,7 @@ function calculateStatistics() {
     if (status.includes('interview')) {
       interviewCount++;
       conversionCount++;
-    } else if (status === 'offer' || status === 'ready') {
+    } else if (status === 'offer' || status === 'ready' || status === 'accepted') {
       conversionCount++;
     } else if (status === 'rejected') {
       rejectedCount++;
