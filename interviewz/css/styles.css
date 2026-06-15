@@ -2056,7 +2056,7 @@ body {
 }
 
 /* Desktop layout for Job Interview */
-@media (min-width: 641px) {
+@media (min-width: 992px) {
   .interview-matrix-grid>div {
     padding: 1rem;
   }
@@ -2085,7 +2085,7 @@ body {
 }
 
 /* Mobile layout for Job Interview */
-@media (max-width: 640px) {
+@media (max-width: 991px) {
   .interview-matrix-grid {
     grid-template-columns: 1fr;
   }
