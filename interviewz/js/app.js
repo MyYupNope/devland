@@ -451,7 +451,7 @@ function fetchData() {
         if (Date.now() - cachedObj.timestamp < CACHE_TTL_MS) {
           cachedCsvText = cachedObj.csv;
         } else {
-          console.log('[TalentTracker] Cache expired');
+          console.log('[OpportunityTracker] Cache expired');
         }
       }
     } catch (e) {
@@ -465,7 +465,7 @@ function fetchData() {
       parseAndInitializeData(cachedCsvText);
       hasLoadedFromCache = true;
     } catch (e) {
-      console.error('[TalentTracker] Failed parsing cached CSV:', e);
+      console.error('[OpportunityTracker] Failed parsing cached CSV:', e);
       localStorage.removeItem(CACHE_KEY_CSV());
     }
   }
@@ -493,7 +493,7 @@ function fetchData() {
       setSyncState('success', `Synced ${lastUpdated}`);
     })
     .catch(error => {
-      console.error('[TalentTracker] Fetch error:', error);
+      console.error('[OpportunityTracker] Fetch error:', error);
       if (hasLoadedFromCache) {
         const cachedObj = JSON.parse(localStorage.getItem(CACHE_KEY_CSV()) || '{}');
         const syncTime = cachedObj.timestamp

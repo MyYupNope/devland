@@ -1,5 +1,5 @@
 /**
- * Global state management for TalentTracker
+ * Global state management for OpportunityTracker
  */
 
 export const state = {

@@ -1,7 +1,7 @@
 import { FORM_TIMEOUT_MS } from './Config.js';
 
 /**
- * Utility functions for TalentTracker
+ * Utility functions for OpportunityTracker
  */
 
 /**
@@ -29,7 +29,7 @@ export function parseDate(dateStr) {
   }
   const parsed = Date.parse(dateStr);
   if (isNaN(parsed)) {
-    console.warn(`[TalentTracker] Could not parse date: "${dateStr}"`);
+    console.warn(`[OpportunityTracker] Could not parse date: "${dateStr}"`);
     return new Date(0);
   }
   return new Date(parsed);
