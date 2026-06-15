@@ -3834,9 +3834,9 @@ body {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: var(--color-success); /* Green background to contrast with primary blue */
+  background: #5f6368; /* Grayish background */
   color: white;
-  box-shadow: 0 4px 10px rgba(30, 142, 62, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 10px rgba(95, 99, 104, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
   transition: transform var(--transition-base), box-shadow var(--transition-base), background-color 0.3s;
   z-index: 80;
   display: flex;
@@ -3849,8 +3849,8 @@ body {
 
 .fab-btn-secondary:hover {
   transform: scale(1.08);
-  background-color: #177d35; /* Slightly darker hover green */
-  box-shadow: 0 6px 14px rgba(30, 142, 62, 0.45), 0 2px 5px rgba(0, 0, 0, 0.2);
+  background-color: #4b4f53; /* Slightly darker hover gray */
+  box-shadow: 0 6px 14px rgba(95, 99, 104, 0.45), 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .fab-btn-secondary:active {
@@ -3870,12 +3870,12 @@ body {
 }
 
 .theme-dark .fab-btn-secondary {
-  background: #137333; /* Darker success green in dark mode */
+  background: #5f6368; /* Neutral gray in dark mode */
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .theme-dark .fab-btn-secondary:hover {
-  background-color: #0f5d29;
+  background-color: #757b80; /* Slightly lighter gray in dark mode on hover */
 }
 
 /* Mobile responsive styling for topbar sync */
