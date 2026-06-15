@@ -3679,7 +3679,7 @@ body {
 .parallax-waves > use:nth-child(4) {
   animation-delay: -5s;
   animation-duration: 20s;
-  fill: var(--color-surface); /* Front wave matches the website's background color! */
+  fill: var(--color-bg); /* Front wave matches the website's background color! */
   transition: fill 0.3s;
 }
 
