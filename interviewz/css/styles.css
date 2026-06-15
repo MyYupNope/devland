@@ -3834,24 +3834,23 @@ body {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-primary);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: transform var(--transition-base), box-shadow var(--transition-base), background-color 0.3s, border-color 0.3s;
+  background: var(--color-success); /* Green background to contrast with primary blue */
+  color: white;
+  box-shadow: 0 4px 10px rgba(30, 142, 62, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform var(--transition-base), box-shadow var(--transition-base), background-color 0.3s;
   z-index: 80;
   display: flex;
   align-items: center;
   justify-content: center;
   outline: none;
+  border: none;
   cursor: pointer;
 }
 
 .fab-btn-secondary:hover {
   transform: scale(1.08);
-  background-color: var(--color-hover-overlay);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  background-color: #177d35; /* Slightly darker hover green */
+  box-shadow: 0 6px 14px rgba(30, 142, 62, 0.45), 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .fab-btn-secondary:active {
@@ -3859,23 +3858,24 @@ body {
 }
 
 .fab-btn-secondary svg {
-  stroke: var(--color-text-primary);
+  stroke: white; /* White icon for contrast */
   width: 20px;
   height: 20px;
-  transition: stroke 0.3s;
+  transition: transform 0.3s;
 }
 
 .fab-btn-secondary:hover svg {
-  stroke: var(--color-primary);
+  stroke: white;
+  transform: rotate(45deg); /* Subtle spin animation on hover */
 }
 
 .theme-dark .fab-btn-secondary {
-  background: var(--color-bg);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+  background: #137333; /* Darker success green in dark mode */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-.theme-dark .fab-btn-secondary:hover svg {
-  stroke: #8ab4f8;
+.theme-dark .fab-btn-secondary:hover {
+  background-color: #0f5d29;
 }
 
 /* Mobile responsive styling for topbar sync */
