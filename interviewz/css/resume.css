@@ -175,7 +175,8 @@
   padding: 80px 20px;
 }
 
-#resumeHeroCanvas {
+#resumeHeroCanvas,
+#resumeBottomCanvas {
   position: absolute;
   top: 0;
   left: 0;
@@ -1040,6 +1041,8 @@
 }
 
 .resume-contact-card {
+  position: relative;
+  z-index: 2;
   max-width: 750px;
   margin: 0 auto;
   padding: 50px 40px;

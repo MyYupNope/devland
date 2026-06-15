@@ -72,36 +72,54 @@ export class ResumeApp {
   _initDomReferences() {
     this.typingTarget = document.getElementById('resumeTypingTarget');
     this.canvas = document.getElementById('resumeHeroCanvas');
+    this.bottomCanvas = document.getElementById('resumeBottomCanvas');
   }
 
   /* --------------------------------------------------------------------------
      HERO BACKGROUND: CANVAS PARTICLE NETWORK
      -------------------------------------------------------------------------- */
   _initHeroCanvas() {
-    if (!this.canvas) return;
-    this.ctx = this.canvas.getContext('2d');
+    // Hero Canvas
+    if (this.canvas) {
+      this.ctx = this.canvas.getContext('2d');
+      this.particles = this._createParticles(this.canvas);
+    }
+    
+    // Bottom Canvas
+    if (this.bottomCanvas) {
+      this.bottomCtx = this.bottomCanvas.getContext('2d');
+      this.bottomParticles = this._createParticles(this.bottomCanvas);
+    }
+    
     this._onResize();
     
-    // Create particles
-    this.particles = [];
+    this._animateCanvas();
+  }
+
+  _createParticles(canvas) {
+    const particles = [];
     const particleCount = window.innerWidth < 768 ? 50 : 110;
     for (let i = 0; i < particleCount; i++) {
-      this.particles.push({
-        x: Math.random() * this.canvas.width,
-        y: Math.random() * this.canvas.height,
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
         vx: (Math.random() - 0.5) * 0.4,
         vy: (Math.random() - 0.5) * 0.4,
         radius: Math.random() * 2 + 1
       });
     }
-    
-    this._animateCanvas();
+    return particles;
   }
 
   _onResize() {
-    if (!this.canvas) return;
-    this.canvas.width = this.canvas.parentElement.clientWidth;
-    this.canvas.height = this.canvas.parentElement.clientHeight;
+    if (this.canvas) {
+      this.canvas.width = this.canvas.parentElement.clientWidth;
+      this.canvas.height = this.canvas.parentElement.clientHeight;
+    }
+    if (this.bottomCanvas) {
+      this.bottomCanvas.width = this.bottomCanvas.parentElement.clientWidth;
+      this.bottomCanvas.height = this.bottomCanvas.parentElement.clientHeight;
+    }
   }
 
   _getColorRgb(cssVar) {
@@ -136,34 +154,48 @@ export class ResumeApp {
   }
 
   _animateCanvas() {
-    if (!this.isActive || !this.canvas || !this.ctx) return;
+    if (!this.isActive) return;
     
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    // Animate Hero Canvas
+    if (this.canvas && this.ctx && this.particles.length > 0) {
+      this._updateAndDrawCanvas(this.canvas, this.ctx, this.particles);
+    }
+    
+    // Animate Bottom Canvas
+    if (this.bottomCanvas && this.bottomCtx && this.bottomParticles.length > 0) {
+      this._updateAndDrawCanvas(this.bottomCanvas, this.bottomCtx, this.bottomParticles);
+    }
+    
+    this.animationFrameId = requestAnimationFrame(() => this._animateCanvas());
+  }
+
+  _updateAndDrawCanvas(canvas, ctx, particles) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     const maxDistance = 140;
     const color = this._getColorRgb('--rm-accent-teal');
     
     // Update and draw particles
-    this.particles.forEach(p => {
+    particles.forEach(p => {
       p.x += p.vx;
       p.y += p.vy;
       
       // Boundaries bounce
-      if (p.x < 0 || p.x > this.canvas.width) p.vx *= -1;
-      if (p.y < 0 || p.y > this.canvas.height) p.vy *= -1;
+      if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+      if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
       
       // Draw particle dot
-      this.ctx.beginPath();
-      this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-      this.ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, 0.45)`;
-      this.ctx.fill();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, 0.45)`;
+      ctx.fill();
     });
     
     // Draw lines between nearby particles
-    for (let i = 0; i < this.particles.length; i++) {
-      for (let j = i + 1; j < this.particles.length; j++) {
-        const p1 = this.particles[i];
-        const p2 = this.particles[j];
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i + 1; j < particles.length; j++) {
+        const p1 = particles[i];
+        const p2 = particles[j];
         
         const dx = p1.x - p2.x;
         const dy = p1.y - p2.y;
@@ -171,17 +203,15 @@ export class ResumeApp {
         
         if (dist < maxDistance) {
           const alpha = (1 - dist / maxDistance) * 0.18;
-          this.ctx.beginPath();
-          this.ctx.moveTo(p1.x, p1.y);
-          this.ctx.lineTo(p2.x, p2.y);
-          this.ctx.strokeStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
-          this.ctx.lineWidth = 1;
-          this.ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.strokeStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
         }
       }
     }
-    
-    this.animationFrameId = requestAnimationFrame(() => this._animateCanvas());
   }
 
   /* --------------------------------------------------------------------------
