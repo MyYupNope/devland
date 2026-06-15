@@ -90,6 +90,7 @@ function initDomCache() {
   dom.newApplicationSection = document.querySelector('.new-application-section');
   dom.resumeSection = document.querySelector('.resume-section');
   dom.fabBtn = document.getElementById('fabNewApplication');
+  dom.refreshBtn = document.getElementById('btnHeaderRefresh');
   dom.syncContainer = document.querySelector('.sync-container');
   dom.heroBanner = document.querySelector('.hero-banner');
   dom.topbarBrandLink = document.getElementById('topbarBrandLink');
@@ -1196,8 +1197,10 @@ function initTabNavigation() {
     if (dom.fabBtn) {
       if (targetTab === 'landing' || targetTab === 'new-application' || targetTab === 'resume') {
         dom.fabBtn.style.display = 'none';
+        if (dom.refreshBtn) dom.refreshBtn.style.display = 'none';
       } else {
         dom.fabBtn.style.display = 'flex';
+        if (dom.refreshBtn) dom.refreshBtn.style.display = 'flex';
       }
     }
 

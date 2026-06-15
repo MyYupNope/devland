@@ -87,11 +87,6 @@
           <span class="status-dot pulsing"></span>
           <span class="status-text">Fetching Live Spreadsheet...</span>
         </div>
-        <button id="btnHeaderRefresh" class="btn-header-refresh" aria-label="Refresh database" title="Refresh database">
-          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
-          </svg>
-        </button>
       </div>
       
       <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#topbarNavbar" aria-controls="topbarNavbar" aria-label="Toggle navigation">
@@ -1729,7 +1724,12 @@
     </div>
   </footer>
 
-  <!-- Floating Action Button -->
+  <!-- Floating Action Buttons -->
+  <button class="fab-btn-secondary" id="btnHeaderRefresh" aria-label="Refresh database" title="Refresh database">
+    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+    </svg>
+  </button>
   <button class="fab-btn" id="fabNewApplication" aria-label="New Application">+</button>
 
   <!-- Detail Drawer Panel -->

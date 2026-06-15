@@ -338,6 +338,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
 }
 
 .topbar-brand-group {
@@ -3807,10 +3808,13 @@ body {
   }
 }
 
-/* Topbar Sync Status styling overrides */
+/* Center Topbar Sync Status */
 .topbar-sync {
-  margin-left: 1.5rem;
-  margin-right: auto; /* Pushes navigation options to the right */
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  z-index: 10;
 }
 
 .topbar-sync .sync-status {
@@ -3822,51 +3826,60 @@ body {
   transition: background-color 0.3s, border-color 0.3s, color 0.3s;
 }
 
-.topbar-sync .btn-header-refresh {
-  background-color: var(--color-bg);
+/* Floating Re-sync Action Button */
+.fab-btn-secondary {
+  position: fixed;
+  bottom: 6.5rem; /* Vertically stacked above the + icon */
+  right: 2rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   color: var(--color-text-primary);
-  width: 28px;
-  height: 28px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: transform var(--transition-base), box-shadow var(--transition-base), background-color 0.3s, border-color 0.3s;
+  z-index: 80;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.3s, border-color 0.3s, color 0.3s, transform var(--transition-base);
+  outline: none;
+  cursor: pointer;
 }
 
-.topbar-sync .btn-header-refresh:hover {
-  background-color: var(--color-primary-light);
-  border-color: rgba(26, 115, 232, 0.25);
+.fab-btn-secondary:hover {
+  transform: scale(1.08);
+  background-color: var(--color-hover-overlay);
+  border-color: var(--color-primary);
   color: var(--color-primary);
 }
 
-.theme-dark .topbar-sync .btn-header-refresh:hover {
-  background-color: rgba(138, 180, 248, 0.1);
-  border-color: rgba(138, 180, 248, 0.25);
-  color: #8ab4f8;
+.fab-btn-secondary:active {
+  transform: scale(0.95);
 }
 
-.topbar-sync .btn-header-refresh svg {
+.fab-btn-secondary svg {
   stroke: var(--color-text-primary);
-  width: 14px;
-  height: 14px;
+  width: 20px;
+  height: 20px;
   transition: stroke 0.3s;
 }
 
-.topbar-sync .btn-header-refresh:hover svg {
+.fab-btn-secondary:hover svg {
   stroke: var(--color-primary);
 }
 
-.theme-dark .topbar-sync .btn-header-refresh:hover svg {
+.theme-dark .fab-btn-secondary {
+  background: var(--color-bg);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.theme-dark .fab-btn-secondary:hover svg {
   stroke: #8ab4f8;
 }
 
 /* Mobile responsive styling for topbar sync */
 @media (max-width: 768px) {
-  .topbar-sync {
-    margin-left: 0.5rem;
-    margin-right: 0.5rem;
-  }
   .topbar-sync .sync-status .status-text {
     display: none; /* Hide text, only show pulsing dot on small screens */
   }
