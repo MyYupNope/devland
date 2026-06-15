@@ -81,6 +81,19 @@
         </button>
       </div>
       
+      <!-- Sleek global sync indicator in topbar -->
+      <div class="sync-container topbar-sync tab-hidden">
+        <div class="sync-status" id="syncStatus">
+          <span class="status-dot pulsing"></span>
+          <span class="status-text">Fetching Live Spreadsheet...</span>
+        </div>
+        <button id="btnHeaderRefresh" class="btn-header-refresh" aria-label="Refresh database" title="Refresh database">
+          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+          </svg>
+        </button>
+      </div>
+      
       <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#topbarNavbar" aria-controls="topbarNavbar" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -92,7 +105,8 @@
         </div>
         <div class="offcanvas-body">
           <nav class="topbar-nav">
-            <button class="topbar-nav-btn active" data-tab="home" data-bs-dismiss="offcanvas" data-bs-target="#topbarNavbar">Home</button>
+            <button class="topbar-nav-btn active" data-tab="landing" data-bs-dismiss="offcanvas" data-bs-target="#topbarNavbar">Home</button>
+            <button class="topbar-nav-btn" data-tab="home" data-bs-dismiss="offcanvas" data-bs-target="#topbarNavbar">Applications</button>
             <button class="topbar-nav-btn" data-tab="dashboard" data-bs-dismiss="offcanvas" data-bs-target="#topbarNavbar">Dashboard</button>
             <button class="topbar-nav-btn" data-tab="new-application" data-bs-dismiss="offcanvas" data-bs-target="#topbarNavbar">New Application</button>
             <button class="topbar-nav-btn" data-tab="resume" data-bs-dismiss="offcanvas" data-bs-target="#topbarNavbar">Resume</button>
@@ -103,22 +117,210 @@
   </header>
 
   <div class="container app-container">
+    <!-- New Landing/Home Tab Content -->
+    <div class="landing-tab-content" id="landingTabContent">
+      
+      <!-- Landing Hero -->
+      <section class="landing-hero reveal">
+        <div class="landing-hero-inner">
+          <h1 class="landing-hero-title">Track Every Opportunity.<br><span class="gradient-text">Land Your Dream Job.</span></h1>
+          <p class="landing-hero-subtitle">OpportunityTracker is your end-to-end command center for managing job applications — from first click to final offer.</p>
+        </div>
+      </section>
+
+      <!-- Features Bar -->
+      <section class="landing-features-bar reveal">
+        <div class="features-bar-inner">
+          <span class="features-bar-item">Real-time Sync</span>
+          <span class="features-bar-divider"></span>
+          <span class="features-bar-item">Smart Analytics</span>
+          <span class="features-bar-divider"></span>
+          <span class="features-bar-item">Interview Pipeline</span>
+          <span class="features-bar-divider"></span>
+          <span class="features-bar-item">Interactive CV</span>
+        </div>
+      </section>
+
+      <!-- Pages Showcase (Bento Grid) -->
+      <section class="landing-showcase reveal">
+        <div class="showcase-header text-center">
+          <h2 class="showcase-title">Everything You Need, One Platform</h2>
+          <p class="showcase-subtitle">Designed to simplify and elevate every stage of your job hunt.</p>
+        </div>
+
+        <div class="bento-grid">
+          <!-- Card 1: Applications (12 columns) -->
+          <div class="bento-card card-full reveal reveal-delay-1" onclick="window.switchTab('home')">
+            <div class="card-accent-border accent-blue"></div>
+            <div class="card-content-layout">
+              <div class="card-text-side">
+                <span class="card-badge badge-blue">Core Workspace</span>
+                <h3 class="card-headline">Applications Command Center</h3>
+                <p class="card-description">Track every application, search and filter by company, title, or status, and monitor your active interviews in a visual pipeline stage.</p>
+                <span class="card-explore-link text-blue">Explore Applications <span class="arrow">→</span></span>
+              </div>
+              <div class="card-visual-side">
+                <div class="window-mockup">
+                  <div class="window-header">
+                    <span class="window-dot red"></span>
+                    <span class="window-dot yellow"></span>
+                    <span class="window-dot green"></span>
+                    <span class="window-title">OpportunityTracker — Applications</span>
+                  </div>
+                  <div class="window-body">
+                    <img src="assets/screenshot-applications.png" alt="Applications Screenshot" class="img-fluid mockup-img">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Dashboard (6 columns) -->
+          <div class="bento-card card-half reveal reveal-delay-2" onclick="window.switchTab('dashboard')">
+            <div class="card-accent-border accent-green"></div>
+            <div class="card-content-layout vertical">
+              <div class="card-text-side">
+                <span class="card-badge badge-green">Analytics & Insights</span>
+                <h3 class="card-headline">Rich Performance Metrics</h3>
+                <p class="card-description">Get instant insights with dynamic charts showing applications over time, suitability score split, and top target companies.</p>
+                <span class="card-explore-link text-green">Explore Dashboard <span class="arrow">→</span></span>
+              </div>
+              <div class="card-visual-side">
+                <div class="window-mockup">
+                  <div class="window-header">
+                    <span class="window-dot red"></span>
+                    <span class="window-dot yellow"></span>
+                    <span class="window-dot green"></span>
+                    <span class="window-title">OpportunityTracker — Dashboard</span>
+                  </div>
+                  <div class="window-body">
+                    <img src="assets/screenshot-dashboard.png" alt="Dashboard Screenshot" class="img-fluid mockup-img">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3: New Application (6 columns) -->
+          <div class="bento-card card-half reveal reveal-delay-3" onclick="window.switchTab('new-application')">
+            <div class="card-accent-border accent-amber"></div>
+            <div class="card-content-layout vertical">
+              <div class="card-text-side">
+                <span class="card-badge badge-amber">Workflow Automation</span>
+                <h3 class="card-headline">Quick Job Submission</h3>
+                <p class="card-description">Paste a job posting URL and description. The system structures the data and syncs it straight to your tracker database in seconds.</p>
+                <span class="card-explore-link text-amber">Explore New Application <span class="arrow">→</span></span>
+              </div>
+              <div class="card-visual-side">
+                <div class="window-mockup">
+                  <div class="window-header">
+                    <span class="window-dot red"></span>
+                    <span class="window-dot yellow"></span>
+                    <span class="window-dot green"></span>
+                    <span class="window-title">OpportunityTracker — New Application</span>
+                  </div>
+                  <div class="window-body">
+                    <img src="assets/screenshot-new-application.png" alt="New Application Screenshot" class="img-fluid mockup-img">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 4: Resume (12 columns) -->
+          <div class="bento-card card-full reveal reveal-delay-4" onclick="window.switchTab('resume')">
+            <div class="card-accent-border accent-purple"></div>
+            <div class="card-content-layout">
+              <div class="card-text-side">
+                <span class="card-badge badge-purple">Professional Presentation</span>
+                <h3 class="card-headline">Interactive Resume Showcase</h3>
+                <p class="card-description">An premium showcase CV designed for high impact. Features strategic pillars, an interactive career timeline, animated metrics, and skills constellations.</p>
+                <span class="card-explore-link text-purple">Explore Resume <span class="arrow">→</span></span>
+              </div>
+              <div class="card-visual-side">
+                <div class="window-mockup">
+                  <div class="window-header">
+                    <span class="window-dot red"></span>
+                    <span class="window-dot yellow"></span>
+                    <span class="window-dot green"></span>
+                    <span class="window-title">OpportunityTracker — Interactive CV</span>
+                  </div>
+                  <div class="window-body">
+                    <img src="assets/screenshot-resume.png" alt="Resume Screenshot" class="img-fluid mockup-img">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Value Propositions -->
+      <section class="landing-value reveal">
+        <div class="value-grid">
+          <div class="value-item">
+            <div class="value-icon">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 11 12 14 22 4"></polyline>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+              </svg>
+            </div>
+            <h4 class="value-title">End-to-End Tracking</h4>
+            <p class="value-text">Manage the complete lifecycle of your applications, from submission details to interview steps and final offers.</p>
+          </div>
+
+          <div class="value-item">
+            <div class="value-icon">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+            </div>
+            <h4 class="value-title">Data-Driven Decisions</h4>
+            <p class="value-text">Track your conversion rates and suitability scores to refine your search strategy and focus on high-impact roles.</p>
+          </div>
+
+          <div class="value-item">
+            <div class="value-icon">
+              <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            </div>
+            <h4 class="value-title">Vibrant & Responsive</h4>
+            <p class="value-text">Enjoy a clean, lightning-fast SPA interface that adapts beautifully across desktop, tablet, and mobile browsers.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA Banner -->
+      <section class="landing-cta reveal">
+        <div class="cta-glow-1"></div>
+        <div class="cta-glow-2"></div>
+        <h2 class="cta-title">Ready to Take Control?</h2>
+        <p class="cta-subtitle">Select any option from the navigation menu above to start exploring your dashboard.</p>
+        
+        <!-- Live Ocean Waves -->
+        <svg class="ocean-waves" xmlns="http://www.w3.org/2000/svg" viewBox="0 24 150 28" preserveAspectRatio="none" shape-rendering="auto">
+          <defs>
+            <path id="gentle-wave" d="M-160 44c30 0 58-18 88-18s58 18 88 18 58-18 88-18 58 18 88 18v44h-352z" />
+          </defs>
+          <g class="parallax-waves">
+            <use href="#gentle-wave" x="48" y="0" fill="rgba(0, 150, 199, 0.35)" />
+            <use href="#gentle-wave" x="48" y="3" fill="rgba(72, 202, 228, 0.25)" />
+            <use href="#gentle-wave" x="48" y="5" fill="rgba(144, 224, 239, 0.2)" />
+            <use href="#gentle-wave" x="48" y="7" fill="rgba(255, 255, 255, 0.15)" />
+          </g>
+        </svg>
+      </section>
+
+    </div>
+
     <!-- Hero Banner -->
     <div class="hero-banner">
       <div class="logo-text">
         <h1>Job Applications Assistant</h1>
         <span class="sub-logo-text">Streamline your application process with our premium tools.</span>
-      </div>
-      <div class="sync-container">
-        <div class="sync-status" id="syncStatus">
-          <span class="status-dot pulsing"></span>
-          <span class="status-text">Fetching Live Spreadsheet...</span>
-        </div>
-        <button id="btnHeaderRefresh" class="btn-header-refresh" aria-label="Refresh database" title="Refresh database">
-          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
-          </svg>
-        </button>
       </div>
     </div>
 

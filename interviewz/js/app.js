@@ -93,6 +93,7 @@ function initDomCache() {
   dom.syncContainer = document.querySelector('.sync-container');
   dom.heroBanner = document.querySelector('.hero-banner');
   dom.topbarBrandLink = document.getElementById('topbarBrandLink');
+  dom.landingTabContent = document.getElementById('landingTabContent');
 
   dom.paginationInfo = document.getElementById('paginationInfo');
   dom.btnPrevPage = document.getElementById('btnPrevPage');
@@ -113,6 +114,7 @@ function initializeApp() {
   setupEventListeners();
   fetchData();
   initTabNavigation();
+  initScrollReveal();
 }
 
 if (document.readyState === 'loading') {
@@ -174,7 +176,7 @@ function setupEventListeners() {
   if (dom.topbarBrandLink) {
     dom.topbarBrandLink.addEventListener('click', (e) => {
       e.preventDefault();
-      window.switchTab('home');
+      window.switchTab('landing');
     });
   }
 
@@ -1159,8 +1161,29 @@ function closeDetailsDrawer() {
 function showEl(el) { if (el) el.classList.remove('tab-hidden'); }
 function hideEl(el) { if (el) el.classList.add('tab-hidden'); }
 
+function initScrollReveal() {
+  const revealElements = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  });
+  
+  revealElements.forEach(el => {
+    observer.observe(el);
+  });
+}
+
 function initTabNavigation() {
   function switchTab(targetTab) {
+    // Scroll to top on tab switch
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
     const navButtons = document.querySelectorAll('.topbar-nav-btn');
     navButtons.forEach(btn => {
       if (btn.getAttribute('data-tab') === targetTab) {
@@ -1171,15 +1194,27 @@ function initTabNavigation() {
     });
 
     if (dom.fabBtn) {
-      if (targetTab === 'new-application' || targetTab === 'resume') {
+      if (targetTab === 'landing' || targetTab === 'new-application' || targetTab === 'resume') {
         dom.fabBtn.style.display = 'none';
       } else {
         dom.fabBtn.style.display = 'flex';
       }
     }
 
-    if (targetTab === 'home') {
-      showEl(dom.heroBanner);
+    if (targetTab === 'landing') {
+      showEl(dom.landingTabContent);
+      hideEl(dom.heroBanner);
+      hideEl(dom.filtersSection);
+      hideEl(dom.resultsSection);
+      hideEl(dom.activeInterviewsSection);
+      hideEl(dom.syncContainer);
+      hideEl(dom.statsSection);
+      hideEl(dom.analyticsSection);
+      hideEl(dom.newApplicationSection);
+      hideEl(dom.resumeSection);
+    } else if (targetTab === 'home') {
+      hideEl(dom.landingTabContent);
+      hideEl(dom.heroBanner);
       showEl(dom.filtersSection);
       showEl(dom.resultsSection);
       showEl(dom.syncContainer);
@@ -1189,7 +1224,8 @@ function initTabNavigation() {
       hideEl(dom.newApplicationSection);
       hideEl(dom.resumeSection);
     } else if (targetTab === 'dashboard') {
-      showEl(dom.heroBanner);
+      hideEl(dom.landingTabContent);
+      hideEl(dom.heroBanner);
       hideEl(dom.filtersSection);
       hideEl(dom.resultsSection);
       hideEl(dom.activeInterviewsSection);
@@ -1207,7 +1243,8 @@ function initTabNavigation() {
         }
       }
     } else if (targetTab === 'new-application') {
-      showEl(dom.heroBanner);
+      hideEl(dom.landingTabContent);
+      hideEl(dom.heroBanner);
       hideEl(dom.filtersSection);
       hideEl(dom.resultsSection);
       hideEl(dom.activeInterviewsSection);
@@ -1221,6 +1258,7 @@ function initTabNavigation() {
         window._formApp = new FormApp();
       }
     } else if (targetTab === 'resume') {
+      hideEl(dom.landingTabContent);
       hideEl(dom.heroBanner);
       hideEl(dom.filtersSection);
       hideEl(dom.resultsSection);
@@ -1254,7 +1292,7 @@ function initTabNavigation() {
     });
   }
 
-  switchTab('home');
+  switchTab('landing');
 }
 
 let isInterviewSubmitting = false;
