@@ -3153,13 +3153,14 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at 50% 50%, rgba(26, 115, 232, 0.22) 0%, rgba(15, 15, 15, 0.65) 60%, rgba(15, 15, 15, 0.9) 100%);
+  /* Brighter by ~50% (lower opacity of dark overlay layers) */
+  background: radial-gradient(circle at 50% 50%, rgba(26, 115, 232, 0.35) 0%, rgba(15, 15, 15, 0.32) 60%, rgba(15, 15, 15, 0.45) 100%);
   z-index: 1;
   transition: background 0.3s;
 }
 
 .theme-dark .landing-hero::before {
-  background: radial-gradient(circle at 50% 50%, rgba(138, 180, 248, 0.18) 0%, rgba(10, 10, 10, 0.75) 60%, rgba(10, 10, 10, 0.98) 100%);
+  background: radial-gradient(circle at 50% 50%, rgba(138, 180, 248, 0.27) 0%, rgba(10, 10, 10, 0.38) 60%, rgba(10, 10, 10, 0.5) 100%);
 }
 
 .landing-hero-inner {
@@ -3168,18 +3169,18 @@ body {
   max-width: 800px;
   padding: 3rem 2.5rem;
   border-radius: 24px;
-  background: rgba(18, 18, 18, 0.55); /* Dark obsidian glass */
+  background: rgba(255, 255, 255, 0.82); /* Bright glass in light mode */
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.12); /* Soft white border highlights */
-  box-shadow: 0 30px 65px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(0, 0, 0, 0.08); /* Soft border highlights */
+  box-shadow: 0 30px 65px rgba(0, 0, 0, 0.12);
   text-align: center;
   transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
 }
 
 .theme-dark .landing-hero-inner {
-  background: rgba(10, 10, 10, 0.60);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(18, 18, 18, 0.65); /* Dark obsidian glass in dark mode */
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 30px 65px rgba(0, 0, 0, 0.5);
 }
 
@@ -3190,7 +3191,11 @@ body {
   line-height: 1.08;
   letter-spacing: -0.04em;
   margin-bottom: 1.25rem;
-  color: #ffffff; /* White title text */
+  color: #1a202c; /* Dark text for light mode readability */
+}
+
+.theme-dark .landing-hero-title {
+  color: #ffffff; /* White title in dark mode */
 }
 
 .landing-hero-title .gradient-text {
@@ -3204,10 +3209,14 @@ body {
   font-family: 'Inter', sans-serif;
   font-size: clamp(1rem, 1.8vw, 1.2rem);
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.75); /* Soft white subtitle text */
+  color: #4a5568; /* Dark grey text for light mode readability */
   max-width: 600px;
   margin: 0 auto;
-  font-weight: 400;
+  font-weight: 300; /* Light/lighter font weight */
+}
+
+.theme-dark .landing-hero-subtitle {
+  color: rgba(255, 255, 255, 0.75); /* White subtitle in dark mode */
 }
 
 /* Features Bar */
