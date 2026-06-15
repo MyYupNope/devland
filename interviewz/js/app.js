@@ -1292,7 +1292,13 @@ function initTabNavigation() {
     });
   }
 
-  switchTab('landing');
+  const urlParams = new URLSearchParams(window.location.search);
+  const startTab = urlParams.get('tab');
+  if (startTab) {
+    switchTab(startTab);
+  } else {
+    switchTab('landing');
+  }
 }
 
 let isInterviewSubmitting = false;
