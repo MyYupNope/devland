@@ -3170,8 +3170,6 @@ body {
   padding: 3rem 2.5rem;
   border-radius: 24px;
   background: rgba(56, 83, 88, 0.72); /* Translucent #385358 */
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.15); /* Soft white border highlights */
   box-shadow: 0 30px 65px rgba(0, 0, 0, 0.3);
   text-align: center;
