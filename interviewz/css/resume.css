@@ -242,6 +242,19 @@
   color: var(--rm-text-primary);
 }
 
+.resume-hero-quote {
+  font-size: 1.25rem;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--rm-accent-teal);
+  margin: 0 auto 16px auto;
+  max-width: 650px;
+  line-height: 1.4;
+  opacity: 0.95;
+  border: none;
+  padding: 0;
+}
+
 .resume-hero-title-container {
   min-height: 40px;
   margin-bottom: 24px;
