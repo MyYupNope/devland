@@ -79,6 +79,8 @@ export class ResumeApp {
      HERO BACKGROUND: CANVAS PARTICLE NETWORK
      -------------------------------------------------------------------------- */
   _initHeroCanvas() {
+    this._onResize();
+    
     // Hero Canvas
     if (this.canvas) {
       this.ctx = this.canvas.getContext('2d');
@@ -90,8 +92,6 @@ export class ResumeApp {
       this.bottomCtx = this.bottomCanvas.getContext('2d');
       this.bottomParticles = this._createParticles(this.bottomCanvas);
     }
-    
-    this._onResize();
     
     this._animateCanvas();
   }
