@@ -294,12 +294,12 @@ export class ResumeApp {
     const yearsEl = document.getElementById('metricYears');
     const regionsEl = document.getElementById('metricRegions');
     const solutionsEl = document.getElementById('metricSolutions');
-    const languagesEl = document.getElementById('metricLanguages');
+    const certsEl = document.getElementById('metricCerts');
     
     if (yearsEl) this._countUp(yearsEl, 0, 20, 1500);
     if (regionsEl) this._countUp(regionsEl, 0, 4, 1200);
     if (solutionsEl) this._countUp(solutionsEl, 0, 50, 1800);
-    if (languagesEl) this._countUp(languagesEl, 0, 3, 1000);
+    if (certsEl) this._countUp(certsEl, 0, 11, 1000);
   }
 
   _countUp(element, start, end, duration) {
