@@ -527,6 +527,19 @@ function CACHE_KEY_CSV() {
   return CSV_CACHE_KEY;
 }
 
+function getLastFetchTime() {
+  try {
+    const cachedVal = localStorage.getItem(CACHE_KEY_CSV());
+    if (cachedVal) {
+      const cachedObj = JSON.parse(cachedVal);
+      if (cachedObj && cachedObj.timestamp) {
+        return cachedObj.timestamp;
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
 function setSyncState(status, message) {
   if (!dom.syncStatus) return;
   dom.syncStatus.className = `sync-status ${status}`;
@@ -1233,8 +1246,14 @@ function initTabNavigation() {
       hideEl(dom.resumeSection);
       if (!isInitial) {
         const now = Date.now();
-        if (!lastFetchTime || now - lastFetchTime >= REFRESH_COOLDOWN_MS) {
+        const effectiveLastFetchTime = lastFetchTime || getLastFetchTime();
+        const timePassed = effectiveLastFetchTime ? now - effectiveLastFetchTime : null;
+        console.log(`[OpportunityTracker] switchTab('home'): isInitial=${isInitial}, lastFetchTime=${lastFetchTime}, effectiveLastFetchTime=${effectiveLastFetchTime}, timePassed=${timePassed}ms`);
+        if (!effectiveLastFetchTime || timePassed >= REFRESH_COOLDOWN_MS) {
+          console.log('[OpportunityTracker] Cooldown elapsed or no prior sync. Fetching data...');
           fetchData();
+        } else {
+          console.log(`[OpportunityTracker] Skipping fetch. Cooldown remaining: ${Math.round((REFRESH_COOLDOWN_MS - timePassed) / 1000)}s`);
         }
       }
     } else if (targetTab === 'dashboard') {
@@ -1258,8 +1277,14 @@ function initTabNavigation() {
       }
       if (!isInitial) {
         const now = Date.now();
-        if (!lastFetchTime || now - lastFetchTime >= REFRESH_COOLDOWN_MS) {
+        const effectiveLastFetchTime = lastFetchTime || getLastFetchTime();
+        const timePassed = effectiveLastFetchTime ? now - effectiveLastFetchTime : null;
+        console.log(`[OpportunityTracker] switchTab('dashboard'): isInitial=${isInitial}, lastFetchTime=${lastFetchTime}, effectiveLastFetchTime=${effectiveLastFetchTime}, timePassed=${timePassed}ms`);
+        if (!effectiveLastFetchTime || timePassed >= REFRESH_COOLDOWN_MS) {
+          console.log('[OpportunityTracker] Cooldown elapsed or no prior sync. Fetching data...');
           fetchData();
+        } else {
+          console.log(`[OpportunityTracker] Skipping fetch. Cooldown remaining: ${Math.round((REFRESH_COOLDOWN_MS - timePassed) / 1000)}s`);
         }
       }
     } else if (targetTab === 'new-application') {
