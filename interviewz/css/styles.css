@@ -3812,9 +3812,18 @@ body {
 .topbar-sync {
   position: absolute;
   left: 50%;
-  transform: translateX(-50%);
+  top: 50%;
+  transform: translate(-50%, -50%);
   margin: 0;
   z-index: 10;
+}
+
+@media (max-width: 991px) {
+  .topbar-sync {
+    left: auto;
+    right: 5rem;
+    transform: translateY(-50%);
+  }
 }
 
 .topbar-sync .sync-status {
