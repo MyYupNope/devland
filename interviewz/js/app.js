@@ -1182,6 +1182,26 @@ function initScrollReveal() {
 
 function initTabNavigation() {
   function switchTab(targetTab) {
+    // Check if we need to auto-refresh data (if 15 min passed since last sync)
+    if (targetTab === 'home' || targetTab === 'dashboard') {
+      try {
+        const cachedVal = localStorage.getItem(CSV_CACHE_KEY);
+        if (cachedVal) {
+          const cachedObj = JSON.parse(cachedVal);
+          if (cachedObj && cachedObj.timestamp) {
+            const timeDiffMs = Date.now() - cachedObj.timestamp;
+            const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
+            if (timeDiffMs >= FIFTEEN_MINUTES_MS) {
+              console.log('[OpportunityTracker] Auto-refreshing data on tab switch (15+ min passed)');
+              fetchData();
+            }
+          }
+        }
+      } catch (e) {
+        console.error('[OpportunityTracker] Failed to check cache for auto-refresh:', e);
+      }
+    }
+
     // Scroll to top on tab switch
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
