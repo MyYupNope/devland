@@ -2780,10 +2780,12 @@ body {
 /* === Toast Notification Styling === */
 .toast-container {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  top: 76px; /* 64px navbar height + 12px margin */
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 12px;
   z-index: 10000;
   pointer-events: none;
@@ -2805,7 +2807,7 @@ body {
   align-items: center;
   pointer-events: auto;
   opacity: 0;
-  transform: translateY(20px) scale(0.95);
+  transform: translateY(-20px) scale(0.95); /* Slide down from top */
   transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
