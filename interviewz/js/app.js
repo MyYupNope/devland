@@ -105,6 +105,9 @@ function initDomCache() {
 // Global drop-down components
 let companySelect, jobSelect, statusSelect;
 
+let lastFetchTime = null;
+const REFRESH_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes
+
 function initializeApp() {
   initDomCache();
 
@@ -491,6 +494,8 @@ function fetchData() {
       localStorage.setItem(CACHE_KEY_CSV(), JSON.stringify(newCache));
 
       parseAndInitializeData(csvText);
+      
+      lastFetchTime = Date.now();
       
       const lastUpdated = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
       setSyncState('success', `Synced ${lastUpdated}`);
@@ -1181,7 +1186,7 @@ function initScrollReveal() {
 }
 
 function initTabNavigation() {
-  function switchTab(targetTab) {
+  function switchTab(targetTab, isInitial = false) {
     // Scroll to top on tab switch
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -1226,6 +1231,12 @@ function initTabNavigation() {
       hideEl(dom.analyticsSection);
       hideEl(dom.newApplicationSection);
       hideEl(dom.resumeSection);
+      if (!isInitial) {
+        const now = Date.now();
+        if (!lastFetchTime || now - lastFetchTime >= REFRESH_COOLDOWN_MS) {
+          fetchData();
+        }
+      }
     } else if (targetTab === 'dashboard') {
       hideEl(dom.landingTabContent);
       hideEl(dom.heroBanner);
@@ -1243,6 +1254,12 @@ function initTabNavigation() {
           renderAllDashboardWidgets(state.rawApplications);
         } catch (error) {
           console.error("Failed to render dashboard widgets on tab switch:", error);
+        }
+      }
+      if (!isInitial) {
+        const now = Date.now();
+        if (!lastFetchTime || now - lastFetchTime >= REFRESH_COOLDOWN_MS) {
+          fetchData();
         }
       }
     } else if (targetTab === 'new-application') {
@@ -1298,9 +1315,9 @@ function initTabNavigation() {
   const urlParams = new URLSearchParams(window.location.search);
   const startTab = urlParams.get('tab');
   if (startTab) {
-    switchTab(startTab);
+    switchTab(startTab, true);
   } else {
-    switchTab('landing');
+    switchTab('landing', true);
   }
 }
 
