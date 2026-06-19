@@ -3889,10 +3889,8 @@ body {
 
 /* Mobile responsive styling for topbar sync */
 @media (max-width: 768px) {
-  .topbar-sync .sync-status .status-text {
-    display: none; /* Hide text, only show pulsing dot on small screens */
-  }
   .topbar-sync .sync-status {
-    padding: 0.35rem 0.45rem;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.72rem; /* Slightly smaller to fit mobile screens perfectly */
   }
 }
