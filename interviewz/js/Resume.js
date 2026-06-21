@@ -174,7 +174,7 @@ export class ResumeApp {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     const maxDistance = 140;
-    const color = this._getColorRgb('--rm-accent-teal');
+    const color = this._getColorRgb('--rm-canvas-accent');
     
     // Update and draw particles
     particles.forEach(p => {

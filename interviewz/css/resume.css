@@ -16,6 +16,7 @@
   --rm-accent-coral: #FF577F;     /* Glowing Coral (Technical & Automation) */
   --rm-accent-violet: #8257FF;    /* Glowing Violet (Data & Analytics) */
   --rm-accent-mint: #00E6FF;      /* Glowing Mint/Cyan (Leadership & Service) */
+  --rm-canvas-accent: #05DEBA;    /* Neon teal canvas particle color */
   
   --rm-text-primary: #E7ECEF;     /* Alice Blue - crisp light text */
   --rm-text-secondary: #A3CEF1;   /* Baby Blue Eyes - soft text */
@@ -77,6 +78,7 @@
   --rm-accent-coral: #D03A5F;
   --rm-accent-violet: #5A35C0;
   --rm-accent-mint: #00A8C0;
+  --rm-canvas-accent: #05DEBA;    /* Keep neon teal for dark canvas islands */
 
   /* container overrides for premium light container */
   box-shadow: 0 15px 45px rgba(0, 0, 0, 0.08);
@@ -325,7 +327,7 @@
   font-size: 1.25rem;
   font-style: italic;
   font-weight: 400;
-  color: var(--rm-accent-violet);
+  color: #A78BFA;
   margin: 0 auto 16px auto;
   max-width: 650px;
   line-height: 1.4;
@@ -1439,7 +1441,7 @@
 /* Hero & Contact — light mode overrides for a sharp, tech-oriented "dark island" */
 :root:not(.theme-dark) .resume-hero,
 :root:not(.theme-dark) .resume-contact-section {
-  background: radial-gradient(ellipse at 50% 20%, rgba(5, 222, 186, 0.15) 0%, transparent 60%), #0F172A;
+  background: radial-gradient(ellipse at 50% 25%, rgba(5, 222, 186, 0.32) 0%, transparent 70%), #141C2F;
 }
 
 /* Section Title Glow Halos */
@@ -1528,11 +1530,6 @@
 :root:not(.theme-dark) .resume-hero-tagline,
 :root:not(.theme-dark) .resume-contact-subtitle {
   color: rgba(255, 255, 255, 0.85);
-}
-
-:root:not(.theme-dark) .resume-hero-quote {
-  color: #8257FF; /* Glowing violet for contrast against the dark card */
-  font-weight: 400;
 }
 
 /* Pillar badges */
