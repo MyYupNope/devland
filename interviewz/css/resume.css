@@ -5,10 +5,10 @@
 /* Google Fonts Imports are handled in index.html, but variables use them here */
 .resume-section {
   /* Obsidian Charcoal Base Canvas & Structural Colors */
-  --rm-bg-primary: #0B0F19;       /* Deep navy-charcoal dark base */
-  --rm-bg-surface: #101828;       /* Warm surface dark */
-  --rm-bg-card: #151D2E;          /* Glass dark card */
-  --rm-bg-card-hover: #1E2940;    /* Card hover */
+  --rm-bg-primary: #06100E;       /* Deep teal-charcoal dark base */
+  --rm-bg-surface: #0A1614;       /* Warm surface dark */
+  --rm-bg-card: #0E1D1B;          /* Glass dark card */
+  --rm-bg-card-hover: #142825;    /* Card hover */
   
   /* Glowing Accent Colors for Competencies */
   --rm-accent-teal: #05DEBA;      /* Glowing Teal (Transformation & Strategy) */
@@ -51,10 +51,10 @@
 
 /* Theme adaptation - maintain rich neutral charcoal feel */
 :root.theme-dark .resume-section {
-  --rm-bg-primary: #070B14;
-  --rm-bg-surface: #0C1220;
-  --rm-bg-card: #111A2B;
-  --rm-bg-card-hover: #1A2538;
+  --rm-bg-primary: #040A09;
+  --rm-bg-surface: #07100E;
+  --rm-bg-card: #0A1816;
+  --rm-bg-card-hover: #10221F;
 }
 
 /* Light Mode — Tinted surfaces with strong colored accents */
@@ -250,7 +250,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: radial-gradient(circle at 50% 50%, rgba(5, 222, 186, 0.35) 0%, rgba(5, 222, 186, 0.12) 60%, var(--rm-bg-primary) 100%);
+  background: radial-gradient(circle at 50% 35%, rgba(200, 255, 240, 0.12) 0%, transparent 55%), #0A2E2A;
   border-bottom: 1px solid var(--rm-border);
   padding: 80px 20px;
 }
@@ -273,11 +273,9 @@
   max-width: 800px;
   padding: 40px;
   border-radius: var(--rm-radius-lg);
-  background: var(--rm-glass);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid var(--rm-border);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  background: rgba(5, 15, 20, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 30px 65px rgba(0, 0, 0, 0.35);
 }
 
 .resume-avatar {
@@ -326,12 +324,12 @@
 .resume-hero-quote {
   font-size: 1.25rem;
   font-style: italic;
-  font-weight: 400;
-  color: #A78BFA;
+  font-weight: 500;
+  color: #9333EA;
   margin: 0 auto 16px auto;
   max-width: 650px;
   line-height: 1.4;
-  opacity: 0.95;
+  opacity: 1;
   border: none;
   padding: 0;
 }
@@ -1163,16 +1161,21 @@
 .resume-contact-section {
   position: relative;
   overflow: hidden;
-  background: radial-gradient(circle at 50% 50%, rgba(5, 222, 186, 0.35) 0%, rgba(5, 222, 186, 0.12) 60%, var(--rm-bg-primary) 100%);
+  background: radial-gradient(circle at 50% 35%, rgba(200, 255, 240, 0.12) 0%, transparent 55%), #0A2E2A;
   text-align: center;
 }
 
-.resume-contact-card {
+.resume-card.resume-contact-card {
   position: relative;
   z-index: 2;
   max-width: 750px;
   margin: 0 auto;
   padding: 50px 40px;
+  background: rgba(5, 15, 20, 0.55);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 30px 65px rgba(0, 0, 0, 0.35);
 }
 
 .resume-contact-title {
@@ -1441,7 +1444,7 @@
 /* Hero & Contact — light mode overrides for a sharp, tech-oriented "dark island" */
 :root:not(.theme-dark) .resume-hero,
 :root:not(.theme-dark) .resume-contact-section {
-  background: radial-gradient(ellipse at 50% 25%, rgba(5, 222, 186, 0.32) 0%, transparent 70%), #141C2F;
+  background: radial-gradient(circle at 50% 35%, rgba(200, 255, 240, 0.10) 0%, transparent 55%), #0C322E;
 }
 
 /* Section Title Glow Halos */
@@ -1470,11 +1473,18 @@
 
 /* Hero content glass card in light mode */
 :root:not(.theme-dark) .resume-hero-content {
-  background: rgba(5, 222, 186, 0.10); /* Translucent teal glass */
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-color: rgba(5, 222, 186, 0.25); /* Sharp teal border edge */
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(5, 222, 186, 0.05);
+  background: rgba(5, 15, 20, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 30px 65px rgba(0, 0, 0, 0.35);
+}
+
+/* Contact card glass in light mode — must beat .resume-card specificity */
+:root:not(.theme-dark) .resume-card.resume-contact-card {
+  background: rgba(5, 15, 20, 0.55);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 30px 65px rgba(0, 0, 0, 0.35);
 }
 
 /* Pillar card accent stripe — keep full color */
