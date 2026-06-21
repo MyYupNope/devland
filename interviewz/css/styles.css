@@ -76,6 +76,7 @@
 
   --bg-status-in-review: #e4f7fb;
   --color-status-in-review: #007b83;
+  --bg-invalid: #fce8e6;
 }
 
 :root.theme-dark {
@@ -123,6 +124,7 @@
 
   --bg-status-in-review: rgba(0, 191, 165, 0.15);
   --color-status-in-review: #80cbc4;
+  --bg-invalid: #301c1c;
 }
 
 /* ==========================================================================
@@ -433,6 +435,15 @@ body {
 
 .navbar-toggler:focus {
   box-shadow: none;
+}
+
+.navbar-toggler-icon {
+  transition: filter var(--transition-base);
+}
+
+.theme-dark .navbar-toggler-icon,
+:root.theme-dark .navbar-toggler-icon {
+  filter: invert(1);
 }
 
 @media (max-width: 991px) {
@@ -2020,7 +2031,7 @@ body {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
-  background-color: #f8f9fa;
+  background-color: var(--color-bg);
   transition: border-color var(--transition-base);
 }
 
@@ -2648,6 +2659,7 @@ body {
 }
 
 .new-application-section form .form-control {
+  color: var(--color-text-primary);
   background-color: var(--bg-surface-variant);
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
@@ -2656,14 +2668,16 @@ body {
 }
 
 .new-application-section form .form-control:hover {
-  background-color: #e8eaed;
+  background-color: var(--bg-surface-variant-hover);
 }
 
 .new-application-section form .form-control:focus {
+  color: var(--color-text-primary);
   background-color: var(--color-surface);
   border-color: var(--color-primary);
   box-shadow: 0 0 0 1px var(--color-primary);
 }
+
 
 .new-application-section .form-floating>label {
   padding: 1rem 1.25rem;
@@ -2751,7 +2765,7 @@ body {
 
 .new-application-section form .form-control.is-invalid {
   border-color: var(--color-error);
-  background-color: #fce8e6;
+  background-color: var(--bg-invalid);
 }
 
 .new-application-section form .form-control.is-valid {
