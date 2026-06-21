@@ -105,11 +105,15 @@ export class FormApp {
     this.isSubmitting = true;
     showToast('Submitting your application... Please wait for feedback.', 'info');
 
+    // Restore standard blue color on re-submission start
+    this.submitBtn.classList.remove('btn-danger');
+    this.submitBtn.classList.add('btn-primary');
+
     await postForm(FORM_API_ENDPOINT, new FormData(this.form), {
       setLoading: (v) => this.setLoadingState(v),
       onSuccess:  ()  => this.handleSuccess(),
       onError:    (e) => this.handleError(e.name === 'AbortError'
-        ? 'Submission error: Request timed out after 90 seconds.'
+        ? 'Submission error: Request timed out after 5 minutes.'
         : 'Submission error: ' + e.message),
     });
 
@@ -137,6 +141,10 @@ export class FormApp {
     // Clear draft after successful submission
     localStorage.removeItem('job_app_draft');
 
+    // Restore standard blue color on success
+    this.submitBtn.classList.remove('btn-danger');
+    this.submitBtn.classList.add('btn-primary');
+
     setTimeout(() => {
       this.form.reset();
       this.form.classList.remove('was-validated');
@@ -157,6 +165,9 @@ export class FormApp {
 
   handleError(message) {
     showToast(`Error: ${message}`, 'error');
+    // Turn button red on failure
+    this.submitBtn.classList.remove('btn-primary');
+    this.submitBtn.classList.add('btn-danger');
   }
 
   handleReset() {

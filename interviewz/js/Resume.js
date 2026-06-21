@@ -46,6 +46,7 @@ export class ResumeApp {
     this._initPillarCards();
     this._initTimeline();
     this._initSkillsConstellation();
+    this._initCursorGlow();
     
     window.addEventListener('resize', this.handleResize);
   }
@@ -448,6 +449,17 @@ export class ResumeApp {
         document.querySelectorAll(selector).forEach(node => {
           node.classList.remove('highlighted');
         });
+      });
+    });
+  }
+
+  _initCursorGlow() {
+    const cards = document.querySelectorAll('.resume-card');
+    cards.forEach(card => {
+      card.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+        card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
       });
     });
   }

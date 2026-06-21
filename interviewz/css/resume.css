@@ -5,10 +5,10 @@
 /* Google Fonts Imports are handled in index.html, but variables use them here */
 .resume-section {
   /* Obsidian Charcoal Base Canvas & Structural Colors */
-  --rm-bg-primary: #0D0D0D;       /* Pure neutral dark base background */
-  --rm-bg-surface: #161616;       /* Slightly lighter neutral dark for surfaces */
-  --rm-bg-card: #1E1E1E;          /* Elevated card background (dark glass feel) */
-  --rm-bg-card-hover: #272727;    /* Lighter hover highlight */
+  --rm-bg-primary: #0B0F19;       /* Deep navy-charcoal dark base */
+  --rm-bg-surface: #101828;       /* Warm surface dark */
+  --rm-bg-card: #151D2E;          /* Glass dark card */
+  --rm-bg-card-hover: #1E2940;    /* Card hover */
   
   /* Glowing Accent Colors for Competencies */
   --rm-accent-teal: #05DEBA;      /* Glowing Teal (Transformation & Strategy) */
@@ -22,8 +22,8 @@
   --rm-border: rgba(163, 206, 241, 0.08); /* Subtle steel blue border */
   --rm-border-glow: rgba(163, 206, 241, 0.18);
   
-  --rm-glass: rgba(13, 13, 13, 0.85); /* Premium Obsidian glass */
-  --rm-glass-hover: rgba(22, 22, 22, 0.9);
+  --rm-glass: rgba(11, 15, 25, 0.65);
+  --rm-glass-hover: rgba(16, 24, 40, 0.75);
   
   --rm-font-display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
   --rm-font-body: 'Inter', system-ui, -apple-system, sans-serif;
@@ -37,8 +37,8 @@
   --rm-transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Scoped resets and base styling */
-  background-color: var(--rm-bg-primary) !important;
-  color: var(--rm-text-primary) !important;
+  background-color: var(--rm-bg-primary);
+  color: var(--rm-text-primary);
   font-family: var(--rm-font-body);
   position: relative;
   overflow: hidden;
@@ -50,10 +50,36 @@
 
 /* Theme adaptation - maintain rich neutral charcoal feel */
 :root.theme-dark .resume-section {
-  --rm-bg-primary: #080808;       /* Deeper obsidian dark */
-  --rm-bg-surface: #101010;
-  --rm-bg-card: #181818;
-  --rm-bg-card-hover: #222222;
+  --rm-bg-primary: #070B14;
+  --rm-bg-surface: #0C1220;
+  --rm-bg-card: #111A2B;
+  --rm-bg-card-hover: #1A2538;
+}
+
+/* Light Mode — Tinted surfaces with strong colored accents */
+:root:not(.theme-dark) .resume-section {
+  --rm-bg-primary: #E8EDF4;       /* Cool blue-grey tinted base */
+  --rm-bg-surface: #EFF3F8;       /* Slightly lighter tinted surface */
+  --rm-bg-card: #FFFFFF;          /* Pure white cards for maximum contrast */
+  --rm-bg-card-hover: #FFFFFF;
+
+  --rm-text-primary: #0F172A;     /* Deep, highly readable text */
+  --rm-text-secondary: #334155;   /* Darker slate secondary text */
+  --rm-border: rgba(0, 0, 0, 0.10);
+  --rm-border-glow: rgba(0, 0, 0, 0.18);
+
+  --rm-glass: rgba(255, 255, 255, 0.92);
+  --rm-glass-hover: rgba(255, 255, 255, 0.98);
+
+  /* Accent colors deepened for strong visibility on tinted backgrounds */
+  --rm-accent-teal: #00A88E;
+  --rm-accent-amber: #D08800;
+  --rm-accent-coral: #D03A5F;
+  --rm-accent-violet: #5A35C0;
+  --rm-accent-mint: #00A8C0;
+
+  /* container overrides for premium light container */
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.08);
 }
 
 .resume-section *,
@@ -152,12 +178,64 @@
 /* Glassmorphism card template */
 .resume-card {
   background: var(--rm-glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
   border: 1px solid var(--rm-border);
   border-radius: var(--rm-radius);
   padding: 30px;
   transition: var(--rm-transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.resume-card:hover {
+  border-color: var(--rm-border-glow);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25),
+              inset 0 0 30px rgba(255,255,255,0.02);
+}
+
+:root:not(.theme-dark) .resume-card {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+:root:not(.theme-dark) .resume-card:hover {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08), 0 2px 10px rgba(0, 0, 0, 0.03);
+  border-color: var(--rm-accent-teal);
+}
+
+.resume-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    350px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(5, 222, 186, 0.06),
+    transparent 40%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: inherit;
+}
+
+.resume-card:hover::after {
+  opacity: 1;
+}
+
+/* Light mode: use darker glow */
+:root:not(.theme-dark) .resume-card::after {
+  background: radial-gradient(
+    350px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(0, 184, 156, 0.08),
+    transparent 40%
+  );
+}
+
+.resume-card > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* --------------------------------------------------------------------------
@@ -333,8 +411,17 @@
    SECTION 2: STRATEGIC PILLARS
    -------------------------------------------------------------------------- */
 .resume-pillars {
-  background: var(--rm-bg-surface);
-  border-bottom: 1px solid var(--rm-border);
+  background: radial-gradient(ellipse at 25% 20%, rgba(255,174,0,0.14) 0%, transparent 50%),
+              radial-gradient(ellipse at 75% 80%, rgba(5,222,186,0.08) 0%, transparent 45%),
+              var(--rm-bg-surface);
+  border-bottom: 1px solid transparent;
+  border-image: linear-gradient(to right, transparent 10%, var(--rm-accent-amber), var(--rm-accent-violet), transparent 90%) 1;
+}
+
+:root:not(.theme-dark) .resume-pillars {
+  background: radial-gradient(ellipse at 25% 20%, rgba(255,174,0,0.22) 0%, transparent 55%),
+              radial-gradient(ellipse at 75% 80%, rgba(0,168,142,0.14) 0%, transparent 50%),
+              var(--rm-bg-surface);
 }
 
 .resume-pillars-grid {
@@ -473,9 +560,18 @@
    SECTION 3: CAREER TIMELINE
    -------------------------------------------------------------------------- */
 .resume-timeline-section {
-  background: var(--rm-bg-primary);
-  border-bottom: 1px solid var(--rm-border);
+  background: radial-gradient(ellipse at 10% 50%, rgba(130,87,255,0.16) 0%, transparent 45%),
+              radial-gradient(ellipse at 90% 50%, rgba(5,222,186,0.12) 0%, transparent 45%),
+              var(--rm-bg-primary);
+  border-bottom: 1px solid transparent;
+  border-image: linear-gradient(to right, transparent 10%, var(--rm-accent-violet), var(--rm-accent-teal), transparent 90%) 1;
   overflow: hidden;
+}
+
+:root:not(.theme-dark) .resume-timeline-section {
+  background: radial-gradient(ellipse at 10% 50%, rgba(90,53,192,0.18) 0%, transparent 50%),
+              radial-gradient(ellipse at 90% 50%, rgba(0,168,142,0.14) 0%, transparent 50%),
+              var(--rm-bg-primary);
 }
 
 .resume-timeline-container {
@@ -683,8 +779,17 @@
    SECTION 4: IMPACT METRICS
    -------------------------------------------------------------------------- */
 .resume-metrics {
-  background: var(--rm-bg-surface);
-  border-bottom: 1px solid var(--rm-border);
+  background: radial-gradient(ellipse at 50% 0%, rgba(5,222,186,0.18) 0%, transparent 55%),
+              radial-gradient(ellipse at 80% 90%, rgba(130,87,255,0.06) 0%, transparent 40%),
+              var(--rm-bg-surface);
+  border-bottom: 1px solid transparent;
+  border-image: linear-gradient(to right, transparent 10%, var(--rm-accent-teal), var(--rm-accent-coral), transparent 90%) 1;
+}
+
+:root:not(.theme-dark) .resume-metrics {
+  background: radial-gradient(ellipse at 50% 0%, rgba(0,168,142,0.22) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 90%, rgba(90,53,192,0.10) 0%, transparent 45%),
+              var(--rm-bg-surface);
 }
 
 .resume-metrics-grid {
@@ -750,9 +855,18 @@
    SECTION 5: SKILLS CONSTELLATION
    -------------------------------------------------------------------------- */
 .resume-skills {
-  background: var(--rm-bg-primary);
-  border-bottom: 1px solid var(--rm-border);
+  background: radial-gradient(ellipse at 70% 30%, rgba(255,87,127,0.14) 0%, transparent 45%),
+              radial-gradient(ellipse at 20% 70%, rgba(130,87,255,0.12) 0%, transparent 50%),
+              var(--rm-bg-primary);
+  border-bottom: 1px solid transparent;
+  border-image: linear-gradient(to right, transparent 10%, var(--rm-accent-coral), var(--rm-accent-violet), transparent 90%) 1;
   overflow: hidden;
+}
+
+:root:not(.theme-dark) .resume-skills {
+  background: radial-gradient(ellipse at 70% 30%, rgba(208,58,95,0.18) 0%, transparent 50%),
+              radial-gradient(ellipse at 20% 70%, rgba(90,53,192,0.14) 0%, transparent 55%),
+              var(--rm-bg-primary);
 }
 
 .resume-skills-layout {
@@ -832,14 +946,16 @@
   position: absolute;
   border: 1px dashed rgba(255, 255, 255, 0.06);
   border-radius: 50%;
+  background: color-mix(in srgb, var(--ring-color) 3%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: border-color var(--rm-transition);
+  transition: border-color var(--rm-transition), background var(--rm-transition);
 }
 
 .resume-skills-ring:hover {
   border-color: var(--ring-color);
+  background: color-mix(in srgb, var(--ring-color) 8%, transparent);
 }
 
 .resume-skills-ring-1 { width: 200px; height: 200px; --ring-color: var(--rm-accent-teal); z-index: 4; }
@@ -849,7 +965,7 @@
 
 .resume-skill-node {
   position: absolute;
-  background: var(--rm-bg-card);
+  background: color-mix(in srgb, var(--node-color) 4%, var(--rm-bg-card));
   border: 1px solid var(--rm-border);
   border-radius: 20px;
   padding: 4px 12px;
@@ -865,7 +981,7 @@
 .resume-skill-node:hover {
   color: var(--rm-text-primary);
   border-color: var(--node-color);
-  background: var(--rm-bg-card-hover);
+  background: color-mix(in srgb, var(--node-color) 12%, var(--rm-bg-card-hover));
   transform: scale(1.08);
   box-shadow: 0 0 15px var(--node-glow);
 }
@@ -873,7 +989,7 @@
 .resume-skill-node.highlighted {
   color: var(--rm-text-primary) !important;
   border-color: var(--node-color) !important;
-  background: var(--rm-bg-card-hover) !important;
+  background: color-mix(in srgb, var(--node-color) 12%, var(--rm-bg-card-hover)) !important;
   box-shadow: 0 0 15px var(--node-glow) !important;
 }
 
@@ -914,8 +1030,17 @@
    SECTION 6: EDUCATION & CERTIFICATIONS
    -------------------------------------------------------------------------- */
 .resume-education {
-  background: var(--rm-bg-surface);
-  border-bottom: 1px solid var(--rm-border);
+  background: radial-gradient(ellipse at 40% 30%, rgba(130,87,255,0.14) 0%, transparent 50%),
+              radial-gradient(ellipse at 80% 70%, rgba(255,174,0,0.06) 0%, transparent 40%),
+              var(--rm-bg-surface);
+  border-bottom: 1px solid transparent;
+  border-image: linear-gradient(to right, transparent 10%, var(--rm-accent-violet), var(--rm-accent-teal), transparent 90%) 1;
+}
+
+:root:not(.theme-dark) .resume-education {
+  background: radial-gradient(ellipse at 40% 30%, rgba(90,53,192,0.18) 0%, transparent 55%),
+              radial-gradient(ellipse at 80% 70%, rgba(208,136,0,0.10) 0%, transparent 45%),
+              var(--rm-bg-surface);
 }
 
 .resume-education-grid {
@@ -1311,13 +1436,183 @@
   }
 }
 
+/* Hero & Contact — light mode overrides for a distinct, slightly lighter "dark island" */
+:root:not(.theme-dark) .resume-hero,
+:root:not(.theme-dark) .resume-contact-section {
+  background: radial-gradient(circle at 50% 50%, rgba(5, 222, 186, 0.35) 0%, rgba(5, 222, 186, 0.12) 60%, #2A3B52 100%), #2A3B52;
+}
+
+/* Section Title Glow Halos */
+.resume-title-block {
+  position: relative;
+}
+
+.resume-title-block::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 350px;
+  height: 120px;
+  background: radial-gradient(ellipse, var(--rm-accent-teal) 0%, transparent 70%);
+  opacity: 0.08;
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+:root:not(.theme-dark) .resume-title-block::after {
+  opacity: 0.05;
+}
+
+/* Hero content glass card in light mode */
+:root:not(.theme-dark) .resume-hero-content {
+  background: rgba(11, 15, 25, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Pillar card accent stripe — keep full color */
+:root:not(.theme-dark) .resume-pillar-icon {
+  background: var(--rm-bg-surface);
+  border-color: var(--rm-border);
+}
+
+:root:not(.theme-dark) .resume-pillar-card:hover .resume-pillar-icon {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  color: #FFFFFF;
+}
+
+/* Timeline node dots */
+:root:not(.theme-dark) .resume-timeline-node-dot {
+  background: var(--rm-bg-surface);
+}
+
+:root:not(.theme-dark) .resume-timeline-node-dot::after {
+  background: var(--rm-text-secondary);
+}
+
+/* Skill nodes */
+:root:not(.theme-dark) .resume-skill-node {
+  background: color-mix(in srgb, var(--node-color) 8%, var(--rm-bg-card));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.15);
+  font-weight: 500;
+}
+
+/* Metric watermark */
+:root:not(.theme-dark) .resume-metric-watermark {
+  color: rgba(0, 0, 0, 0.03);
+}
+
+/* Contact card */
+:root:not(.theme-dark) .resume-contact-card {
+  background: rgba(11, 15, 25, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Typography inversions for dark cards in light mode */
+:root:not(.theme-dark) .resume-hero-name,
+:root:not(.theme-dark) .resume-contact-title,
+:root:not(.theme-dark) .resume-languages-title {
+  color: #FFFFFF;
+}
+
+:root:not(.theme-dark) .resume-hero-tagline,
+:root:not(.theme-dark) .resume-contact-subtitle {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+:root:not(.theme-dark) .resume-hero-quote {
+  color: #D6C2FF; /* Bright pastel violet for high contrast against the dark card */
+  font-weight: 400;
+}
+
+/* Pillar badges */
+:root:not(.theme-dark) .resume-pillar-badge {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--rm-text-secondary);
+}
+
+/* Skills ring dashes */
+:root:not(.theme-dark) .resume-skills-ring {
+  border-color: rgba(0, 0, 0, 0.25);
+}
+
+:root:not(.theme-dark) .resume-skills-ring:hover {
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.03);
+}
+
+/* Center core hub */
+:root:not(.theme-dark) .resume-skills-center {
+  box-shadow: 0 8px 24px rgba(0, 168, 142, 0.15);
+}
+
+/* Education cert items */
+:root:not(.theme-dark) .resume-edu-cert-item {
+  background: var(--rm-bg-surface);
+}
+
+/* Language badges */
+:root:not(.theme-dark) .resume-language-badge {
+  background: var(--rm-bg-surface);
+  border-color: var(--rm-border);
+}
+
+/* Primary button — slightly deeper for contrast on white */
+:root:not(.theme-dark) .resume-btn-primary {
+  color: #FFFFFF !important;
+}
+
+/* Secondary button */
+:root:not(.theme-dark) .resume-btn-secondary {
+  background: var(--rm-bg-surface);
+  border-color: var(--rm-border);
+}
+
+/* Subtle Mesh Drift Animation */
+.resume-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 30%, rgba(130,87,255,0.10) 0%, transparent 40%),
+    radial-gradient(ellipse at 80% 70%, rgba(5,222,186,0.08) 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 50%, rgba(255,174,0,0.05) 0%, transparent 35%);
+  animation: mesh-drift 25s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 0;
+}
+
+:root:not(.theme-dark) .resume-section::before {
+  background:
+    radial-gradient(ellipse at 20% 30%, rgba(90,53,192,0.12) 0%, transparent 45%),
+    radial-gradient(ellipse at 80% 70%, rgba(0,168,142,0.10) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 50%, rgba(208,136,0,0.07) 0%, transparent 40%);
+}
+
+@keyframes mesh-drift {
+  0%   { transform: translate(0, 0) scale(1); }
+  33%  { transform: translate(-3%, 2%) scale(1.05); }
+  66%  { transform: translate(2%, -3%) scale(1.03); }
+  100% { transform: translate(-1%, 1%) scale(1.02); }
+}
+
 /* Reduced Motion Override */
 @media (prefers-reduced-motion: reduce) {
   .resume-animate,
   .resume-stagger > *,
   .resume-skill-node,
   .resume-pillar-card,
-  .resume-avatar::after {
+  .resume-avatar::after,
+  .resume-section::before {
     transition: none !important;
     animation: none !important;
     opacity: 1 !important;
