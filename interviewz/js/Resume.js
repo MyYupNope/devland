@@ -430,7 +430,9 @@ export class ResumeApp {
       });
     });
     
-    // Rings highlight nodes inside them
+    const centerHub = document.querySelector('.resume-skills-center');
+
+    // Rings highlight nodes inside them and update center hub style
     rings.forEach((ring, index) => {
       const ringNum = index + 1;
       let selector = '';
@@ -443,12 +445,18 @@ export class ResumeApp {
         document.querySelectorAll(selector).forEach(node => {
           node.classList.add('highlighted');
         });
+        if (centerHub) {
+          centerHub.classList.add(`hover-ring-${ringNum}`);
+        }
       });
       
       ring.addEventListener('mouseleave', () => {
         document.querySelectorAll(selector).forEach(node => {
           node.classList.remove('highlighted');
         });
+        if (centerHub) {
+          centerHub.classList.remove(`hover-ring-${ringNum}`);
+        }
       });
     });
   }

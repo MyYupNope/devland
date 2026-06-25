@@ -920,9 +920,9 @@
   width: 90px;
   height: 90px;
   border-radius: 50%;
-  background: var(--rm-bg-card);
-  border: 2px solid var(--rm-accent-teal);
-  box-shadow: 0 0 30px var(--rm-border-glow);
+  background: #1e1e1e;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -930,6 +930,7 @@
   z-index: 10;
   text-align: center;
   padding: 10px;
+  transition: background var(--rm-transition), border-color var(--rm-transition), box-shadow var(--rm-transition);
 }
 
 .resume-skills-center span {
@@ -937,9 +938,47 @@
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--rm-text-primary);
+  color: #ffffff;
   letter-spacing: 0.05em;
   line-height: 1.2;
+  transition: color var(--rm-transition);
+}
+
+/* Hover Ring States - Dark Mode */
+.resume-skills-center.hover-ring-1 {
+  background: var(--rm-accent-teal);
+  border-color: var(--rm-accent-teal);
+  box-shadow: 0 0 30px rgba(5, 222, 186, 0.4);
+}
+.resume-skills-center.hover-ring-1 span {
+  color: #000000;
+}
+
+.resume-skills-center.hover-ring-2 {
+  background: var(--rm-accent-amber);
+  border-color: var(--rm-accent-amber);
+  box-shadow: 0 0 30px rgba(255, 174, 0, 0.4);
+}
+.resume-skills-center.hover-ring-2 span {
+  color: #000000;
+}
+
+.resume-skills-center.hover-ring-3 {
+  background: var(--rm-accent-violet);
+  border-color: var(--rm-accent-violet);
+  box-shadow: 0 0 30px rgba(130, 87, 255, 0.4);
+}
+.resume-skills-center.hover-ring-3 span {
+  color: #ffffff;
+}
+
+.resume-skills-center.hover-ring-4 {
+  background: var(--rm-accent-coral);
+  border-color: var(--rm-accent-coral);
+  box-shadow: 0 0 30px rgba(255, 87, 127, 0.4);
+}
+.resume-skills-center.hover-ring-4 span {
+  color: #ffffff;
 }
 
 .resume-skills-ring {
@@ -1559,7 +1598,50 @@
 
 /* Center core hub */
 :root:not(.theme-dark) .resume-skills-center {
-  box-shadow: 0 8px 24px rgba(0, 168, 142, 0.15);
+  background: #e2dde9;
+  border-color: rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+:root:not(.theme-dark) .resume-skills-center span {
+  color: #000000;
+}
+
+/* Hover Ring States - Light Mode */
+:root:not(.theme-dark) .resume-skills-center.hover-ring-1 {
+  background: var(--rm-accent-teal);
+  border-color: var(--rm-accent-teal);
+  box-shadow: 0 8px 24px rgba(0, 168, 142, 0.3);
+}
+:root:not(.theme-dark) .resume-skills-center.hover-ring-1 span {
+  color: #ffffff;
+}
+
+:root:not(.theme-dark) .resume-skills-center.hover-ring-2 {
+  background: var(--rm-accent-amber);
+  border-color: var(--rm-accent-amber);
+  box-shadow: 0 8px 24px rgba(208, 136, 0, 0.3);
+}
+:root:not(.theme-dark) .resume-skills-center.hover-ring-2 span {
+  color: #ffffff;
+}
+
+:root:not(.theme-dark) .resume-skills-center.hover-ring-3 {
+  background: var(--rm-accent-violet);
+  border-color: var(--rm-accent-violet);
+  box-shadow: 0 8px 24px rgba(90, 53, 192, 0.3);
+}
+:root:not(.theme-dark) .resume-skills-center.hover-ring-3 span {
+  color: #ffffff;
+}
+
+:root:not(.theme-dark) .resume-skills-center.hover-ring-4 {
+  background: var(--rm-accent-coral);
+  border-color: var(--rm-accent-coral);
+  box-shadow: 0 8px 24px rgba(208, 58, 95, 0.3);
+}
+:root:not(.theme-dark) .resume-skills-center.hover-ring-4 span {
+  color: #ffffff;
 }
 
 /* Education cert items */
