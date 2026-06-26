@@ -183,17 +183,6 @@ function setupEventListeners() {
 
   // Theme Toggle Button
   const btnThemeToggle = document.getElementById('themeToggleBtn');
-  const themeToggleIconRef = document.getElementById('themeToggleIconRef');
-
-  function updateThemeUI() {
-    const isDark = document.documentElement.classList.contains('theme-dark');
-    if (themeToggleIconRef) {
-      themeToggleIconRef.setAttribute('href', isDark ? '#icon-sun' : '#icon-moon');
-    }
-  }
-
-  // Sync initial UI state
-  updateThemeUI();
 
   if (btnThemeToggle) {
     btnThemeToggle.addEventListener('click', () => {
@@ -207,7 +196,6 @@ function setupEventListeners() {
         document.documentElement.classList.add('theme-dark');
         localStorage.setItem('theme', 'dark');
       }
-      updateThemeUI();
     });
   }
 
@@ -232,24 +220,13 @@ function setupEventListeners() {
   }
 
   // Reset Button Interview Notes
-  const btnResetCompanyNotes = document.getElementById('btnResetInterviewCompanyNotes');
-  if (btnResetCompanyNotes) {
-    btnResetCompanyNotes.addEventListener('click', () => {
-      const inp = document.getElementById('inputInterviewCompanyNotes');
+  const btnResetInterviewNotes = document.getElementById('btnResetInterviewNotes');
+  if (btnResetInterviewNotes) {
+    btnResetInterviewNotes.addEventListener('click', () => {
+      const inp = document.getElementById('inputInterviewNotes');
       if (inp) {
         inp.value = '';
-        showToast('Company notes reset', 'info');
-      }
-    });
-  }
-
-  const btnResetPrepNotes = document.getElementById('btnResetInterviewPreparationNotes');
-  if (btnResetPrepNotes) {
-    btnResetPrepNotes.addEventListener('click', () => {
-      const inp = document.getElementById('inputInterviewPreparationNotes');
-      if (inp) {
-        inp.value = '';
-        showToast('Preparation notes reset', 'info');
+        showToast('Interview notes reset', 'info');
       }
     });
   }
@@ -260,26 +237,19 @@ function setupEventListeners() {
     formJobInterview.addEventListener('submit', (e) => {
       e.preventDefault();
 
-      const companyNotesEl = document.getElementById('inputInterviewCompanyNotes');
-      const prepNotesEl    = document.getElementById('inputInterviewPreparationNotes');
+      const notesEl = document.getElementById('inputInterviewNotes');
 
       const submitter = e.submitter;
       if (submitter) {
-        if (submitter.id === 'btnSubmitInterviewCompanyNotes') {
-          if (!companyNotesEl || companyNotesEl.value.trim() === '') {
-            showToast('Please enter some notes before submitting', 'warning');
-            return;
-          }
-        } else if (submitter.id === 'btnSubmitInterviewPreparationNotes') {
-          if (!prepNotesEl || prepNotesEl.value.trim() === '') {
+        if (submitter.id === 'btnSubmitInterviewNotes') {
+          if (!notesEl || notesEl.value.trim() === '') {
             showToast('Please enter some notes before submitting', 'warning');
             return;
           }
         }
       } else {
-        const companyVal = companyNotesEl ? companyNotesEl.value.trim() : '';
-        const prepVal    = prepNotesEl    ? prepNotesEl.value.trim()    : '';
-        if (companyVal === '' && prepVal === '') {
+        const notesVal = notesEl ? notesEl.value.trim() : '';
+        if (notesVal === '') {
           showToast('Please enter some notes before submitting', 'warning');
           return;
         }
@@ -1130,11 +1100,8 @@ function openDetailsDrawer(app) {
     dom.drawerInterviewPreparation.innerHTML = interviewPrep ? parseMarkdown(interviewPrep) : '-';
     if (btnCopyPrep) btnCopyPrep.style.display = interviewPrep ? '' : 'none';
 
-    const notesCompanyEl = document.getElementById('inputInterviewCompanyNotes');
-    const notesPrepEl    = document.getElementById('inputInterviewPreparationNotes');
-
-    if (notesCompanyEl) notesCompanyEl.value = (app['Interview_Company_Notes']     || '').trim();
-    if (notesPrepEl)    notesPrepEl.value    = (app['Interview_Preparation_Notes'] || '').trim();
+    const notesEl = document.getElementById('inputInterviewNotes');
+    if (notesEl) notesEl.value = (app['Interview_Notes'] || '').trim();
 
     setInterviewLoadingState(false);
   } else {
@@ -1333,12 +1300,9 @@ function setInterviewLoadingState(isLoading) {
   }
 
   const elements = [
-    document.getElementById('btnSubmitInterviewCompanyNotes'),
-    document.getElementById('btnResetInterviewCompanyNotes'),
-    document.getElementById('btnSubmitInterviewPreparationNotes'),
-    document.getElementById('btnResetInterviewPreparationNotes'),
-    document.getElementById('inputInterviewCompanyNotes'),
-    document.getElementById('inputInterviewPreparationNotes')
+    document.getElementById('btnSubmitInterviewNotes'),
+    document.getElementById('btnResetInterviewNotes'),
+    document.getElementById('inputInterviewNotes')
   ];
   elements.forEach(el => {
     if (el) el.disabled = isLoading;
@@ -1366,10 +1330,8 @@ async function submitJobInterviewForm() {
       form.classList.remove('was-validated');
       showToast('Notes submitted successfully!', 'success');
       if (state.currentApp) {
-        const companyNotesEl = document.getElementById('inputInterviewCompanyNotes');
-        const prepNotesEl    = document.getElementById('inputInterviewPreparationNotes');
-        state.currentApp['Interview_Company_Notes']     = companyNotesEl ? companyNotesEl.value.trim() : '';
-        state.currentApp['Interview_Preparation_Notes'] = prepNotesEl    ? prepNotesEl.value.trim()    : '';
+        const notesEl = document.getElementById('inputInterviewNotes');
+        state.currentApp['Interview_Notes'] = notesEl ? notesEl.value.trim() : '';
       }
       setTimeout(fetchData, 3000);
     },

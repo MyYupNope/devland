@@ -74,10 +74,16 @@
     <div class="container topbar-inner">
       <div class="topbar-brand-group">
         <a class="topbar-brand" id="topbarBrandLink" href="#">OpportunityTracker</a>
-        <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle theme">
-          <svg class="theme-toggle-icon" width="16" height="16">
-            <use id="themeToggleIconRef" href="#icon-moon"></use>
-          </svg>
+        <button type="button" class="theme-toggle-switch" id="themeToggleBtn" aria-label="Toggle theme">
+          <span class="theme-toggle-track">
+            <svg class="theme-icon theme-icon-sun" width="14" height="14">
+              <use href="#icon-sun"/>
+            </svg>
+            <svg class="theme-icon theme-icon-moon" width="14" height="14">
+              <use href="#icon-moon"/>
+            </svg>
+            <span class="theme-toggle-thumb"></span>
+          </span>
         </button>
       </div>
       
@@ -1881,25 +1887,6 @@
               </div>
               <div class="text-block markdown-content" id="drawerInterviewCompany">-</div>
             </div>
-            <div class="info-row-block" id="sectionInterviewCompanyNotes">
-              <div class="description-header">
-                <span class="info-label">Interview Company Notes</span>
-                <div class="action-buttons-group">
-                  <button type="button" class="btn-action-icon" id="btnResetInterviewCompanyNotes" title="Reset Notes">
-                    <svg aria-hidden="true" width="14" height="14" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                      <path d="M3 3v5h5" />
-                    </svg>
-                  </button>
-                  <button type="submit" class="btn-action-icon" id="btnSubmitInterviewCompanyNotes" title="Submit Notes">
-                    <svg aria-hidden="true" width="14" height="14" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              <textarea class="form-control textarea-notes" id="inputInterviewCompanyNotes" name="inputInterviewCompanyNotes" placeholder="Add notes here..."></textarea>
-            </div>
             <div class="info-row-block" id="sectionInterviewPreparation">
               <div class="description-header">
                 <span class="info-label">Interview Preparation</span>
@@ -1910,24 +1897,24 @@
               </div>
               <div class="text-block markdown-content" id="drawerInterviewPreparation">-</div>
             </div>
-            <div class="info-row-block" id="sectionInterviewPreparationNotes">
+            <div class="info-row-block interview-notes-full" id="sectionInterviewNotes">
               <div class="description-header">
-                <span class="info-label">Interview Preparation Notes</span>
+                <span class="info-label">Interview Notes</span>
                 <div class="action-buttons-group">
-                  <button type="button" class="btn-action-icon" id="btnResetInterviewPreparationNotes" title="Reset Notes">
+                  <button type="button" class="btn-action-icon" id="btnResetInterviewNotes" title="Reset Notes">
                     <svg aria-hidden="true" width="14" height="14" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                       <path d="M3 3v5h5" />
                     </svg>
                   </button>
-                  <button type="submit" class="btn-action-icon" id="btnSubmitInterviewPreparationNotes" title="Submit Notes">
+                  <button type="submit" class="btn-action-icon" id="btnSubmitInterviewNotes" title="Submit Notes">
                     <svg aria-hidden="true" width="14" height="14" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="20 6 9 17 4 12"/>
                     </svg>
                   </button>
                 </div>
               </div>
-              <textarea class="form-control textarea-notes" id="inputInterviewPreparationNotes" name="inputInterviewPreparationNotes" placeholder="Add notes here..."></textarea>
+              <textarea class="form-control textarea-notes" id="inputInterviewNotes" name="inputInterviewNotes" placeholder="Add notes here..."></textarea>
             </div>
           </div>
         </div>
