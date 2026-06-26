@@ -101,3 +101,41 @@ export function parseCommentLine(line) {
   }
   return escapeHtml(line);
 }
+
+/**
+ * Safely parses any cached timestamp format into epoch milliseconds
+ */
+export function parseCacheTimestamp(timestamp) {
+  if (!timestamp) return null;
+  
+  // 1. Check if it's already a millisecond number/numeric string
+  const num = Number(timestamp);
+  if (!isNaN(num) && num > 1000000000000) {
+    return num;
+  }
+  
+  // 2. Check if it's a parseable ISO or full date string
+  const str = String(timestamp).trim();
+  const parsed = Date.parse(str);
+  if (!isNaN(parsed)) {
+    return parsed;
+  }
+  
+  // 3. Check if it's a time-only string like "14:59" or "Synced 14:59"
+  const timeMatch = str.match(/(\d{1,2}):(\d{2})/);
+  if (timeMatch) {
+    const hours = parseInt(timeMatch[1], 10);
+    const minutes = parseInt(timeMatch[2], 10);
+    const d = new Date();
+    d.setHours(hours, minutes, 0, 0);
+    
+    // If the parsed time is in the future relative to now, roll back by one day
+    if (d.getTime() > Date.now()) {
+      d.setDate(d.getDate() - 1);
+    }
+    return d.getTime();
+  }
+  
+  return null;
+}
+

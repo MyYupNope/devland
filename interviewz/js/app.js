@@ -10,7 +10,8 @@ import {
   formatDisplayDate,
   postForm,
   getLastComment,
-  parseCommentLine
+  parseCommentLine,
+  parseCacheTimestamp
 } from './Utils.js';
 import {
   SHEET_EXPORT_URL,
@@ -1155,11 +1156,18 @@ function initTabNavigation() {
         const cachedVal = localStorage.getItem(CSV_CACHE_KEY);
         if (cachedVal) {
           const cachedObj = JSON.parse(cachedVal);
-          if (cachedObj && cachedObj.timestamp) {
-            const timeDiffMs = Date.now() - cachedObj.timestamp;
-            const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
-            if (timeDiffMs >= FIFTEEN_MINUTES_MS) {
-              console.log('[OpportunityTracker] Auto-refreshing data on tab switch (15+ min passed)');
+          if (cachedObj) {
+            const lastSyncMs = parseCacheTimestamp(cachedObj.timestamp);
+            if (lastSyncMs) {
+              const timeDiffMs = Date.now() - lastSyncMs;
+              const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
+              if (timeDiffMs >= FIFTEEN_MINUTES_MS) {
+                console.log('[OpportunityTracker] Auto-refreshing data on tab switch (15+ min passed)');
+                fetchData();
+              }
+            } else {
+              // Trigger refresh if timestamp is missing or invalid to guarantee fresh data
+              console.log('[OpportunityTracker] Cache timestamp missing/invalid, auto-refreshing...');
               fetchData();
             }
           }
