@@ -232,18 +232,38 @@ export function initTopCompaniesChart(applications, tokens) {
   const labels = sortedCompanies.map(item => item[0]);
   const data = sortedCompanies.map(item => item[1]);
   
+  const backgroundColors = sortedCompanies.map(item => {
+    const company = item[0];
+    const hasActiveApp = applications.some(app => {
+      if ((app['Company Name'] || '').trim() !== company) return false;
+      const status = (app['Application Status'] || '').trim().toLowerCase();
+      return status !== 'retired' && status !== 'rejected';
+    });
+    return hasActiveApp ? (tokens.primary + 'cc') : (tokens.textSecondary + 'cc');
+  });
+
+  const hoverBackgroundColors = sortedCompanies.map(item => {
+    const company = item[0];
+    const hasActiveApp = applications.some(app => {
+      if ((app['Company Name'] || '').trim() !== company) return false;
+      const status = (app['Application Status'] || '').trim().toLowerCase();
+      return status !== 'retired' && status !== 'rejected';
+    });
+    return hasActiveApp ? tokens.primary : tokens.textSecondary;
+  });
+
   if (topCompaniesChartInstance) {
     topCompaniesChartInstance.data.labels = labels;
     topCompaniesChartInstance.data.datasets[0].data = data;
-    topCompaniesChartInstance.data.datasets[0].backgroundColor = tokens.primary + 'cc';
-    topCompaniesChartInstance.data.datasets[0].hoverBackgroundColor = tokens.primary;
+    topCompaniesChartInstance.data.datasets[0].backgroundColor = backgroundColors;
+    topCompaniesChartInstance.data.datasets[0].hoverBackgroundColor = hoverBackgroundColors;
     topCompaniesChartInstance.update();
   } else {
     topCompaniesChartInstance = new Chart(ctx, {
       type: 'bar',
       data: {
         labels,
-        datasets: [{ label: 'Applications', data, backgroundColor: tokens.primary + 'cc', hoverBackgroundColor: tokens.primary, borderRadius: 4, maxBarThickness: 20 }]
+        datasets: [{ label: 'Applications', data, backgroundColor: backgroundColors, hoverBackgroundColor: hoverBackgroundColors, borderRadius: 4, maxBarThickness: 20 }]
       },
       options: {
         indexAxis: 'y',
