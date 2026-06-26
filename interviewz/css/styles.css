@@ -395,7 +395,7 @@ body {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background-color: var(--color-primary);
+  background-color: #f9ab00; /* Sunlight yellow in light mode */
   transition: transform var(--transition-base), background-color var(--transition-base);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   z-index: 1;
@@ -412,6 +412,7 @@ body {
 
 .theme-dark .theme-toggle-thumb {
   transform: translateX(28px);
+  background-color: #202124; /* Dark color in dark mode */
 }
 
 .theme-dark .theme-icon-sun {
@@ -419,17 +420,17 @@ body {
 }
 
 .theme-dark .theme-icon-moon {
-  color: #ffffff;
+  color: #ffffff; /* Symbol is light in dark mode */
 }
 
 .theme-toggle-switch:hover .theme-toggle-track {
   background-color: rgba(0, 0, 0, 0.12);
-  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
+  box-shadow: 0 0 0 3px rgba(249, 171, 0, 0.25); /* Sunlight highlight */
 }
 
 .theme-dark .theme-toggle-switch:hover .theme-toggle-track {
   background-color: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 0 0 3px rgba(138, 180, 248, 0.25);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.15); /* Light neutral highlight */
 }
 
 .topbar-brand {
