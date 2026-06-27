@@ -1267,6 +1267,20 @@
   gap: 8px;
 }
 
+.resume-language-badge span {
+  display: inline-flex;
+  align-items: center;
+}
+
+.resume-language-flag {
+  width: 20px;
+  height: auto;
+  border-radius: 2px;
+  margin-right: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  display: inline-block;
+}
+
 .resume-language-level {
   font-family: var(--rm-font-mono);
   color: var(--rm-accent-teal);
@@ -1711,4 +1725,17 @@
   #resumeHeroCanvas {
     display: none;
   }
+}
+
+/* `:focus-visible` styles for keyboard accessibility */
+.resume-section a:focus-visible,
+.resume-section button:focus-visible,
+.resume-section [tabindex]:focus-visible,
+.resume-btn:focus-visible,
+.resume-card:focus-visible,
+.resume-timeline-nav-btn:focus-visible,
+.resume-skill-node:focus-visible {
+  outline: 2px solid var(--rm-accent-teal);
+  outline-offset: 3px;
+  box-shadow: 0 0 12px var(--rm-accent-teal) !important;
 }

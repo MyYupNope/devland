@@ -4,6 +4,7 @@ let cumulativeSubmissionsChartInstance = null;
 let statusSplitChartInstance = null;
 let suitabilityBarChartInstance = null;
 let topCompaniesChartInstance = null;
+let lastRenderHash = '';
 
 /**
  * Resolves CSS design tokens in a single layout read.
@@ -282,8 +283,15 @@ export function initTopCompaniesChart(applications, tokens) {
   }
 }
 
-export function renderAllDashboardWidgets(applications) {
+export function renderAllDashboardWidgets(applications, force = false) {
   if (applications.length === 0) return;
+
+  const isDark = document.documentElement.classList.contains('theme-dark');
+  const currentRenderHash = `theme:${isDark}-len:${applications.length}-` + applications.map(a => `${a['Company Name'] || ''}-${a['Job Title'] || ''}-${a['Application Status'] || ''}`).join('|');
+  if (!force && lastRenderHash === currentRenderHash) {
+    return;
+  }
+  lastRenderHash = currentRenderHash;
 
   // Set Chart.js global font/color defaults once per render cycle
   if (typeof Chart !== 'undefined') {

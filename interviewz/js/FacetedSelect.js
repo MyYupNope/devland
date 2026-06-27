@@ -42,10 +42,14 @@ export class FacetedSelect {
       }
     });
     
-    // Filter dropdown elements on user input
+    // Filter dropdown elements on user input (debounced by 150ms to prevent performance thrashing)
+    let debounceTimer;
     this.searchInput.addEventListener('input', () => {
-      this.filterOptions();
-      this.resetFocus();
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        this.filterOptions();
+        this.resetFocus();
+      }, 150);
     });
     
     // Handle keyboard accessibility

@@ -341,6 +341,7 @@ body {
   justify-content: space-between;
   align-items: center;
   position: relative;
+  height: 100%;
 }
 
 .topbar-brand-group {
@@ -359,6 +360,11 @@ body {
   align-items: center;
   outline: none;
   -webkit-tap-highlight-color: transparent;
+  min-height: 44px; /* A5: Touch Target Height */
+}
+
+.theme-toggle-switch:focus-visible .theme-toggle-track {
+  box-shadow: 0 0 0 2px var(--color-primary); /* A4: Focus Style */
 }
 
 .theme-toggle-track {
@@ -462,6 +468,12 @@ body {
   position: relative;
   transition: color var(--transition-base);
   outline: none;
+}
+
+.topbar-nav-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  border-radius: 4px;
 }
 
 .topbar-nav-btn:hover {
@@ -646,6 +658,12 @@ body {
   gap: 1rem;
   box-shadow: var(--shadow-md);
   transition: box-shadow var(--transition-base), transform var(--transition-base);
+  outline: none;
+}
+
+.stat-card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .stat-card:hover {
@@ -743,6 +761,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  position: relative;
+  z-index: 20;
 }
 
 .filters-header {
@@ -873,6 +893,11 @@ body {
   background-color: var(--color-surface);
   border-color: var(--color-primary);
   box-shadow: 0 0 0 1px var(--color-primary) !important;
+}
+
+.select-trigger:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .trigger-text {
@@ -1015,6 +1040,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  position: relative;
+  z-index: 10;
 }
 
 .results-header {
@@ -1277,7 +1304,8 @@ body {
   background: transparent;
   border: none;
   color: var(--color-text-secondary);
-  padding: 0.5rem;
+  width: 44px; /* A5: Touch Target width */
+  height: 44px; /* A5: Touch Target height */
   border-radius: 50%;
   cursor: pointer;
   display: flex;
@@ -1550,6 +1578,11 @@ body {
   align-items: center;
   justify-content: center;
   transition: background var(--transition-base), color var(--transition-base);
+  outline: none;
+}
+
+.btn-close-drawer:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-primary);
 }
 
 .btn-close-drawer:hover {
@@ -3373,6 +3406,12 @@ body {
               box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
               border-color 0.3s, 
               background-color 0.3s;
+  outline: none;
+}
+
+.bento-card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .bento-card:hover {
@@ -3982,4 +4021,70 @@ body {
     padding: 0.3rem 0.6rem;
     font-size: 0.72rem; /* Slightly smaller to fit mobile screens perfectly */
   }
+}
+
+/* A5: Touch target expansion for filter tag remove / close buttons */
+.filter-tag-remove,
+.btn-close-drawer,
+.btn-action-icon {
+  position: relative;
+}
+
+.filter-tag-remove::after,
+.btn-close-drawer::after,
+.btn-action-icon::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  transform: translate(-50%, -50%);
+  min-width: 44px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+/* Tab Fade Transitions */
+.landing-tab-content,
+.filters-section,
+.results-section,
+.active-interviews-section-wrapper,
+.sync-container,
+.stats-section,
+.analytics-section,
+.new-application-section,
+.resume-section {
+  transition: opacity 150ms ease-in-out, transform 150ms ease-in-out;
+}
+
+.tab-enter {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.tab-fade-in {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+}
+
+.tab-exit {
+  opacity: 0 !important;
+  transform: translateY(-6px) !important;
+}
+
+/* Specific Tab Transition Overrides for centered topbar-sync element */
+.topbar-sync.tab-enter {
+  opacity: 0;
+  transform: translate(-50%, calc(-50% + 6px));
+}
+
+.topbar-sync.tab-fade-in {
+  opacity: 1 !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+.topbar-sync.tab-exit {
+  opacity: 0 !important;
+  transform: translate(-50%, calc(-50% - 6px)) !important;
 }
