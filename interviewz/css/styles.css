@@ -1754,6 +1754,16 @@ body {
   cursor: not-allowed;
 }
 
+:root.theme-dark .drawer-tab:hover {
+  background-color: var(--bg-surface-variant-hover);
+  color: var(--color-text-primary);
+}
+
+:root.theme-dark .btn-close-drawer:hover {
+  background-color: var(--bg-surface-variant-hover);
+  color: var(--color-text-primary);
+}
+
 .drawer-tab:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
