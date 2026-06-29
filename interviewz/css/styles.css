@@ -172,6 +172,12 @@ body {
   background: rgba(0, 0, 0, 0.25);
 }
 
+/* Placeholder styling to ensure readability on custom backgrounds */
+::placeholder {
+  color: inherit !important;
+  opacity: 0.55 !important;
+}
+
 /* ==========================================================================
    Visibility utility — used by JS tab switching (replaces inline style.display)
    ========================================================================== */
