@@ -1750,17 +1750,28 @@
       <div class="drawer-header">
         <div class="drawer-header-left">
           <!-- Section A: Job Title, Company Name -->
-          <span class="status-badge" id="drawerStatusBadge">-</span>
           <h2 id="drawerJobTitleDisplay">Job Title</h2>
           <h3 id="drawerCompanyNameDisplay">Company Name</h3>
         </div>
-        <button type="button" class="btn-close-drawer" id="btnCloseDrawer" aria-label="Close detail panel">
-          <svg aria-hidden="true" width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 6 6 18" />
-            <path d="m6 6 12 12" />
-          </svg>
-        </button>
+        <div class="drawer-header-actions">
+          <button type="submit" class="btn-action-icon" id="btnSubmitOverviewUpdates" title="Submit Updates">
+            <svg aria-hidden="true" width="14" height="14" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </button>
+          <button type="submit" class="btn-action-icon" id="btnSubmitInterviewNotes" title="Submit Notes" style="display: none;">
+            <svg aria-hidden="true" width="14" height="14" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </button>
+          <button type="button" class="btn-close-drawer" id="btnCloseDrawer" aria-label="Close detail panel">
+            <svg aria-hidden="true" width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
     <div class="drawer-body">
       <!-- Tab Navigation Bar -->
@@ -1799,21 +1810,37 @@
         <!-- Section B: Application Status -->
         <div class="drawer-tab-pane active" id="sectionB_Status" role="tabpanel" aria-labelledby="tabOverview">
           <div class="info-group status-matrix-grid">
-            <div class="info-row-block">
+            <div class="info-row-block cell-1x1">
               <span class="info-label">Applied Date</span>
               <span class="info-value" id="drawerDate">-</span>
             </div>
-            <div class="info-row-block" id="sectionComments">
-              <span class="info-label">Comments</span>
-              <div class="comments-box" id="drawerComments">-</div>
-            </div>
-            <div class="info-row-block" id="sectionFollowUp">
+            <div class="info-row-block cell-1x2" id="sectionFollowUp">
               <span class="info-label">Follow-up</span>
               <span class="info-value" id="drawerFollowUp">-</span>
             </div>
-            <div class="info-row-block">
+            <div class="info-row-block cell-1x3">
               <span class="info-label">Hiring Team</span>
               <span class="info-value" id="drawerHiringTeam">-</span>
+            </div>
+            <div class="info-row-block cell-2x1">
+              <div class="description-header">
+                <span class="info-label">Application Status</span>
+              </div>
+              <select class="form-select" id="drawerStatusSelect" name="drawerApplicationStatus">
+                <option value="Ready">Ready</option>
+                <option value="Applied">Applied</option>
+                <option value="Interviews">Interviews</option>
+                <option value="Accepted">Accepted</option>
+                <option value="Offer">Offer</option>
+                <option value="Rejected">Rejected</option>
+                <option value="Withdraw">Withdraw</option>
+              </select>
+            </div>
+            <div class="info-row-block cell-2x2-2x3" id="sectionComments">
+              <div class="description-header">
+                <span class="info-label">Comments</span>
+              </div>
+              <textarea class="form-control textarea-comments" id="drawerCommentsTextarea" name="drawerCommentsInput" placeholder="Add comments here..."></textarea>
             </div>
           </div>
         </div>
@@ -1903,11 +1930,6 @@
                     <svg aria-hidden="true" width="14" height="14" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                       <path d="M3 3v5h5" />
-                    </svg>
-                  </button>
-                  <button type="submit" class="btn-action-icon" id="btnSubmitInterviewNotes" title="Submit Notes">
-                    <svg aria-hidden="true" width="14" height="14" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="20 6 9 17 4 12"/>
                     </svg>
                   </button>
                 </div>

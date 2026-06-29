@@ -60,7 +60,6 @@ function initDomCache() {
   dom.drawerOverlay = document.getElementById('drawerOverlay');
   dom.detailsDrawer = document.getElementById('detailsDrawer');
   dom.btnCloseDrawer = document.getElementById('btnCloseDrawer');
-  dom.drawerStatusBadge = document.getElementById('drawerStatusBadge');
   dom.drawerJobTitleDisplay = document.getElementById('drawerJobTitleDisplay');
   dom.drawerCompanyNameDisplay = document.getElementById('drawerCompanyNameDisplay');
   dom.drawerJobTitle = document.getElementById('drawerJobTitle');
@@ -72,7 +71,8 @@ function initDomCache() {
   dom.drawerSuitabilityScore = document.getElementById('drawerSuitabilityScore');
   dom.drawerSuitabilityEval = document.getElementById('drawerSuitabilityEval');
   dom.sectionSuitabilityEval = document.getElementById('sectionSuitabilityEval');
-  dom.drawerComments = document.getElementById('drawerComments');
+  dom.drawerStatusSelect = document.getElementById('drawerStatusSelect');
+  dom.drawerCommentsTextarea = document.getElementById('drawerCommentsTextarea');
   dom.sectionComments = document.getElementById('sectionComments');
   dom.drawerJobDescription = document.getElementById('drawerJobDescription');
   dom.drawerCompanyDescription = document.getElementById('drawerCompanyDescription');
@@ -238,9 +238,13 @@ function setupEventListeners() {
     formJobInterview.addEventListener('submit', (e) => {
       e.preventDefault();
 
-      const notesEl = document.getElementById('inputInterviewNotes');
-
       const submitter = e.submitter;
+      if (submitter && submitter.id === 'btnSubmitOverviewUpdates') {
+        submitJobInterviewForm(submitter.id);
+        return;
+      }
+
+      const notesEl = document.getElementById('inputInterviewNotes');
       if (submitter) {
         if (submitter.id === 'btnSubmitInterviewNotes') {
           if (!notesEl || notesEl.value.trim() === '') {
@@ -256,13 +260,19 @@ function setupEventListeners() {
         }
       }
 
-      submitJobInterviewForm();
+      submitJobInterviewForm(submitter ? submitter.id : null);
     });
   }
 
   // Drawer Close Actions
   if (dom.btnCloseDrawer) dom.btnCloseDrawer.addEventListener('click', closeDetailsDrawer);
   if (dom.drawerOverlay) dom.drawerOverlay.addEventListener('click', closeDetailsDrawer);
+  
+  if (dom.drawerStatusSelect) {
+    dom.drawerStatusSelect.addEventListener('change', () => {
+      updateSelectColorClass(dom.drawerStatusSelect);
+    });
+  }
   
   // Drawer Tab Click Event Listeners
   if (dom.detailsDrawer) {
@@ -1010,14 +1020,29 @@ function selectTab(tabId) {
       pane.classList.remove('active');
     }
   });
+
+  const btnSubmitUpdates = document.getElementById('btnSubmitOverviewUpdates');
+  if (btnSubmitUpdates) {
+    btnSubmitUpdates.style.display = (tabId === 'tabOverview') ? '' : 'none';
+  }
+
+  const btnSubmitNotes = document.getElementById('btnSubmitInterviewNotes');
+  if (btnSubmitNotes) {
+    btnSubmitNotes.style.display = (tabId === 'tabInterview') ? '' : 'none';
+  }
+}
+
+function updateSelectColorClass(select) {
+  if (!select) return;
+  select.classList.remove('status-ready', 'status-applied', 'status-interviews', 'status-accepted', 'status-offer', 'status-rejected', 'status-withdraw');
+  const statusClass = select.value.toLowerCase().replace(/\s+/g, '-');
+  select.classList.add(`status-${statusClass}`);
 }
 
 function openDetailsDrawer(app) {
   state.currentApp = app;
 
   const status = (app['Application Status'] || '').trim();
-  dom.drawerStatusBadge.className = `badge status-badge ${status.toLowerCase().replace(/\s+/g, '-')}`;
-  dom.drawerStatusBadge.textContent = status;
   
   const jobTitleVal = (app['Job Title'] || '').trim();
   const companyVal  = (app['Company Name'] || '').trim();
@@ -1107,7 +1132,20 @@ function openDetailsDrawer(app) {
   }
 
   const comments = (app['Comments'] || '').trim();
-  dom.drawerComments.innerHTML = comments ? parseMarkdown(comments) : '-';
+  if (dom.drawerCommentsTextarea) {
+    dom.drawerCommentsTextarea.value = comments;
+  }
+
+  if (dom.drawerStatusSelect) {
+    const options = Array.from(dom.drawerStatusSelect.options);
+    const matchedOption = options.find(opt => opt.value.toLowerCase() === status.toLowerCase());
+    if (matchedOption) {
+      dom.drawerStatusSelect.value = matchedOption.value;
+    } else {
+      dom.drawerStatusSelect.value = "Applied";
+    }
+    updateSelectColorClass(dom.drawerStatusSelect);
+  }
 
   dom.drawerJobDescription.textContent = (app['Job Description'] || 'Not available.').trim();
   dom.drawerCompanyDescription.textContent = (app['Company Description'] || 'Not available.').trim();
@@ -1368,14 +1406,17 @@ function setInterviewLoadingState(isLoading) {
   const elements = [
     document.getElementById('btnSubmitInterviewNotes'),
     document.getElementById('btnResetInterviewNotes'),
-    document.getElementById('inputInterviewNotes')
+    document.getElementById('inputInterviewNotes'),
+    document.getElementById('btnSubmitOverviewUpdates'),
+    dom.drawerStatusSelect,
+    dom.drawerCommentsTextarea
   ];
   elements.forEach(el => {
     if (el) el.disabled = isLoading;
   });
 }
 
-async function submitJobInterviewForm() {
+async function submitJobInterviewForm(submitterId) {
   const form = document.getElementById('jobinterview');
   if (!form) return;
 
@@ -1388,16 +1429,28 @@ async function submitJobInterviewForm() {
   }
 
   isInterviewSubmitting = true;
-  showToast('Submitting your notes... Please wait for feedback.', 'info');
+  const msg = submitterId === 'btnSubmitOverviewUpdates' ? 'Submitting updates... Please wait for feedback.' : 'Submitting your notes... Please wait for feedback.';
+  showToast(msg, 'info');
 
   await postForm(NOTES_API_ENDPOINT, new FormData(form), {
     setLoading: (v) => setInterviewLoadingState(v),
     onSuccess: () => {
       form.classList.remove('was-validated');
-      showToast('Notes submitted successfully!', 'success');
+      showToast('Changes submitted successfully!', 'success');
       if (state.currentApp) {
-        const notesEl = document.getElementById('inputInterviewNotes');
-        state.currentApp['Interview_Notes'] = notesEl ? notesEl.value.trim() : '';
+        if (submitterId === 'btnSubmitOverviewUpdates') {
+          if (dom.drawerStatusSelect) {
+            const newStatus = dom.drawerStatusSelect.value;
+            state.currentApp['Application Status'] = newStatus;
+            
+          }
+          if (dom.drawerCommentsTextarea) {
+            state.currentApp['Comments'] = dom.drawerCommentsTextarea.value.trim();
+          }
+        } else {
+          const notesEl = document.getElementById('inputInterviewNotes');
+          state.currentApp['Interview_Notes'] = notesEl ? notesEl.value.trim() : '';
+        }
       }
       setTimeout(fetchData, 3000);
     },
