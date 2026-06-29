@@ -244,22 +244,6 @@ function setupEventListeners() {
         return;
       }
 
-      const notesEl = document.getElementById('inputInterviewNotes');
-      if (submitter) {
-        if (submitter.id === 'btnSubmitInterviewNotes') {
-          if (!notesEl || notesEl.value.trim() === '') {
-            showToast('Please enter some notes before submitting', 'warning');
-            return;
-          }
-        }
-      } else {
-        const notesVal = notesEl ? notesEl.value.trim() : '';
-        if (notesVal === '') {
-          showToast('Please enter some notes before submitting', 'warning');
-          return;
-        }
-      }
-
       submitJobInterviewForm(submitter ? submitter.id : null);
     });
   }
