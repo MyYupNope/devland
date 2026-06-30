@@ -616,6 +616,7 @@ function parseAndInitializeData(csvText) {
     headers.forEach((header, index) => {
       app[header] = row[index] !== undefined ? row[index] : '';
     });
+    app.originalIndex = i;
     state.rawApplications.push(app);
   }
 
@@ -846,6 +847,11 @@ function applyFilters(resetPage = true) {
       if (sortVal === 'date-desc') {
         comparison = dateB - dateA;
       }
+      if (comparison === 0) {
+        comparison = sortVal === 'date-desc'
+          ? (b.originalIndex || 0) - (a.originalIndex || 0)
+          : (a.originalIndex || 0) - (b.originalIndex || 0);
+      }
     } else if (sortVal.startsWith('job')) {
       const jobA = (a['Job Title'] || '').trim();
       const jobB = (b['Job Title'] || '').trim();
@@ -887,6 +893,9 @@ function applyFilters(resetPage = true) {
       }
     }
     
+    if (comparison === 0) {
+      return (b.originalIndex || 0) - (a.originalIndex || 0);
+    }
     return comparison;
   });
 
@@ -1465,7 +1474,11 @@ async function submitJobInterviewForm(submitterId) {
           state.currentApp['Interview_Notes'] = notesEl ? notesEl.value.trim() : '';
         }
       }
-      setTimeout(fetchData, 3000);
+      if (submitterId === 'btnSubmitOverviewUpdates') {
+        fetchData(false, true);
+      } else {
+        setTimeout(fetchData, 3000);
+      }
     },
     onError: (e) => {
       showToast(e.name === 'AbortError'
