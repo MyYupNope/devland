@@ -67,7 +67,7 @@
   --rm-text-primary: #0F172A;     /* Deep, highly readable text */
   --rm-text-secondary: #334155;   /* Darker slate secondary text */
   --rm-border: rgba(0, 0, 0, 0.10);
-  --rm-border-glow: rgba(0, 0, 0, 0.18);
+  --rm-border-glow: rgba(0, 168, 142, 0.12);
 
   --rm-glass: rgba(255, 255, 255, 0.92);
   --rm-glass-hover: rgba(255, 255, 255, 0.98);

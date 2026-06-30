@@ -800,7 +800,7 @@
             <line x1="12" y1="18" x2="12" y2="12"></line>
             <line x1="9" y1="15" x2="15" y2="15"></line>
           </svg>
-          <h2>New Submission</h2>
+          <h2>New Application Form</h2>
         </div>
         <button type="button" id="reset_btn" class="btn-reset-link" title="Reset Form" aria-label="Reset Form">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -881,9 +881,9 @@
 
             <!-- Submit Button & Status Indicators -->
             <div class="d-flex justify-content-center align-items-center flex-wrap gap-3 mt-4">
-              <button type="submit" class="btn btn-primary px-5 py-3 d-inline-flex align-items-center gap-2"
+              <button type="submit" class="btn btn-primary px-5 py-3 d-inline-flex align-items-center justify-content-center gap-2"
                 id="submit_btn">
-                <span>Submit Application</span>
+                <span>Submit</span>
                 <!-- Loading Spinner -->
                 <span class="spinner-border spinner-border-sm text-light hidden" id="job_spin" role="status"
                   aria-hidden="true"></span>
@@ -1816,11 +1816,29 @@
             </div>
             <div class="info-row-block cell-1x2" id="sectionFollowUp">
               <span class="info-label">Follow-up</span>
-              <span class="info-value" id="drawerFollowUp">-</span>
+              <div class="input-with-icon">
+                <input type="text" class="form-control" id="drawerFollowUp" name="drawerFollowUp" placeholder="No follow-up set">
+                <a href="#" target="_blank" id="drawerFollowUpLink" class="input-icon-btn" style="display: none;" title="Open follow-up URL">
+                  <svg aria-hidden="true" width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                    <polyline points="15 3 21 3 21 9"/>
+                    <line x1="10" x2="21" y1="14" y2="3"/>
+                  </svg>
+                </a>
+              </div>
             </div>
-            <div class="info-row-block cell-1x3">
+            <div class="info-row-block cell-1x3" id="sectionHiringTeam">
               <span class="info-label">Hiring Team</span>
-              <span class="info-value" id="drawerHiringTeam">-</span>
+              <div class="input-with-icon">
+                <input type="text" class="form-control" id="drawerHiringTeam" name="drawerHiringTeam" placeholder="No hiring team set">
+                <a href="#" target="_blank" id="drawerHiringTeamLink" class="input-icon-btn" style="display: none;" title="Open hiring team URL">
+                  <svg aria-hidden="true" width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                    <polyline points="15 3 21 3 21 9"/>
+                    <line x1="10" x2="21" y1="14" y2="3"/>
+                  </svg>
+                </a>
+              </div>
             </div>
             <div class="info-row-block cell-2x1">
               <div class="description-header">
@@ -1853,7 +1871,7 @@
                 <span class="info-label">Job Description</span>
                 <a href="#" target="_blank" class="inline-link-btn" id="linkJobUrlAnchor">
                   <svg aria-hidden="true" width="16" height="16"><use href="#icon-external-link"/></svg>
-                  View Job URL
+                  Job URL
                 </a>
               </div>
               <div class="text-block" id="drawerJobDescription">-</div>

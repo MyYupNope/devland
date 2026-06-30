@@ -66,7 +66,9 @@ function initDomCache() {
   dom.drawerCompanyName = document.getElementById('drawerCompanyName');
   dom.drawerDate = document.getElementById('drawerDate');
   dom.drawerHiringTeam = document.getElementById('drawerHiringTeam');
+  dom.drawerHiringTeamLink = document.getElementById('drawerHiringTeamLink');
   dom.drawerFollowUp = document.getElementById('drawerFollowUp');
+  dom.drawerFollowUpLink = document.getElementById('drawerFollowUpLink');
   dom.drawerSuitabilityScoreContainer = document.getElementById('drawerSuitabilityScoreContainer');
   dom.drawerSuitabilityScore = document.getElementById('drawerSuitabilityScore');
   dom.drawerSuitabilityEval = document.getElementById('drawerSuitabilityEval');
@@ -256,6 +258,14 @@ function setupEventListeners() {
     dom.drawerStatusSelect.addEventListener('change', () => {
       updateSelectColorClass(dom.drawerStatusSelect);
     });
+  }
+
+  if (dom.drawerFollowUp) {
+    dom.drawerFollowUp.addEventListener('input', updateFollowUpLink);
+  }
+
+  if (dom.drawerHiringTeam) {
+    dom.drawerHiringTeam.addEventListener('input', updateHiringTeamLink);
   }
   
   // Drawer Tab Click Event Listeners
@@ -1023,6 +1033,37 @@ function updateSelectColorClass(select) {
   select.classList.add(`status-${statusClass}`);
 }
 
+function updateFollowUpLink() {
+  if (!dom.drawerFollowUp || !dom.drawerFollowUpLink) return;
+  const val = dom.drawerFollowUp.value.trim();
+  if (val) {
+    let url = val;
+    if (!val.startsWith('http://') && !val.startsWith('https://')) {
+      url = 'https://' + val;
+    }
+    dom.drawerFollowUpLink.href = url;
+    dom.drawerFollowUpLink.style.display = 'inline-flex';
+  } else {
+    dom.drawerFollowUpLink.style.display = 'none';
+  }
+}
+
+function updateHiringTeamLink() {
+  if (!dom.drawerHiringTeam || !dom.drawerHiringTeamLink) return;
+  const val = dom.drawerHiringTeam.value.trim();
+  const isNotDefined = val.toLowerCase() === 'not defined';
+  if (val && !isNotDefined) {
+    let url = val;
+    if (!val.startsWith('http://') && !val.startsWith('https://')) {
+      url = 'https://' + val;
+    }
+    dom.drawerHiringTeamLink.href = url;
+    dom.drawerHiringTeamLink.style.display = 'inline-flex';
+  } else {
+    dom.drawerHiringTeamLink.style.display = 'none';
+  }
+}
+
 function openDetailsDrawer(app) {
   state.currentApp = app;
 
@@ -1038,33 +1079,15 @@ function openDetailsDrawer(app) {
   dom.drawerDate.textContent = formatDisplayDate((app['Create Date'] || '').trim());
   
   const hiringTeamVal = (app['Hiring Team'] || '').trim();
-  if (hiringTeamVal) {
-    const isUrl = hiringTeamVal.startsWith('http://') || hiringTeamVal.startsWith('https://');
-    if (isUrl) {
-      dom.drawerHiringTeam.innerHTML = `<a href="${escapeHtml(hiringTeamVal)}" target="_blank" class="inline-link-btn">
-        <svg aria-hidden="true" width="14" height="14"><use href="#icon-external-link"/></svg>
-        Link
-      </a>`;
-    } else {
-      dom.drawerHiringTeam.textContent = hiringTeamVal;
-    }
-  } else {
-    dom.drawerHiringTeam.textContent = '-';
+  if (dom.drawerHiringTeam) {
+    dom.drawerHiringTeam.value = hiringTeamVal;
+    updateHiringTeamLink();
   }
 
   const followUpVal = (app['Follow-Up'] || '').trim();
-  if (followUpVal) {
-    const isUrl = followUpVal.startsWith('http://') || followUpVal.startsWith('https://');
-    if (isUrl) {
-      dom.drawerFollowUp.innerHTML = `<a href="${escapeHtml(followUpVal)}" target="_blank" class="inline-link-btn">
-        <svg aria-hidden="true" width="14" height="14"><use href="#icon-external-link"/></svg>
-        Link
-      </a>`;
-    } else {
-      dom.drawerFollowUp.textContent = followUpVal;
-    }
-  } else {
-    dom.drawerFollowUp.textContent = '-';
+  if (dom.drawerFollowUp) {
+    dom.drawerFollowUp.value = followUpVal;
+    updateFollowUpLink();
   }
   
   const score = (app['Job_Suitability'] || '').trim();
@@ -1342,7 +1365,7 @@ function initTabNavigation() {
         const link = document.createElement('link');
         link.id = 'lazy-resume-css';
         link.rel = 'stylesheet';
-        link.href = 'css/resume.css?v=15';
+        link.href = 'css/resume.css?v=16';
         document.head.appendChild(link);
       }
       showEl(dom.resumeSection);
@@ -1430,6 +1453,12 @@ async function submitJobInterviewForm(submitterId) {
           }
           if (dom.drawerCommentsTextarea) {
             state.currentApp['Comments'] = dom.drawerCommentsTextarea.value.trim();
+          }
+          if (dom.drawerFollowUp) {
+            state.currentApp['Follow-Up'] = dom.drawerFollowUp.value.trim();
+          }
+          if (dom.drawerHiringTeam) {
+            state.currentApp['Hiring Team'] = dom.drawerHiringTeam.value.trim();
           }
         } else {
           const notesEl = document.getElementById('inputInterviewNotes');

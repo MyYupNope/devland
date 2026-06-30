@@ -9,7 +9,7 @@
   --color-surface: #ffffff;
   --color-primary: #1a73e8;
   --color-primary-light: #e8f0fe;
-  --font-body: 'Roboto', 'Google Sans', -apple-system, sans-serif;
+  --font-body: 'Plus Jakarta Sans', 'Outfit', -apple-system, sans-serif;
 
   --color-success: #1e8e3e;
   --color-error: #d93025;
@@ -131,6 +131,38 @@
   --bg-invalid: #301c1c;
 }
 
+/* Ensure select dropdown options have dark background in dark mode */
+.theme-dark select option {
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+}
+
+/* Fix Bootstrap 5 floating label white background pseudo-element in dark mode */
+.theme-dark .form-floating > .form-control:focus ~ label::after,
+.theme-dark .form-floating > .form-control:not(:placeholder-shown) ~ label::after,
+.theme-dark .form-floating > .form-control-plaintext ~ label::after,
+.theme-dark .form-floating > .form-select ~ label::after {
+  background-color: var(--color-surface) !important;
+}
+
+/* Fix placeholder text rendering overlap with floating labels */
+.form-floating > .form-control::placeholder {
+  color: transparent !important;
+}
+
+/* Ensure floated label text color has proper visibility and color in dark mode */
+.theme-dark .form-floating > .form-control:focus ~ label,
+.theme-dark .form-floating > .form-control:not(:placeholder-shown) ~ label,
+.theme-dark .form-floating > .form-control-plaintext ~ label,
+.theme-dark .form-floating > .form-select ~ label {
+  color: var(--color-text-secondary) !important;
+  opacity: 0.9 !important;
+}
+
+.theme-dark .form-floating > .form-control:focus ~ label {
+  color: var(--color-primary) !important;
+}
+
 /* ==========================================================================
    Base Styles
    ========================================================================== */
@@ -174,8 +206,8 @@ body {
 
 /* Placeholder styling to ensure readability on custom backgrounds */
 ::placeholder {
-  color: inherit !important;
-  opacity: 0.55 !important;
+  color: var(--color-text-secondary) !important;
+  opacity: 0.65 !important;
 }
 
 /* ==========================================================================
@@ -457,6 +489,12 @@ body {
   transition: opacity var(--transition-base);
 }
 
+@media (max-width: 576px) {
+  .topbar-brand {
+    font-size: 1.15rem;
+  }
+}
+
 .topbar-brand:hover {
   opacity: 0.85;
 }
@@ -529,6 +567,24 @@ body {
   filter: invert(1);
 }
 
+/* Offcanvas mobile menu styling for dark mode */
+.theme-dark .offcanvas,
+.theme-dark .offcanvas-lg {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.theme-dark .offcanvas-header,
+.theme-dark .offcanvas-lg .offcanvas-header {
+  border-bottom: 1px solid var(--color-border) !important;
+}
+
+.theme-dark .offcanvas .btn-close,
+.theme-dark .offcanvas-lg .btn-close {
+  filter: invert(1) grayscale(1) brightness(2) !important;
+}
+
+
 @media (max-width: 991px) {
   .topbar-nav {
     flex-direction: column;
@@ -542,6 +598,9 @@ body {
     text-align: left;
     padding: 0.75rem 1rem;
     border-radius: var(--radius-sm);
+  }
+  .topbar-nav-btn:hover {
+    background-color: var(--color-hover-overlay);
   }
   .topbar-nav-btn::after {
     left: 0;
@@ -895,7 +954,7 @@ body {
 }
 
 .select-trigger:hover {
-  background-color: #e8eaed;
+  background-color: var(--bg-surface-variant-hover);
 }
 
 .select-trigger:focus,
@@ -1232,7 +1291,7 @@ body {
 }
 
 .sortable-header:hover {
-  background-color: #e8eaed !important;
+  background-color: var(--bg-surface-variant-hover) !important;
   color: var(--color-text-primary) !important;
 }
 
@@ -2010,6 +2069,52 @@ body {
   transition: all var(--transition-base);
 }
 
+.status-matrix-grid input.form-control {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg);
+  font-size: 0.95rem;
+  padding: 0.5rem 0.75rem;
+  width: 100%;
+  font-weight: 500;
+  transition: all var(--transition-base);
+}
+
+.status-matrix-grid input.form-control:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
+}
+
+.input-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.input-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  opacity: 0.8;
+  transition: all var(--transition-base);
+  text-decoration: none;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+}
+
+.input-icon-btn:hover {
+  opacity: 1;
+  color: var(--color-text-primary);
+  background-color: var(--color-hover-overlay);
+  transform: scale(1.05);
+}
+
 .status-matrix-grid select.form-select.status-ready {
   background-color: var(--bg-status-ready) !important;
   color: var(--color-status-ready) !important;
@@ -2066,6 +2171,11 @@ body {
   background-color: var(--bg-status-interviews);
   transition: all var(--transition-base);
   font-weight: 500;
+}
+
+.textarea-comments::placeholder {
+  color: var(--color-status-interviews) !important;
+  opacity: 0.55 !important;
 }
 
 .textarea-comments:focus {
@@ -2891,6 +3001,11 @@ body {
 .new-application-section .form-floating>label {
   padding: 1rem 1.25rem;
   color: var(--color-text-secondary);
+  transition: none !important;
+}
+
+.new-application-section .form-floating>textarea.form-control ~ label {
+  height: auto;
 }
 
 .new-application-section .form-floating>.form-control.textarea-md {
@@ -2905,7 +3020,7 @@ body {
 
 .new-application-section .char-counter {
   font-size: 0.8rem;
-  color: var(--color-text-secondary);
+  color: var(--color-text-secondary) !important;
   font-weight: 400;
   user-select: none;
 }
@@ -4039,21 +4154,24 @@ body {
   }
 }
 
-/* Center Topbar Sync Status */
-.topbar-sync {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  margin: 0;
-  z-index: 10;
+/* Topbar Sync Status Layout */
+@media (min-width: 992px) {
+  .topbar-sync {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0;
+    z-index: 10;
+  }
 }
 
 @media (max-width: 991px) {
   .topbar-sync {
-    left: auto;
-    right: 5rem;
-    transform: translateY(-50%);
+    position: relative;
+    margin-left: auto;
+    margin-right: 0.75rem;
+    z-index: 10;
   }
 }
 
@@ -4168,7 +4286,7 @@ body {
 
 .tab-fade-in {
   opacity: 1 !important;
-  transform: translateY(0) !important;
+  transform: none !important;
 }
 
 .tab-exit {
@@ -4176,18 +4294,20 @@ body {
   transform: translateY(-6px) !important;
 }
 
-/* Specific Tab Transition Overrides for centered topbar-sync element */
-.topbar-sync.tab-enter {
-  opacity: 0;
-  transform: translate(-50%, calc(-50% + 6px));
-}
+/* Specific Tab Transition Overrides for centered topbar-sync element (Desktop Only) */
+@media (min-width: 992px) {
+  .topbar-sync.tab-enter {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 6px));
+  }
 
-.topbar-sync.tab-fade-in {
-  opacity: 1 !important;
-  transform: translate(-50%, -50%) !important;
-}
+  .topbar-sync.tab-fade-in {
+    opacity: 1 !important;
+    transform: translate(-50%, -50%) !important;
+  }
 
-.topbar-sync.tab-exit {
-  opacity: 0 !important;
-  transform: translate(-50%, calc(-50% - 6px)) !important;
+  .topbar-sync.tab-exit {
+    opacity: 0 !important;
+    transform: translate(-50%, calc(-50% - 6px)) !important;
+  }
 }
