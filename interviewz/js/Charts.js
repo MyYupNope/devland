@@ -238,7 +238,7 @@ export function initTopCompaniesChart(applications, tokens) {
     const hasActiveApp = applications.some(app => {
       if ((app['Company Name'] || '').trim() !== company) return false;
       const status = (app['Application Status'] || '').trim().toLowerCase();
-      return status !== 'retired' && status !== 'rejected';
+      return status !== 'rejected' && status !== 'withdrawn';
     });
     return hasActiveApp ? (tokens.primary + 'cc') : (tokens.textSecondary + 'cc');
   });
@@ -248,7 +248,7 @@ export function initTopCompaniesChart(applications, tokens) {
     const hasActiveApp = applications.some(app => {
       if ((app['Company Name'] || '').trim() !== company) return false;
       const status = (app['Application Status'] || '').trim().toLowerCase();
-      return status !== 'retired' && status !== 'rejected';
+      return status !== 'rejected' && status !== 'withdrawn';
     });
     return hasActiveApp ? tokens.primary : tokens.textSecondary;
   });

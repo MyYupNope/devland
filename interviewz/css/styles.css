@@ -1421,7 +1421,8 @@ body {
 }
 
 .status-badge.interviews,
-.status-badge.interview {
+.status-badge.interview,
+.status-badge.interviewed {
   color: var(--color-status-interviews);
   background: var(--bg-status-interviews);
 }
@@ -1444,7 +1445,8 @@ body {
 }
 
 .status-badge.offer,
-.status-badge.offers {
+.status-badge.offers,
+.status-badge.offered {
   color: var(--color-status-offer);
   background: var(--bg-status-offer);
 }
@@ -1454,7 +1456,8 @@ body {
   background: var(--bg-status-in-review);
 }
 
-.status-badge.withdraw {
+.status-badge.withdraw,
+.status-badge.withdrawn {
   color: var(--color-status-withdraw);
   background: var(--bg-status-withdraw);
 }
@@ -2127,7 +2130,8 @@ body {
   border-color: var(--color-status-applied) !important;
 }
 
-.status-matrix-grid select.form-select.status-interviews {
+.status-matrix-grid select.form-select.status-interviews,
+.status-matrix-grid select.form-select.status-interviewed {
   background-color: var(--bg-status-interviews) !important;
   color: var(--color-status-interviews) !important;
   border-color: var(--color-status-interviews) !important;
@@ -2139,7 +2143,8 @@ body {
   border-color: var(--color-status-accepted) !important;
 }
 
-.status-matrix-grid select.form-select.status-offer {
+.status-matrix-grid select.form-select.status-offer,
+.status-matrix-grid select.form-select.status-offered {
   background-color: var(--bg-status-offer) !important;
   color: var(--color-status-offer) !important;
   border-color: var(--color-status-offer) !important;
@@ -2151,7 +2156,8 @@ body {
   border-color: var(--color-status-rejected) !important;
 }
 
-.status-matrix-grid select.form-select.status-withdraw {
+.status-matrix-grid select.form-select.status-withdraw,
+.status-matrix-grid select.form-select.status-withdrawn {
   background-color: var(--bg-status-withdraw) !important;
   color: var(--color-status-withdraw) !important;
   border-color: var(--color-status-withdraw) !important;

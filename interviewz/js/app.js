@@ -632,7 +632,7 @@ function parseAndInitializeData(csvText) {
 
   state.activeApplications = state.rawApplications.filter(app => {
     const status = (app['Application Status'] || '').trim().toLowerCase();
-    return status !== 'retired' && status !== 'rejected';
+    return status !== 'rejected' && status !== 'withdrawn';
   });
 
   updateFiltersUI();
@@ -679,7 +679,7 @@ function calculateStatistics() {
     if (job) uniqueJobs.add(job);
 
     const status = (app['Application Status'] || '').trim().toLowerCase();
-    const isActive = status !== '' && status !== 'ready' && status !== 'applied' && status !== 'rejected' && status !== 'withdraw' && status !== 'withdrawn';
+    const isActive = status !== '' && status !== 'ready' && status !== 'applied' && status !== 'rejected' && status !== 'withdrawn';
     if (isActive) {
       activeAppsCount++;
     }
@@ -687,7 +687,7 @@ function calculateStatistics() {
     if (status.includes('interview')) {
       interviewCount++;
       conversionCount++;
-    } else if (status === 'offer' || status === 'ready' || status === 'accepted') {
+    } else if (status === 'offered' || status === 'ready' || status === 'accepted') {
       conversionCount++;
     } else if (status === 'rejected') {
       rejectedCount++;
@@ -1037,7 +1037,7 @@ function selectTab(tabId) {
 
 function updateSelectColorClass(select) {
   if (!select) return;
-  select.classList.remove('status-ready', 'status-applied', 'status-interviews', 'status-accepted', 'status-offer', 'status-rejected', 'status-withdraw');
+  select.classList.remove('status-ready', 'status-applied', 'status-interviewed', 'status-accepted', 'status-offered', 'status-rejected', 'status-withdrawn');
   const statusClass = select.value.toLowerCase().replace(/\s+/g, '-');
   select.classList.add(`status-${statusClass}`);
 }
@@ -1496,7 +1496,7 @@ function renderActiveInterviewsPanel(applications) {
   
   const activeApps = applications.filter(app => {
     const status = (app['Application Status'] || '').trim().toLowerCase();
-    const isActive = status !== '' && status !== 'ready' && status !== 'rejected' && status !== 'withdraw' && status !== 'withdrawn' && status !== 'applied';
+    const isActive = status !== '' && status !== 'ready' && status !== 'rejected' && status !== 'withdrawn' && status !== 'applied';
     
     const matchCompany = !state.selectedCompany || (app['Company Name'] || '').trim() === state.selectedCompany;
     const matchJob = !state.selectedJobTitle || (app['Job Title'] || '').trim() === state.selectedJobTitle;
