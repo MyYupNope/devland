@@ -1386,18 +1386,22 @@ function initTabNavigation() {
       hideEl(dom.analyticsSection);
       hideEl(dom.newApplicationSection);
       // Lazy-load resume.css if not already loaded
+      const initResumeTab = () => {
+        showEl(dom.resumeSection);
+        if (window._resumeApp && window._resumeApp.onTabActivated) {
+          window._resumeApp.onTabActivated();
+        }
+      };
+
       if (!document.getElementById('lazy-resume-css')) {
         const link = document.createElement('link');
         link.id = 'lazy-resume-css';
         link.rel = 'stylesheet';
         link.href = 'css/resume.css?v=16';
+        link.onload = initResumeTab;
         document.head.appendChild(link);
-      }
-      showEl(dom.resumeSection);
-
-      // Trigger Resume animations
-      if (window._resumeApp && window._resumeApp.onTabActivated) {
-        window._resumeApp.onTabActivated();
+      } else {
+        initResumeTab();
       }
     }
   }

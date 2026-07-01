@@ -100,10 +100,13 @@ export class ResumeApp {
   _createParticles(canvas) {
     const particles = [];
     const particleCount = window.innerWidth < 768 ? 50 : 110;
+    const dpr = window.devicePixelRatio || 1;
+    const width = canvas.width / dpr;
+    const height = canvas.height / dpr;
     for (let i = 0; i < particleCount; i++) {
       particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
+        x: Math.random() * width,
+        y: Math.random() * height,
         vx: (Math.random() - 0.5) * 0.4,
         vy: (Math.random() - 0.5) * 0.4,
         radius: Math.random() * 2 + 1
@@ -117,13 +120,20 @@ export class ResumeApp {
       clearTimeout(this._resizeTimeout);
     }
     const doResize = () => {
+      const dpr = window.devicePixelRatio || 1;
       if (this.canvas) {
-        this.canvas.width = this.canvas.parentElement.clientWidth;
-        this.canvas.height = this.canvas.parentElement.clientHeight;
+        const parent = this.canvas.parentElement;
+        this.canvas.width = parent.clientWidth * dpr;
+        this.canvas.height = parent.clientHeight * dpr;
+        this.ctx.resetTransform();
+        this.ctx.scale(dpr, dpr);
       }
       if (this.bottomCanvas) {
-        this.bottomCanvas.width = this.bottomCanvas.parentElement.clientWidth;
-        this.bottomCanvas.height = this.bottomCanvas.parentElement.clientHeight;
+        const parent = this.bottomCanvas.parentElement;
+        this.bottomCanvas.width = parent.clientWidth * dpr;
+        this.bottomCanvas.height = parent.clientHeight * dpr;
+        this.bottomCtx.resetTransform();
+        this.bottomCtx.scale(dpr, dpr);
       }
     };
     if (immediate) {
@@ -181,7 +191,10 @@ export class ResumeApp {
   }
 
   _updateAndDrawCanvas(canvas, ctx, particles) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const dpr = window.devicePixelRatio || 1;
+    const width = canvas.width / dpr;
+    const height = canvas.height / dpr;
+    ctx.clearRect(0, 0, width, height);
     
     const themeClass = document.documentElement.className;
     if (this._lastThemeClass !== themeClass || !this._cachedColor) {
@@ -196,8 +209,8 @@ export class ResumeApp {
       p.y += p.vy;
       
       // Boundaries bounce
-      if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-      if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+      if (p.x < 0 || p.x > width) p.vx *= -1;
+      if (p.y < 0 || p.y > height) p.vy *= -1;
       
       // Draw particle dot
       ctx.beginPath();
