@@ -1462,13 +1462,7 @@ async function submitJobInterviewForm(submitterId) {
   const msg = submitterId === 'btnSubmitOverviewUpdates' ? 'Submitting updates... Please wait for feedback.' : 'Submitting your notes... Please wait for feedback.';
   showToast(msg, 'info');
 
-  const formData = new FormData(form);
-  if (formData.has('drawerInterviewNotes')) {
-    formData.append('inputInterviewNotes', formData.get('drawerInterviewNotes'));
-    formData.delete('drawerInterviewNotes');
-  }
-
-  await postForm(NOTES_API_ENDPOINT, formData, {
+  await postForm(NOTES_API_ENDPOINT, new FormData(form), {
     setLoading: (v) => setInterviewLoadingState(v),
     onSuccess: () => {
       form.classList.remove('was-validated');
