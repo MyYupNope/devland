@@ -24,5 +24,11 @@ export function showToast(message, type = 'success') {
   setTimeout(() => {
     toast.classList.remove('show');
     toast.addEventListener('transitionend', () => toast.remove());
+    // Fallback if transitionend is not supported or doesn't fire
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.remove();
+      }
+    }, 400);
   }, 4000);
 }

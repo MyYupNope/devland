@@ -41,6 +41,21 @@ export class FacetedSelect {
         this.resetFocus();
       }
     });
+
+    // Event delegation for option click
+    this.optionsList.addEventListener('click', (e) => {
+      const li = e.target.closest('.option');
+      if (!li || li.classList.contains('no-match')) return;
+      
+      const isDefault = li.getAttribute('data-default') === 'true';
+      const val = isDefault ? null : li.getAttribute('data-value');
+      
+      const triggerText = this.trigger.querySelector('.trigger-text');
+      if (triggerText) triggerText.textContent = isDefault ? this.defaultText : val;
+      
+      this.close();
+      if (this.onSelectCallback) this.onSelectCallback(val);
+    });
     
     // Filter dropdown elements on user input (debounced by 150ms to prevent performance thrashing)
     let debounceTimer;
@@ -166,6 +181,7 @@ export class FacetedSelect {
   }
   
   populate(items, selectedValue, onSelectCallback) {
+    this.onSelectCallback = onSelectCallback;
     this.optionsList.innerHTML = '';
     
     // Default option
@@ -173,12 +189,8 @@ export class FacetedSelect {
     allLi.className = `option ${selectedValue === null ? 'selected' : ''}`;
     allLi.setAttribute('role', 'option');
     allLi.setAttribute('aria-selected', selectedValue === null ? 'true' : 'false');
+    allLi.setAttribute('data-default', 'true');
     allLi.textContent = this.defaultText;
-    allLi.addEventListener('click', () => {
-      this.trigger.querySelector('.trigger-text').textContent = this.defaultText;
-      this.close();
-      onSelectCallback(null);
-    });
     this.optionsList.appendChild(allLi);
     
     items.forEach(item => {
@@ -186,12 +198,8 @@ export class FacetedSelect {
       li.className = `option ${selectedValue === item ? 'selected' : ''}`;
       li.setAttribute('role', 'option');
       li.setAttribute('aria-selected', selectedValue === item ? 'true' : 'false');
+      li.setAttribute('data-value', item);
       li.textContent = item;
-      li.addEventListener('click', () => {
-        this.trigger.querySelector('.trigger-text').textContent = item;
-        this.close();
-        onSelectCallback(item);
-      });
       this.optionsList.appendChild(li);
     });
     

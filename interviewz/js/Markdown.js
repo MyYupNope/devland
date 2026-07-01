@@ -3,8 +3,14 @@ import { escapeHtml } from './Utils.js';
 /**
  * Simple Markdown-to-HTML parser that supports headers, bold, italics, lists, and tables.
  */
+const markdownCache = new Map();
+
 export function parseMarkdown(text) {
   if (!text) return '';
+  
+  if (markdownCache.has(text)) {
+    return markdownCache.get(text);
+  }
   
   // Escape HTML first to prevent XSS
   let html = escapeHtml(text);
@@ -123,5 +129,7 @@ export function parseMarkdown(text) {
     result.push('</ul>');
   }
   
-  return result.join('\n');
+  const parsedHtml = result.join('\n');
+  markdownCache.set(text, parsedHtml);
+  return parsedHtml;
 }

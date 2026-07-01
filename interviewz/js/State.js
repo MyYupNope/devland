@@ -12,5 +12,6 @@ export const state = {
   currentPage: 1,
   rowsPerPage: 5,
   currentApp: null,
-  currentSortVal: 'date-desc'
+  currentSortVal: 'date-desc',
+  dataVersion: 0
 };

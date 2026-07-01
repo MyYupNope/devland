@@ -103,6 +103,19 @@ function initDomCache() {
   dom.btnPrevPage = document.getElementById('btnPrevPage');
   dom.btnNextPage = document.getElementById('btnNextPage');
   dom.rowsPerPageSelect = document.getElementById('rowsPerPageSelect');
+
+  dom.tabSuitability = document.getElementById('tabSuitability');
+  dom.scoreCircleFill = document.getElementById('scoreCircleFill');
+  dom.suitabilityScoreCircle = document.getElementById('suitabilityScoreCircle');
+  dom.tabInterview = document.getElementById('tabInterview');
+  dom.btnCopyInterviewCompany = document.getElementById('btnCopyInterviewCompany');
+  dom.btnCopyInterviewPreparation = document.getElementById('btnCopyInterviewPreparation');
+  dom.drawerInterviewNotes = document.getElementById('drawerInterviewNotes');
+  dom.jobInterviewForm = document.getElementById('jobinterview');
+  dom.btnSubmitInterviewNotes = document.getElementById('btnSubmitInterviewNotes');
+  dom.btnResetInterviewNotes = document.getElementById('btnResetInterviewNotes');
+  dom.btnSubmitOverviewUpdates = document.getElementById('btnSubmitOverviewUpdates');
+  dom.themeToggleBtn = document.getElementById('themeToggleBtn');
 }
 
 // Global drop-down components
@@ -185,10 +198,8 @@ function setupEventListeners() {
   }
 
   // Theme Toggle Button
-  const btnThemeToggle = document.getElementById('themeToggleBtn');
-
-  if (btnThemeToggle) {
-    btnThemeToggle.addEventListener('click', () => {
+  if (dom.themeToggleBtn) {
+    dom.themeToggleBtn.addEventListener('click', () => {
       const isDark = document.documentElement.classList.contains('theme-dark');
       if (isDark) {
         document.documentElement.classList.remove('theme-dark');
@@ -204,9 +215,8 @@ function setupEventListeners() {
 
 
   // Refresh Button (Forces a manual reload and re-parse of the data)
-  const btnHeaderRefresh = document.getElementById('btnHeaderRefresh');
-  if (btnHeaderRefresh) {
-    btnHeaderRefresh.addEventListener('click', () => {
+  if (dom.refreshBtn) {
+    dom.refreshBtn.addEventListener('click', () => {
       fetchData(false, true);
     });
   }
@@ -223,10 +233,9 @@ function setupEventListeners() {
   }
 
   // Reset Button Interview Notes
-  const btnResetInterviewNotes = document.getElementById('btnResetInterviewNotes');
-  if (btnResetInterviewNotes) {
-    btnResetInterviewNotes.addEventListener('click', () => {
-      const inp = document.getElementById('drawerInterviewNotes');
+  if (dom.btnResetInterviewNotes) {
+    dom.btnResetInterviewNotes.addEventListener('click', () => {
+      const inp = dom.drawerInterviewNotes;
       if (inp) {
         inp.value = '';
         showToast('Interview notes reset', 'info');
@@ -235,7 +244,7 @@ function setupEventListeners() {
   }
 
   // Submit notes event listener
-  const formJobInterview = document.getElementById('jobinterview');
+  const formJobInterview = dom.jobInterviewForm;
   if (formJobInterview) {
     formJobInterview.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -614,9 +623,10 @@ function parseAndInitializeData(csvText) {
 
     const app = {};
     headers.forEach((header, index) => {
-      app[header] = row[index] !== undefined ? row[index] : '';
+      app[header] = row[index] !== undefined ? row[index].trim() : '';
     });
     app.originalIndex = i;
+    app._parsedDate = parseDate(app['Create Date']);
     state.rawApplications.push(app);
   }
 
@@ -631,10 +641,11 @@ function parseAndInitializeData(csvText) {
   });
 
   state.activeApplications = state.rawApplications.filter(app => {
-    const status = (app['Application Status'] || '').trim().toLowerCase();
+    const status = app['Application Status'].toLowerCase();
     return status !== 'rejected' && status !== 'withdrawn';
   });
 
+  state.dataVersion++;
   updateFiltersUI();
   applyFilters(true);
   calculateStatistics();
@@ -844,9 +855,9 @@ function applyFilters(resetPage = true) {
   dom.btnResetFilters.disabled = !state.selectedCompany && !state.selectedJobTitle && !state.selectedStatus;
 
   state.filteredApplications = state.activeApplications.filter(app => {
-    const matchCompany = !state.selectedCompany || (app['Company Name'] || '').trim() === state.selectedCompany;
-    const matchJob = !state.selectedJobTitle || (app['Job Title'] || '').trim() === state.selectedJobTitle;
-    const matchStatus = !state.selectedStatus || (app['Application Status'] || '').trim() === state.selectedStatus;
+    const matchCompany = !state.selectedCompany || app['Company Name'] === state.selectedCompany;
+    const matchJob = !state.selectedJobTitle || app['Job Title'] === state.selectedJobTitle;
+    const matchStatus = !state.selectedStatus || app['Application Status'] === state.selectedStatus;
     return matchCompany && matchJob && matchStatus;
   });
 
@@ -855,8 +866,8 @@ function applyFilters(resetPage = true) {
     let comparison = 0;
     
     if (sortVal.startsWith('date')) {
-      const dateA = parseDate(a['Create Date']);
-      const dateB = parseDate(b['Create Date']);
+      const dateA = a._parsedDate;
+      const dateB = b._parsedDate;
       comparison = dateA - dateB;
       if (sortVal === 'date-desc') {
         comparison = dateB - dateA;
@@ -1115,37 +1126,33 @@ function openDetailsDrawer(app) {
   
   const score = (app['Job_Suitability'] || '').trim();
   const evaluation = (app['Job_Suitability_Evaluation'] || '').trim();
-  const tabSuitability = document.getElementById('tabSuitability');
   
   const hasSuitability = !!(score || evaluation);
   if (hasSuitability) {
-    if (tabSuitability) {
-      tabSuitability.classList.remove('disabled');
-      tabSuitability.removeAttribute('disabled');
+    if (dom.tabSuitability) {
+      dom.tabSuitability.classList.remove('disabled');
+      dom.tabSuitability.removeAttribute('disabled');
     }
-    
-    const fillElement = document.getElementById('scoreCircleFill');
-    const circleContainer = document.getElementById('suitabilityScoreCircle');
     
     if (score) {
       dom.drawerSuitabilityScore.textContent = score;
       const scoreNum = parseInt(score, 10);
       const scoreClass = !isNaN(scoreNum) && scoreNum >= 1 && scoreNum <= 5 ? `score-${scoreNum}` : '';
       
-      if (circleContainer) {
-        circleContainer.className = `suitability-score-circle ${scoreClass}`;
+      if (dom.suitabilityScoreCircle) {
+        dom.suitabilityScoreCircle.className = `suitability-score-circle ${scoreClass}`;
       }
       
-      if (fillElement) {
+      if (dom.scoreCircleFill) {
         const scorePercent = !isNaN(scoreNum) && scoreNum >= 1 && scoreNum <= 5 ? scoreNum / 5 : 0;
-        fillElement.style.strokeDashoffset = 251.2 * (1 - scorePercent);
+        dom.scoreCircleFill.style.strokeDashoffset = 251.2 * (1 - scorePercent);
       }
       
       dom.drawerSuitabilityScoreContainer.style.display = '';
     } else {
       dom.drawerSuitabilityScoreContainer.style.display = 'none';
-      if (fillElement) fillElement.style.strokeDashoffset = 251.2;
-      if (circleContainer) circleContainer.className = 'suitability-score-circle';
+      if (dom.scoreCircleFill) dom.scoreCircleFill.style.strokeDashoffset = 251.2;
+      if (dom.suitabilityScoreCircle) dom.suitabilityScoreCircle.className = 'suitability-score-circle';
     }
 
     if (evaluation) {
@@ -1155,9 +1162,9 @@ function openDetailsDrawer(app) {
       dom.sectionSuitabilityEval.classList.add('hidden');
     }
   } else {
-    if (tabSuitability) {
-      tabSuitability.classList.add('disabled');
-      tabSuitability.setAttribute('disabled', 'true');
+    if (dom.tabSuitability) {
+      dom.tabSuitability.classList.add('disabled');
+      dom.tabSuitability.setAttribute('disabled', 'true');
     }
   }
 
@@ -1199,32 +1206,27 @@ function openDetailsDrawer(app) {
 
   const interviewCompany = (app['Interview_Company'] || '').trim();
   const interviewPrep = (app['Interview_Preparation'] || '').trim();
-  const tabInterview = document.getElementById('tabInterview');
 
   const hasInterview = !!(interviewCompany || interviewPrep);
   if (hasInterview) {
-    if (tabInterview) {
-      tabInterview.classList.remove('disabled');
-      tabInterview.removeAttribute('disabled');
+    if (dom.tabInterview) {
+      dom.tabInterview.classList.remove('disabled');
+      dom.tabInterview.removeAttribute('disabled');
     }
 
-    const btnCopyCompany = document.getElementById('btnCopyInterviewCompany');
-    const btnCopyPrep = document.getElementById('btnCopyInterviewPreparation');
-
     dom.drawerInterviewCompany.innerHTML = interviewCompany ? parseMarkdown(interviewCompany) : '-';
-    if (btnCopyCompany) btnCopyCompany.style.display = interviewCompany ? '' : 'none';
+    if (dom.btnCopyInterviewCompany) dom.btnCopyInterviewCompany.style.display = interviewCompany ? '' : 'none';
 
     dom.drawerInterviewPreparation.innerHTML = interviewPrep ? parseMarkdown(interviewPrep) : '-';
-    if (btnCopyPrep) btnCopyPrep.style.display = interviewPrep ? '' : 'none';
+    if (dom.btnCopyInterviewPreparation) dom.btnCopyInterviewPreparation.style.display = interviewPrep ? '' : 'none';
 
-    const notesEl = document.getElementById('drawerInterviewNotes');
-    if (notesEl) notesEl.value = (app['Interview_Notes'] || '').trim();
+    if (dom.drawerInterviewNotes) dom.drawerInterviewNotes.value = (app['Interview_Notes'] || '').trim();
 
     setInterviewLoadingState(false);
   } else {
-    if (tabInterview) {
-      tabInterview.classList.add('disabled');
-      tabInterview.setAttribute('disabled', 'true');
+    if (dom.tabInterview) {
+      dom.tabInterview.classList.add('disabled');
+      dom.tabInterview.setAttribute('disabled', 'true');
     }
   }
 
@@ -1428,16 +1430,15 @@ function initTabNavigation() {
 let isInterviewSubmitting = false;
 
 function setInterviewLoadingState(isLoading) {
-  const form = document.getElementById('jobinterview');
-  if (form) {
-    form.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+  if (dom.jobInterviewForm) {
+    dom.jobInterviewForm.setAttribute('aria-busy', isLoading ? 'true' : 'false');
   }
 
   const elements = [
-    document.getElementById('btnSubmitInterviewNotes'),
-    document.getElementById('btnResetInterviewNotes'),
-    document.getElementById('drawerInterviewNotes'),
-    document.getElementById('btnSubmitOverviewUpdates'),
+    dom.btnSubmitInterviewNotes,
+    dom.btnResetInterviewNotes,
+    dom.drawerInterviewNotes,
+    dom.btnSubmitOverviewUpdates,
     dom.drawerStatusSelect,
     dom.drawerCommentsTextarea
   ];
@@ -1447,7 +1448,7 @@ function setInterviewLoadingState(isLoading) {
 }
 
 async function submitJobInterviewForm(submitterId) {
-  const form = document.getElementById('jobinterview');
+  const form = dom.jobInterviewForm;
   if (!form) return;
 
   if (isInterviewSubmitting) return;
@@ -1540,7 +1541,7 @@ function renderActiveInterviewsPanel(applications) {
   }
 
   // Create hash/signature of data to prevent redundant DOM painting
-  const currentRenderHash = activeApps.map(a => `${a['Company Name']}-${a['Job Title']}-${a['Application Status']}`).join('|');
+  const currentRenderHash = `${state.dataVersion}-${state.selectedCompany || ''}-${state.selectedJobTitle || ''}-${state.selectedStatus || ''}`;
   if (dom.activeInterviewsGrid.getAttribute('data-render-hash') === currentRenderHash) {
     return; // Skip re-rendering if data is identical
   }

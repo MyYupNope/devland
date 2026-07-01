@@ -221,7 +221,7 @@ body {
    App Layout
    ========================================================================== */
 .app-container {
-  padding: 1.5rem 1.5rem 0.5rem 1.5rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -890,7 +890,7 @@ body {
   justify-content: center;
   gap: 0.5rem;
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: background-color var(--transition-base), color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base);
 }
 
 .btn-reset svg {
@@ -950,7 +950,7 @@ body {
   align-items: center;
   cursor: pointer;
   outline: none;
-  transition: all var(--transition-base);
+  transition: background-color var(--transition-base), border-color var(--transition-base), box-shadow var(--transition-base);
 }
 
 .select-trigger:hover {
@@ -1346,7 +1346,7 @@ body {
   color: var(--color-text-primary);
   cursor: pointer;
   outline: none;
-  transition: all var(--transition-base);
+  transition: border-color var(--transition-base);
 }
 
 .rows-per-page select:hover {
@@ -1780,7 +1780,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base);
   outline: none;
 }
 
@@ -2069,7 +2069,7 @@ body {
   padding: 0.5rem 2rem 0.5rem 0.75rem;
   width: 100%;
   font-weight: 500;
-  transition: all var(--transition-base);
+  transition: border-color var(--transition-base), background-color var(--transition-base), color var(--transition-base), box-shadow var(--transition-base);
 }
 
 .status-matrix-grid input.form-control {
@@ -2081,7 +2081,7 @@ body {
   padding: 0.5rem 0.75rem;
   width: 100%;
   font-weight: 500;
-  transition: all var(--transition-base);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base), background-color var(--transition-base), color var(--transition-base);
 }
 
 .status-matrix-grid input.form-control:focus {
@@ -2103,7 +2103,7 @@ body {
   justify-content: center;
   color: var(--color-text-secondary);
   opacity: 0.8;
-  transition: all var(--transition-base);
+  transition: opacity var(--transition-base), color var(--transition-base), background-color var(--transition-base), transform var(--transition-base);
   text-decoration: none;
   flex-shrink: 0;
   width: 38px;
@@ -2175,7 +2175,7 @@ body {
   border-radius: var(--radius-md);
   color: var(--color-status-interviews);
   background-color: var(--bg-status-interviews);
-  transition: all var(--transition-base);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
   font-weight: 500;
 }
 
@@ -2325,7 +2325,7 @@ body {
   background: transparent;
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: background-color var(--transition-base), color var(--transition-base);
 }
 
 .btn-action-icon:hover {
@@ -2513,7 +2513,7 @@ body {
   font-weight: 500;
   padding: 0.35rem 0.85rem;
   border-radius: 100px;
-  transition: all var(--transition-base);
+  transition: background-color var(--transition-base), color var(--transition-base);
 }
 
 .inline-link-btn:hover {
@@ -2718,7 +2718,7 @@ body {
   color: var(--color-text-secondary);
   border-radius: 6px;
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: color var(--transition-base), background-color var(--transition-base), box-shadow var(--transition-base);
 }
 
 .btn-toggle:hover {
@@ -2885,7 +2885,7 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all var(--transition-base);
+  transition: background-color var(--transition-base), color var(--transition-base), border-color var(--transition-base);
   outline: none;
   padding: 0;
 }
@@ -2989,7 +2989,7 @@ body {
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   padding: 1rem 1.25rem;
-  transition: all var(--transition-base);
+  transition: background-color var(--transition-base), border-color var(--transition-base), box-shadow var(--transition-base);
 }
 
 .new-application-section form .form-control:hover {
@@ -3085,7 +3085,7 @@ body {
   border-radius: 100px;
   padding: 0.8rem 2.5rem;
   font-weight: 500;
-  transition: all var(--transition-base);
+  transition: background-color var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .new-application-section form .btn-primary:hover {
@@ -3192,6 +3192,8 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1.5rem;
+  padding: 0.5rem;
+  margin: -0.5rem;
 }
 
 @media (min-width: 1200px) {

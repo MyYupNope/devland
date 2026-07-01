@@ -113,14 +113,19 @@ export class ResumeApp {
   }
 
   _onResize() {
-    if (this.canvas) {
-      this.canvas.width = this.canvas.parentElement.clientWidth;
-      this.canvas.height = this.canvas.parentElement.clientHeight;
+    if (this._resizeTimeout) {
+      clearTimeout(this._resizeTimeout);
     }
-    if (this.bottomCanvas) {
-      this.bottomCanvas.width = this.bottomCanvas.parentElement.clientWidth;
-      this.bottomCanvas.height = this.bottomCanvas.parentElement.clientHeight;
-    }
+    this._resizeTimeout = setTimeout(() => {
+      if (this.canvas) {
+        this.canvas.width = this.canvas.parentElement.clientWidth;
+        this.canvas.height = this.canvas.parentElement.clientHeight;
+      }
+      if (this.bottomCanvas) {
+        this.bottomCanvas.width = this.bottomCanvas.parentElement.clientWidth;
+        this.bottomCanvas.height = this.bottomCanvas.parentElement.clientHeight;
+      }
+    }, 150);
   }
 
   _getColorRgb(cssVar) {
@@ -173,8 +178,12 @@ export class ResumeApp {
   _updateAndDrawCanvas(canvas, ctx, particles) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    const maxDistance = 140;
-    const color = this._getColorRgb('--rm-canvas-accent');
+    const themeClass = document.documentElement.className;
+    if (this._lastThemeClass !== themeClass || !this._cachedColor) {
+      this._lastThemeClass = themeClass;
+      this._cachedColor = this._getColorRgb('--rm-canvas-accent');
+    }
+    const color = this._cachedColor;
     
     // Update and draw particles
     particles.forEach(p => {
@@ -193,6 +202,9 @@ export class ResumeApp {
     });
     
     // Draw lines between nearby particles
+    const maxDistance = 140;
+    const maxDistanceSq = maxDistance * maxDistance;
+    
     for (let i = 0; i < particles.length; i++) {
       for (let j = i + 1; j < particles.length; j++) {
         const p1 = particles[i];
@@ -200,9 +212,10 @@ export class ResumeApp {
         
         const dx = p1.x - p2.x;
         const dy = p1.y - p2.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+        const distSq = dx * dx + dy * dy;
         
-        if (dist < maxDistance) {
+        if (distSq < maxDistanceSq) {
+          const dist = Math.sqrt(distSq);
           const alpha = (1 - dist / maxDistance) * 0.18;
           ctx.beginPath();
           ctx.moveTo(p1.x, p1.y);

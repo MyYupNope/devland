@@ -1,4 +1,5 @@
 import { parseDate } from './Utils.js';
+import { state } from './State.js';
 
 let cumulativeSubmissionsChartInstance = null;
 let statusSplitChartInstance = null;
@@ -239,9 +240,16 @@ export function initTopCompaniesChart(applications, tokens) {
   const ctx = canvasEl.getContext('2d');
   
   const companyCounts = {};
+  const activeCompanies = new Set();
   applications.forEach(app => {
-    const company = (app['Company Name'] || '').trim();
-    if (company) companyCounts[company] = (companyCounts[company] || 0) + 1;
+    const company = app['Company Name'];
+    if (company) {
+      companyCounts[company] = (companyCounts[company] || 0) + 1;
+    }
+    const status = app['Application Status'].toLowerCase();
+    if (status !== 'rejected' && status !== 'withdrawn') {
+      activeCompanies.add(company);
+    }
   });
   
   const sortedCompanies = Object.entries(companyCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
@@ -249,22 +257,12 @@ export function initTopCompaniesChart(applications, tokens) {
   const data = sortedCompanies.map(item => item[1]);
   
   const backgroundColors = sortedCompanies.map(item => {
-    const company = item[0];
-    const hasActiveApp = applications.some(app => {
-      if ((app['Company Name'] || '').trim() !== company) return false;
-      const status = (app['Application Status'] || '').trim().toLowerCase();
-      return status !== 'rejected' && status !== 'withdrawn';
-    });
+    const hasActiveApp = activeCompanies.has(item[0]);
     return hasActiveApp ? (tokens.primary + 'cc') : (tokens.textSecondary + 'cc');
   });
 
   const hoverBackgroundColors = sortedCompanies.map(item => {
-    const company = item[0];
-    const hasActiveApp = applications.some(app => {
-      if ((app['Company Name'] || '').trim() !== company) return false;
-      const status = (app['Application Status'] || '').trim().toLowerCase();
-      return status !== 'rejected' && status !== 'withdrawn';
-    });
+    const hasActiveApp = activeCompanies.has(item[0]);
     return hasActiveApp ? tokens.primary : tokens.textSecondary;
   });
 
@@ -302,7 +300,7 @@ export function renderAllDashboardWidgets(applications, force = false) {
   if (applications.length === 0) return;
 
   const isDark = document.documentElement.classList.contains('theme-dark');
-  const currentRenderHash = `theme:${isDark}-len:${applications.length}-` + applications.map(a => `${a['Company Name'] || ''}-${a['Job Title'] || ''}-${a['Application Status'] || ''}`).join('|');
+  const currentRenderHash = `theme:${isDark}-v:${state.dataVersion}-len:${applications.length}`;
   if (!force && lastRenderHash === currentRenderHash) {
     return;
   }
