@@ -80,7 +80,7 @@ export class ResumeApp {
      HERO BACKGROUND: CANVAS PARTICLE NETWORK
      -------------------------------------------------------------------------- */
   _initHeroCanvas() {
-    this._onResize();
+    this._onResize(true);
     
     // Hero Canvas
     if (this.canvas) {
@@ -112,11 +112,11 @@ export class ResumeApp {
     return particles;
   }
 
-  _onResize() {
+  _onResize(immediate = false) {
     if (this._resizeTimeout) {
       clearTimeout(this._resizeTimeout);
     }
-    this._resizeTimeout = setTimeout(() => {
+    const doResize = () => {
       if (this.canvas) {
         this.canvas.width = this.canvas.parentElement.clientWidth;
         this.canvas.height = this.canvas.parentElement.clientHeight;
@@ -125,7 +125,12 @@ export class ResumeApp {
         this.bottomCanvas.width = this.bottomCanvas.parentElement.clientWidth;
         this.bottomCanvas.height = this.bottomCanvas.parentElement.clientHeight;
       }
-    }, 150);
+    };
+    if (immediate) {
+      doResize();
+    } else {
+      this._resizeTimeout = setTimeout(doResize, 150);
+    }
   }
 
   _getColorRgb(cssVar) {
