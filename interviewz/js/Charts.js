@@ -117,24 +117,47 @@ export function initStatusSplitChart(applications, tokens) {
   if (!canvasEl) return;
   const ctx = canvasEl.getContext('2d');
   
-  let rejected = 0, applied = 0, interviews = 0, other = 0;
+  const statusCounts = {};
   applications.forEach(app => {
-    const status = (app['Application Status'] || '').trim().toLowerCase();
-    if (status === 'rejected') rejected++;
-    else if (status.includes('interview')) interviews++;
-    else if (status === 'applied') applied++;
-    else if (status) other++;
+    const status = (app['Application Status'] || '').trim();
+    if (!status) return;
+    
+    const lower = status.toLowerCase();
+    let normalized = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+    if (lower.includes('interview')) {
+      normalized = 'Interviewed';
+    } else if (lower === 'applied') {
+      normalized = 'Applied';
+    } else if (lower === 'rejected') {
+      normalized = 'Rejected';
+    }
+    
+    statusCounts[normalized] = (statusCounts[normalized] || 0) + 1;
   });
-  
-  const data = [rejected, applied, interviews];
-  const labels = ['Rejected', 'Applied (Pending)', 'Interviews'];
-  const colors = [tokens.error, tokens.primary, tokens.warning];
-  
-  if (other > 0) {
-    data.push(other);
-    labels.push('Other');
-    colors.push('#70757a');
-  }
+
+  const statusColors = {
+    'Ready': '#70757a',
+    'Applied': tokens.primary,
+    'Interviewed': tokens.warning,
+    'Offered': '#12b5cb',
+    'Accepted': '#1e8e3e',
+    'Withdrawn': '#9aa0a6',
+    'Rejected': tokens.error
+  };
+
+  const statusOrder = ['Ready', 'Applied', 'Interviewed', 'Offered', 'Accepted', 'Withdrawn', 'Rejected'];
+  const activeStatuses = Object.keys(statusCounts).sort((a, b) => {
+    const idxA = statusOrder.indexOf(a);
+    const idxB = statusOrder.indexOf(b);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
+    return a.localeCompare(b);
+  });
+
+  const data = activeStatuses.map(status => statusCounts[status]);
+  const labels = activeStatuses;
+  const colors = activeStatuses.map(status => statusColors[status] || '#70757a');
 
   if (statusSplitChartInstance) {
     statusSplitChartInstance.data.labels = labels;
