@@ -145,15 +145,7 @@ export function initStatusSplitChart(applications, tokens) {
     'Rejected': tokens.error
   };
 
-  const statusOrder = ['Ready', 'Applied', 'Interviewed', 'Offered', 'Accepted', 'Withdrawn', 'Rejected'];
-  const activeStatuses = Object.keys(statusCounts).sort((a, b) => {
-    const idxA = statusOrder.indexOf(a);
-    const idxB = statusOrder.indexOf(b);
-    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-    if (idxA !== -1) return -1;
-    if (idxB !== -1) return 1;
-    return a.localeCompare(b);
-  });
+  const activeStatuses = Object.keys(statusCounts).sort((a, b) => a.localeCompare(b));
 
   const data = activeStatuses.map(status => statusCounts[status]);
   const labels = activeStatuses;
