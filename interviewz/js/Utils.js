@@ -64,8 +64,17 @@ export async function postForm(url, formData, { setLoading, onSuccess, onError }
       const errText = await response.text();
       throw new Error(`Server returned ${response.status}: ${errText}`);
     }
-    const result = await response.json();
-    if (result.ok === true) {
+    const text = await response.text();
+    let result = { ok: true };
+    if (text.trim()) {
+      try {
+        result = JSON.parse(text);
+      } catch (e) {
+        // If it's not valid JSON but the status is OK, we treat it as successful
+        result = { ok: true, message: text };
+      }
+    }
+    if (result.ok === true || result.success === true) {
       onSuccess(result);
     } else {
       throw new Error(result.message || 'The submission was not successful. Please try again.');
