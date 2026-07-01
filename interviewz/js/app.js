@@ -226,7 +226,7 @@ function setupEventListeners() {
   const btnResetInterviewNotes = document.getElementById('btnResetInterviewNotes');
   if (btnResetInterviewNotes) {
     btnResetInterviewNotes.addEventListener('click', () => {
-      const inp = document.getElementById('inputInterviewNotes');
+      const inp = document.getElementById('drawerInterviewNotes');
       if (inp) {
         inp.value = '';
         showToast('Interview notes reset', 'info');
@@ -756,14 +756,10 @@ function updateFiltersUI() {
         companyApps.map(app => (app['Job Title'] || '').trim()).filter(title => title !== '')
       )];
       
-      if (companyJobs.length === 1) {
-        state.selectedJobTitle = companyJobs[0];
-      } else {
-        if (state.selectedJobTitle) {
-          const isValid = companyJobs.includes(state.selectedJobTitle);
-          if (!isValid) {
-            state.selectedJobTitle = null;
-          }
+      if (state.selectedJobTitle) {
+        const isValid = companyJobs.includes(state.selectedJobTitle);
+        if (!isValid) {
+          state.selectedJobTitle = null;
         }
       }
     } else {
@@ -795,9 +791,27 @@ function updateFiltersUI() {
     state.selectedJobTitle = jobTitle;
 
     if (state.selectedJobTitle) {
-      const matchingApp = state.activeApplications.find(app => (app['Job Title'] || '').trim() === state.selectedJobTitle);
-      if (matchingApp) {
-        state.selectedCompany = (matchingApp['Company Name'] || '').trim();
+      const jobApps = state.activeApplications.filter(app => 
+        (app['Job Title'] || '').trim() === state.selectedJobTitle
+      );
+      const jobCompanies = [...new Set(
+        jobApps.map(app => (app['Company Name'] || '').trim()).filter(name => name !== '')
+      )];
+      
+      if (state.selectedCompany) {
+        const isValid = jobCompanies.includes(state.selectedCompany);
+        if (!isValid) {
+          state.selectedCompany = null;
+        }
+      }
+    } else {
+      if (state.selectedCompany) {
+        const isValid = state.activeApplications.some(app => 
+          (app['Company Name'] || '').trim() === state.selectedCompany
+        );
+        if (!isValid) {
+          state.selectedCompany = null;
+        }
       }
     }
 
@@ -1203,7 +1217,7 @@ function openDetailsDrawer(app) {
     dom.drawerInterviewPreparation.innerHTML = interviewPrep ? parseMarkdown(interviewPrep) : '-';
     if (btnCopyPrep) btnCopyPrep.style.display = interviewPrep ? '' : 'none';
 
-    const notesEl = document.getElementById('inputInterviewNotes');
+    const notesEl = document.getElementById('drawerInterviewNotes');
     if (notesEl) notesEl.value = (app['Interview_Notes'] || '').trim();
 
     setInterviewLoadingState(false);
@@ -1422,7 +1436,7 @@ function setInterviewLoadingState(isLoading) {
   const elements = [
     document.getElementById('btnSubmitInterviewNotes'),
     document.getElementById('btnResetInterviewNotes'),
-    document.getElementById('inputInterviewNotes'),
+    document.getElementById('drawerInterviewNotes'),
     document.getElementById('btnSubmitOverviewUpdates'),
     dom.drawerStatusSelect,
     dom.drawerCommentsTextarea
@@ -1470,7 +1484,7 @@ async function submitJobInterviewForm(submitterId) {
             state.currentApp['Hiring Team'] = dom.drawerHiringTeam.value.trim();
           }
         } else {
-          const notesEl = document.getElementById('inputInterviewNotes');
+          const notesEl = document.getElementById('drawerInterviewNotes');
           state.currentApp['Interview_Notes'] = notesEl ? notesEl.value.trim() : '';
         }
       }
