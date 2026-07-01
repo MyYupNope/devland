@@ -624,7 +624,14 @@ function parseAndInitializeData(csvText) {
 
     const app = {};
     headers.forEach((header, index) => {
-      app[header] = row[index] !== undefined ? row[index].trim() : '';
+      let val = row[index] !== undefined ? row[index].trim() : '';
+      if (header === 'Application Status') {
+        const lower = val.toLowerCase();
+        if (lower === 'interviews' || lower === 'interview') {
+          val = 'Interviewed';
+        }
+      }
+      app[header] = val;
     });
     app.originalIndex = i;
     app._parsedDate = parseDate(app['Create Date']);
