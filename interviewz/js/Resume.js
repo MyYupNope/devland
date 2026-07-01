@@ -80,17 +80,21 @@ export class ResumeApp {
      HERO BACKGROUND: CANVAS PARTICLE NETWORK
      -------------------------------------------------------------------------- */
   _initHeroCanvas() {
-    this._onResize(true);
-    
-    // Hero Canvas
+    // Get contexts first so they are defined when _onResize runs
     if (this.canvas) {
       this.ctx = this.canvas.getContext('2d');
-      this.particles = this._createParticles(this.canvas);
     }
-    
-    // Bottom Canvas
     if (this.bottomCanvas) {
       this.bottomCtx = this.bottomCanvas.getContext('2d');
+    }
+
+    this._onResize(true);
+    
+    // Create particles after sizing
+    if (this.canvas) {
+      this.particles = this._createParticles(this.canvas);
+    }
+    if (this.bottomCanvas) {
       this.bottomParticles = this._createParticles(this.bottomCanvas);
     }
     
@@ -125,15 +129,19 @@ export class ResumeApp {
         const parent = this.canvas.parentElement;
         this.canvas.width = parent.clientWidth * dpr;
         this.canvas.height = parent.clientHeight * dpr;
-        this.ctx.resetTransform();
-        this.ctx.scale(dpr, dpr);
+        if (this.ctx) {
+          this.ctx.resetTransform();
+          this.ctx.scale(dpr, dpr);
+        }
       }
       if (this.bottomCanvas) {
         const parent = this.bottomCanvas.parentElement;
         this.bottomCanvas.width = parent.clientWidth * dpr;
         this.bottomCanvas.height = parent.clientHeight * dpr;
-        this.bottomCtx.resetTransform();
-        this.bottomCtx.scale(dpr, dpr);
+        if (this.bottomCtx) {
+          this.bottomCtx.resetTransform();
+          this.bottomCtx.scale(dpr, dpr);
+        }
       }
     };
     if (immediate) {
