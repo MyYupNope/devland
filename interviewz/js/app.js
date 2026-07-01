@@ -1,6 +1,7 @@
 import { FacetedSelect } from './FacetedSelect.js';
 import { FormApp } from './FormApp.js';
 import { state } from './State.js';
+import { resumeApp } from './Resume.js';
 import { renderAllDashboardWidgets } from './Charts.js';
 import { parseMarkdown } from './Markdown.js';
 import { showToast } from './Toast.js';

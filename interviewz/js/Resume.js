@@ -505,5 +505,5 @@ export class ResumeApp {
 }
 
 // Auto-instantiate and attach to window
-const resumeApp = new ResumeApp();
+export const resumeApp = new ResumeApp();
 window._resumeApp = resumeApp;
