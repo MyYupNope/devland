@@ -137,13 +137,13 @@ export function initStatusSplitChart(applications, tokens) {
   });
 
   const statusColors = {
-    'Ready': '#70757a',
-    'Applied': tokens.primary,
-    'Interviewed': tokens.warning,
-    'Offered': '#12b5cb',
-    'Accepted': '#1e8e3e',
-    'Withdrawn': '#9aa0a6',
-    'Rejected': tokens.error
+    'Ready': '#b5bab5',
+    'Applied': '#7ebced',
+    'Interviewed': '#ecc054',
+    'Offered': '#87cdda',
+    'Accepted': '#7ecb93',
+    'Withdrawn': '#cca0f1',
+    'Rejected': '#e5918a'
   };
 
   const activeStatuses = Object.keys(statusCounts).sort((a, b) => a.localeCompare(b));
@@ -156,6 +156,13 @@ export function initStatusSplitChart(applications, tokens) {
     statusSplitChartInstance.data.labels = labels;
     statusSplitChartInstance.data.datasets[0].data = data;
     statusSplitChartInstance.data.datasets[0].backgroundColor = colors;
+    statusSplitChartInstance.options.plugins.tooltip.callbacks.label = (item) => {
+      const datasetData = item.dataset.data;
+      const total = datasetData.reduce((a, b) => a + b, 0);
+      const val = datasetData[item.dataIndex];
+      const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+      return ` ${item.label}: ${val} (${pct}%)`;
+    };
     statusSplitChartInstance.update();
   } else {
     statusSplitChartInstance = new Chart(ctx, {
@@ -176,8 +183,9 @@ export function initStatusSplitChart(applications, tokens) {
             cornerRadius: 8,
             callbacks: {
               label: (item) => {
-                const total = data.reduce((a, b) => a + b, 0);
-                const val = data[item.dataIndex];
+                const datasetData = item.dataset.data;
+                const total = datasetData.reduce((a, b) => a + b, 0);
+                const val = datasetData[item.dataIndex];
                 const pct = total > 0 ? Math.round((val / total) * 100) : 0;
                 return ` ${item.label}: ${val} (${pct}%)`;
               }
