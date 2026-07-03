@@ -247,6 +247,9 @@ export function initTopCompaniesChart(applications, tokens) {
   if (!canvasEl) return;
   const ctx = canvasEl.getContext('2d');
   
+  const hideInactiveCheckbox = document.getElementById('hideInactiveCompanies');
+  const hideInactive = hideInactiveCheckbox ? hideInactiveCheckbox.checked : false;
+
   const companyCounts = {};
   const activeCompanies = new Set();
   applications.forEach(app => {
@@ -260,7 +263,10 @@ export function initTopCompaniesChart(applications, tokens) {
     }
   });
   
-  const sortedCompanies = Object.entries(companyCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const sortedCompanies = Object.entries(companyCounts)
+    .sort((a, b) => b[1] - a[1])
+    .filter(item => !hideInactive || activeCompanies.has(item[0]))
+    .slice(0, 8);
   const labels = sortedCompanies.map(item => item[0]);
   const data = sortedCompanies.map(item => item[1]);
   
@@ -300,6 +306,14 @@ export function initTopCompaniesChart(applications, tokens) {
           y: { grid: { display: false }, ticks: { font: { size: 10 } } }
         }
       }
+    });
+  }
+
+  // Wire toggle listener (once) for instant re-render
+  if (hideInactiveCheckbox && !hideInactiveCheckbox._listenerAttached) {
+    hideInactiveCheckbox._listenerAttached = true;
+    hideInactiveCheckbox.addEventListener('change', () => {
+      initTopCompaniesChart(applications, tokens);
     });
   }
 }

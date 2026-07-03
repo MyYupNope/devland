@@ -133,8 +133,9 @@
       
       <!-- Landing Hero -->
       <section class="landing-hero reveal">
+        <canvas id="landingHeroCanvas"></canvas>
         <div class="landing-hero-inner">
-          <h1 class="landing-hero-title">Track Every Opportunity.<br><span class="gradient-text">Land Your Dream Job.</span></h1>
+          <h1 class="landing-hero-title">Track Every Opportunity.<br><span class="accent-text">Land Your Dream Job.</span></h1>
           <p class="landing-hero-subtitle">OpportunityTracker is your end-to-end command center for managing job applications — from first click to final offer.</p>
         </div>
       </section>
@@ -791,7 +792,16 @@
           </div>
           <!-- Top Companies Card -->
           <div class="analytics-chart-card">
-            <h3 class="chart-title">Top Companies</h3>
+            <div class="chart-header-row">
+              <h3 class="chart-title">Top Companies</h3>
+              <label class="chart-filter-toggle" for="hideInactiveCompanies">
+                <span class="chart-filter-label">Active only</span>
+                <span class="toggle-switch-track">
+                  <input type="checkbox" id="hideInactiveCompanies">
+                  <span class="toggle-switch-thumb"></span>
+                </span>
+              </label>
+            </div>
             <div class="chart-container-small">
               <canvas id="topCompaniesChart"></canvas>
             </div>

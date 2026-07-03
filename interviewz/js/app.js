@@ -20,6 +20,148 @@ import {
   CSV_CACHE_KEY
 } from './Config.js';
 
+/* --------------------------------------------------------------------------
+   LANDING HERO: CANVAS PARTICLE NETWORK
+   Adapted from Resume.js particle system — scoped to the Home/Landing tab.
+   -------------------------------------------------------------------------- */
+class LandingParticles {
+  constructor() {
+    this.canvas = null;
+    this.ctx = null;
+    this.particles = [];
+    this.animationFrameId = null;
+    this.isActive = false;
+    this._cachedColor = null;
+    this._lastThemeClass = '';
+    this.handleResize = this._onResize.bind(this);
+  }
+
+  start() {
+    if (this.isActive) return;
+    this.isActive = true;
+    this.canvas = document.getElementById('landingHeroCanvas');
+    if (!this.canvas) return;
+    this.ctx = this.canvas.getContext('2d');
+    this._onResize(true);
+    this.particles = this._createParticles();
+    this._animate();
+    window.addEventListener('resize', this.handleResize);
+  }
+
+  stop() {
+    this.isActive = false;
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+    window.removeEventListener('resize', this.handleResize);
+  }
+
+  _createParticles() {
+    const particles = [];
+    const count = window.innerWidth < 768 ? 30 : 60;
+    const dpr = window.devicePixelRatio || 1;
+    const width = this.canvas.width / dpr;
+    const height = this.canvas.height / dpr;
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.35,
+        vy: (Math.random() - 0.5) * 0.35,
+        radius: Math.random() * 1.8 + 0.8
+      });
+    }
+    return particles;
+  }
+
+  _onResize(immediate = false) {
+    if (this._resizeTimeout) clearTimeout(this._resizeTimeout);
+    const doResize = () => {
+      if (!this.canvas) return;
+      const dpr = window.devicePixelRatio || 1;
+      const parent = this.canvas.parentElement;
+      this.canvas.width = parent.clientWidth * dpr;
+      this.canvas.height = parent.clientHeight * dpr;
+      if (this.ctx) {
+        this.ctx.resetTransform();
+        this.ctx.scale(dpr, dpr);
+      }
+    };
+    if (immediate) doResize();
+    else this._resizeTimeout = setTimeout(doResize, 150);
+  }
+
+  _getColorRgb() {
+    try {
+      const style = getComputedStyle(document.documentElement);
+      let color = style.getPropertyValue('--color-primary').trim();
+      if (color.startsWith('#')) {
+        let hex = color.substring(1);
+        if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+        return {
+          r: parseInt(hex.substring(0, 2), 16),
+          g: parseInt(hex.substring(2, 4), 16),
+          b: parseInt(hex.substring(4, 6), 16)
+        };
+      }
+    } catch (e) { /* fallback */ }
+    return { r: 59, g: 130, b: 246 }; // Default blue fallback
+  }
+
+  _animate() {
+    if (!this.isActive) return;
+    const dpr = window.devicePixelRatio || 1;
+    const width = this.canvas.width / dpr;
+    const height = this.canvas.height / dpr;
+    this.ctx.clearRect(0, 0, width, height);
+
+    const themeClass = document.documentElement.className;
+    if (this._lastThemeClass !== themeClass || !this._cachedColor) {
+      this._lastThemeClass = themeClass;
+      this._cachedColor = this._getColorRgb();
+    }
+    const c = this._cachedColor;
+
+    // Update and draw particles
+    this.particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x < 0 || p.x > width) p.vx *= -1;
+      if (p.y < 0 || p.y > height) p.vy *= -1;
+      this.ctx.beginPath();
+      this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+      this.ctx.fillStyle = `rgba(${c.r}, ${c.g}, ${c.b}, 0.55)`;
+      this.ctx.fill();
+    });
+
+    // Draw connecting lines
+    const maxDist = 120;
+    const maxDistSq = maxDist * maxDist;
+    for (let i = 0; i < this.particles.length; i++) {
+      for (let j = i + 1; j < this.particles.length; j++) {
+        const p1 = this.particles[i];
+        const p2 = this.particles[j];
+        const dx = p1.x - p2.x;
+        const dy = p1.y - p2.y;
+        const distSq = dx * dx + dy * dy;
+        if (distSq < maxDistSq) {
+          const dist = Math.sqrt(distSq);
+          const alpha = (1 - dist / maxDist) * 0.25;
+          this.ctx.beginPath();
+          this.ctx.moveTo(p1.x, p1.y);
+          this.ctx.lineTo(p2.x, p2.y);
+          this.ctx.strokeStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${alpha})`;
+          this.ctx.lineWidth = 1;
+          this.ctx.stroke();
+        }
+      }
+    }
+
+    this.animationFrameId = requestAnimationFrame(() => this._animate());
+  }
+}
+
 // DOM Element Cache
 const dom = {};
 
@@ -1327,6 +1469,11 @@ function initTabNavigation() {
       }
     }
 
+    // Stop landing particles when navigating away
+    if (targetTab !== 'landing' && window._landingParticles) {
+      window._landingParticles.stop();
+    }
+
     if (targetTab === 'landing') {
       showEl(dom.landingTabContent);
       hideEl(dom.heroBanner);
@@ -1338,6 +1485,12 @@ function initTabNavigation() {
       hideEl(dom.analyticsSection);
       hideEl(dom.newApplicationSection);
       hideEl(dom.resumeSection);
+
+      // Start landing particle network
+      if (!window._landingParticles) {
+        window._landingParticles = new LandingParticles();
+      }
+      window._landingParticles.start();
     } else if (targetTab === 'home') {
       hideEl(dom.landingTabContent);
       hideEl(dom.heroBanner);

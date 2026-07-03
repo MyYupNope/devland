@@ -3278,6 +3278,90 @@ body {
   margin-bottom: 0.5rem;
 }
 
+/* Chart header row — title + inline toggle */
+.chart-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.chart-header-row .chart-title {
+  margin-bottom: 0;
+}
+
+.chart-filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.chart-filter-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  transition: color var(--transition-base);
+}
+
+.chart-filter-toggle:hover .chart-filter-label {
+  color: var(--color-text-primary);
+}
+
+/* Compact pill toggle switch */
+.toggle-switch-track {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 34px;
+  height: 18px;
+  border-radius: 999px;
+  background-color: rgba(0, 0, 0, 0.12);
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.theme-dark .toggle-switch-track {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.toggle-switch-track input[type="checkbox"] {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.toggle-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s, background-color 0.2s;
+  pointer-events: none;
+}
+
+.toggle-switch-track input[type="checkbox"]:checked ~ .toggle-switch-thumb {
+  transform: translateX(16px);
+}
+
+.toggle-switch-track:has(input:checked) {
+  background-color: var(--color-primary);
+}
+
+.theme-dark .toggle-switch-track:has(input:checked) {
+  background-color: var(--color-primary);
+}
+
 .chart-container-small {
   position: relative;
   width: 100%;
@@ -3483,79 +3567,109 @@ body {
   justify-content: center;
   align-items: center;
   text-align: center;
-  min-height: 80vh;
-  padding: 8rem 2rem;
-  border-radius: var(--radius-lg);
+  padding: 6rem 2rem 5rem;
   margin-bottom: 3.5rem;
   position: relative;
   overflow: hidden;
-  background: url('../assets/hero-bg-wide.webp') no-repeat center center / cover;
-  transition: border-color 0.3s;
-  color: #ffffff; /* White text for contrast on dark background */
+  background: transparent;
+  transition: background-color 0.3s;
 }
 
-/* Central radial glow lighting overlays (Dark space themes in both light and dark mode) */
-.landing-hero::before {
-  content: '';
+/* Canvas particle network — absolute fill behind content */
+#landingHeroCanvas {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  /* Brighter by ~50% (lower opacity of dark overlay layers) */
-  background: radial-gradient(circle at 50% 50%, rgba(26, 115, 232, 0.35) 0%, rgba(15, 15, 15, 0.32) 60%, rgba(15, 15, 15, 0.45) 100%);
-  z-index: 1;
-  transition: background 0.3s;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
 }
 
-.theme-dark .landing-hero::before {
-  background: radial-gradient(circle at 50% 50%, rgba(138, 180, 248, 0.27) 0%, rgba(10, 10, 10, 0.38) 60%, rgba(10, 10, 10, 0.5) 100%);
-}
+
+
 
 .landing-hero-inner {
   position: relative;
   z-index: 2;
-  max-width: 800px;
-  padding: 3rem 2.5rem;
-  border-radius: 24px;
-  background: rgba(56, 83, 88, 0.72); /* Translucent #385358 */
-  border: 1px solid rgba(255, 255, 255, 0.15); /* Soft white border highlights */
-  box-shadow: 0 30px 65px rgba(0, 0, 0, 0.3);
+  max-width: 720px;
+  padding: 0 1.5rem;
+  background: transparent;
+  border: none;
+  box-shadow: none;
   text-align: center;
-  transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
 }
 
 .theme-dark .landing-hero-inner {
-  background: rgba(56, 83, 88, 0.82); /* Slightly denser translucent #385358 in dark mode */
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 30px 65px rgba(0, 0, 0, 0.55);
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .landing-hero-title {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: clamp(2.4rem, 6vw, 4.2rem);
-  font-weight: 800;
-  line-height: 1.08;
-  letter-spacing: -0.04em;
+  font-size: clamp(2.2rem, 5.5vw, 3.4rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
   margin-bottom: 1.25rem;
-  color: #ffffff; /* White title text */
+  color: var(--color-text-primary);
 }
 
-.landing-hero-title .gradient-text {
-  background: linear-gradient(135deg, #3b82f6 0%, #00f2fe 50%, #9d4edd 100%); /* Brighter accents for dark backdrop */
+/* Animated gradient accent text */
+.landing-hero-title .accent-text {
+  background: linear-gradient(90deg, #3b82f6, #06b6d4, #8b5cf6, #3b82f6);
+  background-size: 300% 100%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  animation: gradientShift 6s ease-in-out infinite;
+  text-shadow: none; /* text-shadow doesn't work with bg-clip, glow is handled via filter */
+}
+
+/* Glow effect behind gradient text via a duplicated pseudo-element is complex;
+   instead we add a subtle drop-shadow filter on the title for depth */
+.landing-hero-title {
+  filter: drop-shadow(0 0 25px rgba(59, 130, 246, 0.08));
+}
+
+.theme-dark .landing-hero-title {
+  filter: drop-shadow(0 0 30px rgba(96, 165, 250, 0.15));
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% center; }
+  50%      { background-position: 100% center; }
+}
+
+/* Page load typography animation */
+.landing-hero-title {
+  animation: heroTextReveal 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.landing-hero-subtitle {
+  animation: heroTextReveal 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.15s;
+}
+
+@keyframes heroTextReveal {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .landing-hero-subtitle {
   font-family: 'Inter', sans-serif;
-  font-size: clamp(1rem, 1.8vw, 1.2rem);
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.75); /* Soft white subtitle text */
+  font-size: clamp(0.95rem, 1.6vw, 1.1rem);
+  line-height: 1.7;
+  color: var(--color-text-secondary);
   max-width: 600px;
   margin: 0 auto;
-  font-weight: 300; /* Light/lighter font weight */
+  font-weight: 400;
 }
 
 /* Features Bar */
@@ -4137,13 +4251,14 @@ body {
 
 @media (max-width: 480px) {
   .landing-hero {
-    padding: 4.5rem 1rem;
+    padding: 4rem 1rem 3rem;
   }
   
   .landing-hero-inner {
-    padding: 2.25rem 1.25rem;
-    border-radius: 18px;
+    padding: 0 0.5rem;
   }
+
+
   
   .landing-cta {
     padding: 4.5rem 1.25rem 7.5rem; /* Increased bottom padding for mobile */
