@@ -4437,26 +4437,7 @@ a.topbar-nav-btn:hover svg {
   }
 }
 
-/* Topbar Sync Status Layout */
-@media (min-width: 992px) {
-  .topbar-sync {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    margin: 0;
-    z-index: 10;
-  }
-}
-
-@media (max-width: 991px) {
-  .topbar-sync {
-    position: relative;
-    margin-left: auto;
-    margin-right: 0.75rem;
-    z-index: 10;
-  }
-}
+/* Topbar Sync Status Layout is now handled by flexbox in topbar-brand-group */
 
 .topbar-sync .sync-status {
   padding: 0.35rem 0.85rem;
@@ -4640,23 +4621,7 @@ a.topbar-nav-btn:hover svg {
   transform: translateY(-6px) !important;
 }
 
-/* Specific Tab Transition Overrides for centered topbar-sync element (Desktop Only) */
-@media (min-width: 992px) {
-  .topbar-sync.tab-enter {
-    opacity: 0;
-    transform: translate(-50%, calc(-50% + 6px));
-  }
-
-  .topbar-sync.tab-fade-in {
-    opacity: 1 !important;
-    transform: translate(-50%, -50%) !important;
-  }
-
-  .topbar-sync.tab-exit {
-    opacity: 0 !important;
-    transform: translate(-50%, calc(-50% - 6px)) !important;
-  }
-}
+/* Topbar-sync now uses standard tab transitions */
 
 /* Dashboard Range Switch Responsive Styles */
 @media (max-width: 576px) {
