@@ -1842,3 +1842,36 @@ a {
   outline-offset: 3px;
   box-shadow: 0 0 12px var(--rm-accent-teal) !important;
 }
+
+/* ==========================================================================
+   Floating Action Button (FAB) (Copied from interviewz)
+   ========================================================================== */
+.fab-btn {
+  position: fixed;
+  bottom: 11rem;
+  right: 2rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--rm-accent-teal); /* Using resume's primary accent color */
+  color: white;
+  font-size: 2rem;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 212, 170, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform var(--rm-transition), box-shadow var(--rm-transition);
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+}
+
+.fab-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 14px rgba(0, 212, 170, 0.4), 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.fab-btn:active {
+  transform: scale(0.95);
+}
