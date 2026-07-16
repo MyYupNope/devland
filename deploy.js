@@ -6,7 +6,7 @@ const targetRepo = 'https://github.com/MyYupNope/MyYupNope.github.io.git';
 const tempDir = path.join(__dirname, 'temp-deploy-github-io');
 const srcDir = path.join(__dirname, 'interviewz');
 
-const commitMessage = process.argv.slice(2).join(' ') || 'Update interviewz project';
+const commitMessage = process.argv.slice(2).join(' ') || 'Update interviewz and resume projects';
 
 try {
   // 1. Clean up temp folder if it exists
@@ -19,15 +19,26 @@ try {
   console.log('1. Cloning target repository...');
   execSync(`git clone ${targetRepo} "${tempDir}"`, { stdio: 'inherit' });
 
-  // 3. Copy files
-  console.log('2. Copying files...');
+  // 3. Copy interviewz files
+  console.log('2. Copying interviewz files...');
   const destDir = path.join(tempDir, 'interviewz');
   if (fs.existsSync(destDir)) {
     fs.rmSync(destDir, { recursive: true, force: true });
   }
   fs.mkdirSync(destDir, { recursive: true });
-
   fs.cpSync(srcDir, destDir, { recursive: true });
+
+  // 3b. Copy resume files
+  const resumeSrcDir = path.join(__dirname, 'resume');
+  const resumeDestDir = path.join(tempDir, 'resume');
+  if (fs.existsSync(resumeSrcDir)) {
+    console.log('   Copying resume files...');
+    if (fs.existsSync(resumeDestDir)) {
+      fs.rmSync(resumeDestDir, { recursive: true, force: true });
+    }
+    fs.mkdirSync(resumeDestDir, { recursive: true });
+    fs.cpSync(resumeSrcDir, resumeDestDir, { recursive: true });
+  }
 
   // 4. Commit and Push
   const status = execSync('git status --porcelain', { cwd: tempDir }).toString().trim();

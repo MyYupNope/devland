@@ -5,6 +5,8 @@ let cumulativeSubmissionsChartInstance = null;
 let statusSplitChartInstance = null;
 let suitabilityBarChartInstance = null;
 let topCompaniesChartInstance = null;
+let _latestTopCompaniesApps = null;
+let _latestTopCompaniesTokens = null;
 let lastRenderHash = '';
 
 /**
@@ -247,38 +249,44 @@ export function initTopCompaniesChart(applications, tokens) {
   if (!canvasEl) return;
   const ctx = canvasEl.getContext('2d');
   
-  const hideInactiveCheckbox = document.getElementById('hideInactiveCompanies');
-  const hideInactive = hideInactiveCheckbox ? hideInactiveCheckbox.checked : false;
+  // Always store latest data so the toggle listener uses fresh data after Weekly/Yearly switch
+  _latestTopCompaniesApps = applications;
+  _latestTopCompaniesTokens = tokens;
+
+  const toggleContainer = document.getElementById('companySegmentToggle');
+  const mode = toggleContainer ? (toggleContainer.getAttribute('data-mode') || 'top') : 'top';
+  const isTopMode = mode === 'top';
 
   const companyCounts = {};
-  const activeCompanies = new Set();
   applications.forEach(app => {
     const company = app['Company Name'];
-    if (company) {
-      companyCounts[company] = (companyCounts[company] || 0) + 1;
-    }
-    const status = app['Application Status'].toLowerCase();
-    if (status !== 'rejected' && status !== 'withdrawn') {
-      activeCompanies.add(company);
+    if (!company) return;
+    const status = (app['Application Status'] || '').toLowerCase();
+    
+    if (isTopMode) {
+      if (status !== 'rejected' && status !== 'withdrawn') {
+        companyCounts[company] = (companyCounts[company] || 0) + 1;
+      }
+    } else {
+      if (status === 'rejected' || status === 'withdrawn') {
+        companyCounts[company] = (companyCounts[company] || 0) + 1;
+      }
     }
   });
   
   const sortedCompanies = Object.entries(companyCounts)
     .sort((a, b) => b[1] - a[1])
-    .filter(item => !hideInactive || activeCompanies.has(item[0]))
     .slice(0, 8);
+
   const labels = sortedCompanies.map(item => item[0]);
   const data = sortedCompanies.map(item => item[1]);
   
-  const backgroundColors = sortedCompanies.map(item => {
-    const hasActiveApp = activeCompanies.has(item[0]);
-    return hasActiveApp ? (tokens.primary + 'cc') : (tokens.textSecondary + 'cc');
-  });
+  // Style with primary color (blue) for Top companies, error color (red) for Worst companies
+  const activeColor = isTopMode ? (tokens.primary + 'cc') : (tokens.error + 'cc');
+  const hoverColor = isTopMode ? tokens.primary : tokens.error;
 
-  const hoverBackgroundColors = sortedCompanies.map(item => {
-    const hasActiveApp = activeCompanies.has(item[0]);
-    return hasActiveApp ? tokens.primary : tokens.textSecondary;
-  });
+  const backgroundColors = sortedCompanies.map(() => activeColor);
+  const hoverBackgroundColors = sortedCompanies.map(() => hoverColor);
 
   if (topCompaniesChartInstance) {
     topCompaniesChartInstance.data.labels = labels;
@@ -302,18 +310,54 @@ export function initTopCompaniesChart(applications, tokens) {
           tooltip: { backgroundColor: '#202124', titleFont: { size: 12, weight: 'bold' }, bodyFont: { size: 12 }, cornerRadius: 8 }
         },
         scales: {
-          x: { grid: { color: 'rgba(0, 0, 0, 0.05)' }, ticks: { stepSize: 1, precision: 0, font: { size: 11 } }, min: 0 },
+          x: { 
+            grid: { color: 'rgba(0, 0, 0, 0.05)' }, 
+            ticks: { stepSize: 1, precision: 0, font: { size: 11 } }, 
+            min: 0,
+            grace: 1
+          },
           y: { grid: { display: false }, ticks: { font: { size: 10 } } }
         }
-      }
+      },
+      plugins: [{
+        id: 'datalabelsCustom',
+        afterDatasetsDraw(chart) {
+          const { ctx, data } = chart;
+          ctx.save();
+          const isDark = document.documentElement.classList.contains('theme-dark');
+          ctx.font = 'bold 10px Roboto, sans-serif';
+          ctx.fillStyle = isDark ? '#e8eaed' : '#3c4043';
+          ctx.textBaseline = 'middle';
+          ctx.textAlign = 'left';
+          
+          const meta = chart.getDatasetMeta(0);
+          if (!meta.hidden) {
+            meta.data.forEach((bar, index) => {
+              const val = data.datasets[0].data[index];
+              if (val !== undefined && val !== null) {
+                ctx.fillText(val, bar.x + 6, bar.y);
+              }
+            });
+          }
+          ctx.restore();
+        }
+      }]
     });
   }
 
   // Wire toggle listener (once) for instant re-render
-  if (hideInactiveCheckbox && !hideInactiveCheckbox._listenerAttached) {
-    hideInactiveCheckbox._listenerAttached = true;
-    hideInactiveCheckbox.addEventListener('change', () => {
-      initTopCompaniesChart(applications, tokens);
+  if (toggleContainer && !toggleContainer._listenerAttached) {
+    toggleContainer._listenerAttached = true;
+    toggleContainer.addEventListener('click', (e) => {
+      const btn = e.target.closest('.segment-btn');
+      if (!btn) return;
+      
+      toggleContainer.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const newVal = btn.getAttribute('data-value');
+      toggleContainer.setAttribute('data-mode', newVal);
+      
+      initTopCompaniesChart(_latestTopCompaniesApps, _latestTopCompaniesTokens);
     });
   }
 }

@@ -528,6 +528,27 @@ body {
   color: var(--color-text-primary);
 }
 
+a.topbar-nav-btn {
+  color: var(--color-text-secondary) !important;
+  text-decoration: none !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+a.topbar-nav-btn:hover {
+  color: var(--color-text-primary) !important;
+  text-decoration: none !important;
+}
+
+a.topbar-nav-btn svg {
+  transition: transform var(--transition-base);
+}
+
+a.topbar-nav-btn:hover svg {
+  transform: translate(2px, -2px);
+}
+
 .topbar-nav-btn.active {
   color: var(--color-primary);
 }
@@ -705,6 +726,12 @@ body {
   padding-top: 0;
   padding-bottom: 1rem;
   width: 100%;
+}
+
+.topbar-brand-group .dashboard-range-switch-container {
+  width: auto;
+  padding-bottom: 0;
+  margin-left: 0.75rem;
 }
 
 .range-switch-label {
@@ -3446,6 +3473,48 @@ body {
   background-color: var(--color-primary);
 }
 
+/* Segmented Pill Toggle Switch for Top/Worst Companies */
+.company-segment-toggle {
+  display: inline-flex;
+  background-color: rgba(0, 0, 0, 0.06);
+  padding: 2px;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.theme-dark .company-segment-toggle {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.company-segment-toggle .segment-btn {
+  background: none;
+  border: none;
+  padding: 3px 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 15px;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: all var(--transition-base);
+}
+
+.company-segment-toggle .segment-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.company-segment-toggle[data-mode="top"] .segment-btn[data-value="top"].active {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.company-segment-toggle[data-mode="worst"] .segment-btn[data-value="worst"].active {
+  background-color: var(--color-error);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
 .chart-container-small {
   position: relative;
   width: 100%;
@@ -4441,6 +4510,69 @@ body {
 
 .theme-dark .fab-btn-secondary:hover {
   background-color: #757b80; /* Slightly lighter gray in dark mode on hover */
+}
+
+/* Theme Toggle FAB-specific styling */
+.fab-theme-toggle {
+  bottom: 11rem; /* Stacked above the refresh button */
+  background-color: #f9ab00; /* Sunlight yellow in light mode */
+  box-shadow: 0 4px 10px rgba(249, 171, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.fab-theme-toggle svg {
+  stroke: #202124; /* Dark stroke for contrast in light mode */
+}
+
+.fab-theme-toggle:hover {
+  background-color: #e09900; /* Slightly darker yellow on hover */
+  box-shadow: 0 6px 14px rgba(249, 171, 0, 0.45), 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.fab-theme-toggle .fab-theme-icon-sun,
+.fab-theme-toggle .fab-theme-icon-moon {
+  position: absolute;
+  transition: transform 0.4s ease, opacity 0.4s ease;
+}
+
+/* Light mode: show sun (representing light mode), hide moon */
+.fab-theme-toggle .fab-theme-icon-sun {
+  opacity: 1;
+  transform: rotate(0) scale(1);
+}
+
+.fab-theme-toggle .fab-theme-icon-moon {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.5);
+}
+
+/* Dark mode: show moon (representing dark mode), hide sun */
+.theme-dark .fab-theme-toggle {
+  background: #5f6368; /* Neutral gray in dark mode */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.theme-dark .fab-theme-toggle svg {
+  stroke: #ffffff; /* White stroke for contrast in dark mode */
+}
+
+.theme-dark .fab-theme-toggle:hover {
+  background-color: #757b80; /* Slightly lighter gray in dark mode on hover */
+  box-shadow: 0 6px 14px rgba(95, 99, 104, 0.45), 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.theme-dark .fab-theme-toggle .fab-theme-icon-sun {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.5);
+}
+
+.theme-dark .fab-theme-toggle .fab-theme-icon-moon {
+  opacity: 1;
+  transform: rotate(0) scale(1);
+}
+
+/* Prevent default hover rotation on theme toggle svg */
+.fab-theme-toggle:hover svg {
+  transform: none;
 }
 
 /* Mobile responsive styling for topbar sync */

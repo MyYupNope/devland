@@ -515,3 +515,28 @@ export class ResumeApp {
 // Auto-instantiate and attach to window
 export const resumeApp = new ResumeApp();
 window._resumeApp = resumeApp;
+
+// Auto-run when DOM is fully loaded in standalone mode
+document.addEventListener('DOMContentLoaded', () => {
+  resumeApp.onTabActivated();
+
+  // Floating Theme Toggle Logic
+  const themeToggleBtn = document.getElementById('themeToggleBtn');
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.contains('theme-dark');
+      if (isDark) {
+        document.documentElement.classList.remove('theme-dark');
+        document.documentElement.classList.add('theme-light');
+        localStorage.setItem('theme', 'light');
+      } else {
+        document.documentElement.classList.remove('theme-light');
+        document.documentElement.classList.add('theme-dark');
+        localStorage.setItem('theme', 'dark');
+      }
+      
+      // Update canvas particle color dynamic cache
+      resumeApp._cachedColor = null; // Forces re-evaluation of dynamic colors next frame
+    });
+  }
+});

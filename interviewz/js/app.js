@@ -1,7 +1,6 @@
 import { FacetedSelect } from './FacetedSelect.js';
 import { FormApp } from './FormApp.js';
 import { state } from './State.js?v=4';
-import { resumeApp } from './Resume.js';
 import { renderAllDashboardWidgets } from './Charts.js?v=3';
 import { parseMarkdown } from './Markdown.js';
 import { showToast } from './Toast.js';
@@ -259,6 +258,7 @@ function initDomCache() {
   dom.btnResetInterviewNotes = document.getElementById('btnResetInterviewNotes');
   dom.btnSubmitOverviewUpdates = document.getElementById('btnSubmitOverviewUpdates');
   dom.themeToggleBtn = document.getElementById('themeToggleBtn');
+  dom.fabThemeToggle = document.getElementById('fabThemeToggle');
   dom.dashboardRangeToggle = document.getElementById('dashboardRangeToggle');
   dom.statCardThisMonth = document.getElementById('statCardThisMonth');
   dom.globalDashboardRangeContainer = document.getElementById('globalDashboardRangeContainer');
@@ -344,19 +344,24 @@ function setupEventListeners() {
   }
 
   // Theme Toggle Button
+  const toggleTheme = () => {
+    const isDark = document.documentElement.classList.contains('theme-dark');
+    if (isDark) {
+      document.documentElement.classList.remove('theme-dark');
+      document.documentElement.classList.add('theme-light');
+      localStorage.setItem('theme', 'light');
+    } else {
+      document.documentElement.classList.remove('theme-light');
+      document.documentElement.classList.add('theme-dark');
+      localStorage.setItem('theme', 'dark');
+    }
+  };
+
   if (dom.themeToggleBtn) {
-    dom.themeToggleBtn.addEventListener('click', () => {
-      const isDark = document.documentElement.classList.contains('theme-dark');
-      if (isDark) {
-        document.documentElement.classList.remove('theme-dark');
-        document.documentElement.classList.add('theme-light');
-        localStorage.setItem('theme', 'light');
-      } else {
-        document.documentElement.classList.remove('theme-light');
-        document.documentElement.classList.add('theme-dark');
-        localStorage.setItem('theme', 'dark');
-      }
-    });
+    dom.themeToggleBtn.addEventListener('click', toggleTheme);
+  }
+  if (dom.fabThemeToggle) {
+    dom.fabThemeToggle.addEventListener('click', toggleTheme);
   }
 
   // Dashboard Range Switch Toggle Button
@@ -1540,7 +1545,7 @@ function initTabNavigation() {
     });
 
     if (dom.fabBtn) {
-      if (targetTab === 'landing' || targetTab === 'new-application' || targetTab === 'resume') {
+      if (targetTab === 'landing' || targetTab === 'new-application') {
         dom.fabBtn.style.display = 'none';
         if (dom.refreshBtn) dom.refreshBtn.style.display = 'none';
       } else {
@@ -1623,35 +1628,6 @@ function initTabNavigation() {
       if (!window._formApp) {
         window._formApp = new FormApp();
       }
-    } else if (targetTab === 'resume') {
-      hideEl(dom.landingTabContent);
-      hideEl(dom.heroBanner);
-      hideEl(dom.filtersSection);
-      hideEl(dom.resultsSection);
-      hideEl(dom.activeInterviewsSection);
-      hideEl(dom.syncContainer);
-      hideEl(dom.statsSection);
-      hideEl(dom.analyticsSection);
-      hideEl(dom.newApplicationSection);
-      hideEl(dom.globalDashboardRangeContainer);
-      // Lazy-load resume.css if not already loaded
-      const initResumeTab = () => {
-        showEl(dom.resumeSection);
-        if (window._resumeApp && window._resumeApp.onTabActivated) {
-          window._resumeApp.onTabActivated();
-        }
-      };
-
-      if (!document.getElementById('lazy-resume-css')) {
-        const link = document.createElement('link');
-        link.id = 'lazy-resume-css';
-        link.rel = 'stylesheet';
-        link.href = 'css/resume.css?v=16';
-        link.onload = initResumeTab;
-        document.head.appendChild(link);
-      } else {
-        initResumeTab();
-      }
     }
   }
 
@@ -1659,9 +1635,11 @@ function initTabNavigation() {
 
   const navButtons = document.querySelectorAll('.topbar-nav-btn');
   navButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
       const target = btn.getAttribute('data-tab');
-      switchTab(target);
+      if (target) {
+        switchTab(target);
+      }
     });
   });
 
