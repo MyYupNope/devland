@@ -493,7 +493,7 @@ body {
   display: inline;
 }
 
-@media (max-width: 576px) {
+@media (max-width: 991px) {
   .topbar-brand {
     font-size: 1.15rem;
     line-height: 1.1;
