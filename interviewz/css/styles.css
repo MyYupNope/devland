@@ -676,7 +676,7 @@ a.topbar-nav-btn:hover svg {
    ========================================================================== */
 .fab-btn {
   position: fixed;
-  bottom: 2rem;
+  bottom: 11rem;
   right: 2rem;
   width: 56px;
   height: 56px;
@@ -4502,7 +4502,7 @@ a.topbar-nav-btn:hover svg {
 
 /* Theme Toggle FAB-specific styling */
 .fab-theme-toggle {
-  bottom: 11rem; /* Stacked above the refresh button */
+  bottom: 2rem; /* Stacked at the very bottom */
   background-color: #f9ab00; /* Sunlight yellow in light mode */
   box-shadow: 0 4px 10px rgba(249, 171, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
 }
