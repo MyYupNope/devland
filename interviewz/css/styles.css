@@ -1769,32 +1769,48 @@ a.topbar-nav-btn:hover svg {
   margin-top: -0.5rem;
 }
 
+.drawer-header-actions .btn-action-icon,
 .btn-close-drawer {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.05);
   border: none;
   color: var(--color-text-secondary);
-  padding: 0.6rem;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background var(--transition-base), color var(--transition-base);
+  transition: background var(--transition-base), color var(--transition-base), transform var(--transition-base);
   outline: none;
+  padding: 0;
 }
 
+:root.theme-dark .drawer-header-actions .btn-action-icon,
+:root.theme-dark .btn-close-drawer {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.drawer-header-actions .btn-action-icon:focus-visible,
 .btn-close-drawer:focus-visible {
   box-shadow: 0 0 0 2px var(--color-primary);
 }
 
+.drawer-header-actions .btn-action-icon:hover,
 .btn-close-drawer:hover {
-  background: #e8eaed;
+  background: rgba(0, 0, 0, 0.1);
   color: var(--color-text-primary);
 }
 
+:root.theme-dark .drawer-header-actions .btn-action-icon:hover,
+:root.theme-dark .btn-close-drawer:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.drawer-header-actions .btn-action-icon svg,
 .btn-close-drawer svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 
 .drawer-body {
@@ -2117,15 +2133,131 @@ a.topbar-nav-btn:hover svg {
 
 /* Suitability Evaluation Styling */
 .suitability-box {
-  background: var(--color-primary-light);
-  border: 1px solid rgba(26, 115, 232, 0.15);
-  color: var(--color-primary);
+  background: #f3f3f3;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: var(--color-text-primary);
   font-size: 0.95rem;
   line-height: 1.55;
   padding: 1.25rem 1.5rem;
   border-radius: var(--radius-md);
-  white-space: pre-wrap;
 }
+
+.suit-eval-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  width: 100%;
+}
+
+.suit-eval-section {
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  border-left: 4px solid transparent;
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
+}
+
+.suit-eval-section:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .suit-eval-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Section colour accents */
+.suit-eval-verdict {
+  background: rgba(26, 115, 232, 0.06);
+  border-left-color: var(--color-primary);
+}
+
+.suit-eval-strengths {
+  background: rgba(52, 168, 83, 0.06);
+  border-left-color: #34a853;
+}
+
+.suit-eval-concerns {
+  background: rgba(234, 134, 0, 0.06);
+  border-left-color: #ea8600;
+}
+
+/* Section headings */
+.suit-eval-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.6rem;
+}
+
+.suit-eval-verdict .suit-eval-heading { color: var(--color-primary); }
+.suit-eval-strengths .suit-eval-heading { color: #1e7e34; }
+.suit-eval-concerns .suit-eval-heading { color: #b86e00; }
+
+/* Heading icons */
+.suit-eval-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.suit-eval-icon--verdict { fill: var(--color-primary); }
+.suit-eval-icon--strength { fill: #34a853; }
+.suit-eval-icon--concern { fill: #ea8600; }
+
+/* Verdict paragraph */
+.suit-eval-text {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 0.925rem;
+  line-height: 1.6;
+}
+
+/* List of strengths / concerns */
+.suit-eval-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.suit-eval-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-size: 0.925rem;
+  line-height: 1.55;
+  color: var(--color-text-primary);
+}
+
+/* List item icons */
+.suit-eval-li-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.suit-eval-li-icon--strength { fill: #34a853; }
+.suit-eval-li-icon--concern  { fill: #ea8600; }
+.suit-eval-li-icon--feedback { fill: #7b1fa2; }
+
+/* Candidate Feedback accent */
+.suit-eval-feedback {
+  background: rgba(123, 31, 162, 0.06);
+  border-left-color: #7b1fa2;
+}
+
+.suit-eval-feedback .suit-eval-heading { color: #6a1b9a; }
+.suit-eval-icon--feedback { fill: #7b1fa2; }
+
 
 /* Details Info Groupings (Cards inside Darker Grey Drawer) */
 .info-group {
@@ -2375,55 +2507,7 @@ a.topbar-nav-btn:hover svg {
   }
 }
 
-.suitability-matrix-grid {
-  display: grid !important;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 !important;
-}
 
-.suitability-matrix-grid>div {
-  box-sizing: border-box;
-}
-
-/* Desktop layout for Job Suitability (2x1 side-by-side) */
-@media (min-width: 641px) {
-  .suitability-matrix-grid>div {
-    padding: 0;
-  }
-
-  .suitability-matrix-grid>div:first-child {
-    border-right: 1px solid var(--color-border);
-    padding-right: 1.5rem;
-    padding-left: 0;
-  }
-
-  .suitability-matrix-grid>div:last-child {
-    padding-left: 1.5rem;
-    padding-right: 0;
-  }
-}
-
-/* Mobile layout for Job Suitability */
-@media (max-width: 640px) {
-  .suitability-matrix-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .suitability-matrix-grid>div {
-    padding: 1.25rem 0;
-  }
-
-  .suitability-matrix-grid>div:first-child {
-    border-bottom: 1px solid var(--color-border);
-    padding-top: 0;
-    padding-bottom: 1.25rem;
-  }
-
-  .suitability-matrix-grid>div:last-child {
-    padding-top: 1.25rem;
-    padding-bottom: 0;
-  }
-}
 
 /* Notes actions and textarea styling */
 .action-buttons-group {

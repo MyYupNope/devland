@@ -1333,6 +1333,109 @@ function updateHiringTeamLink() {
   }
 }
 
+/**
+ * Parse the JSON suitability evaluation string from the DB and render it
+ * as human-readable HTML. Expected shape (array with one object):
+ * [{ RecruiterVerdict, BiggestStrengths: [], CriticalConcerns: [] }]
+ * Falls back to plain text if the string is not valid JSON.
+ */
+function renderSuitabilityEvaluation(raw) {
+  try {
+    let data = JSON.parse(raw);
+    // Accept both a bare object and an array wrapping one object
+    if (Array.isArray(data)) data = data[0];
+    if (!data || typeof data !== 'object') throw new Error('not an object');
+
+    const escHtml = (str) => {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    };
+
+    let html = '<div class="suit-eval-grid">';
+
+    // --- Recruiter Verdict ---
+    if (data.RecruiterVerdict) {
+      html += `<div class="suit-eval-section suit-eval-verdict">
+        <div class="suit-eval-heading">
+          <svg class="suit-eval-icon suit-eval-icon--verdict" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/></svg>
+          <span>Recruiter Verdict</span>
+        </div>
+        <p class="suit-eval-text">${escHtml(data.RecruiterVerdict)}</p>
+      </div>`;
+    }
+
+    // --- Biggest Strengths ---
+    if (Array.isArray(data.BiggestStrengths) && data.BiggestStrengths.length) {
+      const items = data.BiggestStrengths.map(s =>
+        `<li>
+          <svg class="suit-eval-li-icon suit-eval-li-icon--strength" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+          <span>${escHtml(s)}</span>
+        </li>`
+      ).join('');
+      html += `<div class="suit-eval-section suit-eval-strengths">
+        <div class="suit-eval-heading">
+          <svg class="suit-eval-icon suit-eval-icon--strength" viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z"/></svg>
+          <span>Biggest Strengths</span>
+        </div>
+        <ul class="suit-eval-list">${items}</ul>
+      </div>`;
+    }
+
+    // --- Critical Concerns ---
+    if (Array.isArray(data.CriticalConcerns) && data.CriticalConcerns.length) {
+      const items = data.CriticalConcerns.map(c =>
+        `<li>
+          <svg class="suit-eval-li-icon suit-eval-li-icon--concern" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+          <span>${escHtml(c)}</span>
+        </li>`
+      ).join('');
+      html += `<div class="suit-eval-section suit-eval-concerns">
+        <div class="suit-eval-heading">
+          <svg class="suit-eval-icon suit-eval-icon--concern" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+          <span>Critical Concerns</span>
+        </div>
+        <ul class="suit-eval-list">${items}</ul>
+      </div>`;
+    }
+
+    // --- Candidate Feedback ---
+    if (data.CandidateFeedback) {
+      if (Array.isArray(data.CandidateFeedback) && data.CandidateFeedback.length) {
+        const items = data.CandidateFeedback.map(f =>
+          `<li>
+            <svg class="suit-eval-li-icon suit-eval-li-icon--feedback" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+            <span>${escHtml(f)}</span>
+          </li>`
+        ).join('');
+        html += `<div class="suit-eval-section suit-eval-feedback">
+          <div class="suit-eval-heading">
+            <svg class="suit-eval-icon suit-eval-icon--feedback" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+            <span>Candidate Feedback</span>
+          </div>
+          <ul class="suit-eval-list">${items}</ul>
+        </div>`;
+      } else if (typeof data.CandidateFeedback === 'string' && data.CandidateFeedback.trim()) {
+        html += `<div class="suit-eval-section suit-eval-feedback">
+          <div class="suit-eval-heading">
+            <svg class="suit-eval-icon suit-eval-icon--feedback" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+            <span>Candidate Feedback</span>
+          </div>
+          <p class="suit-eval-text">${escHtml(data.CandidateFeedback)}</p>
+        </div>`;
+      }
+    }
+
+    html += '</div>';
+    return html;
+  } catch {
+    // Not valid JSON — show as-is with HTML escaping
+    const d = document.createElement('div');
+    d.textContent = raw;
+    return `<p class="suit-eval-text">${d.innerHTML}</p>`;
+  }
+}
+
 function openDetailsDrawer(app) {
   state.currentApp = app;
 
@@ -1391,7 +1494,7 @@ function openDetailsDrawer(app) {
     }
 
     if (evaluation) {
-      dom.drawerSuitabilityEval.textContent = evaluation;
+      dom.drawerSuitabilityEval.innerHTML = renderSuitabilityEvaluation(evaluation);
       dom.sectionSuitabilityEval.classList.remove('hidden');
     } else {
       dom.sectionSuitabilityEval.classList.add('hidden');
