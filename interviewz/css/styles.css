@@ -4517,4 +4517,28 @@ body {
     opacity: 0 !important;
     transform: translate(-50%, calc(-50% - 6px)) !important;
   }
+}
+
+/* Dashboard Range Switch Responsive Styles */
+@media (max-width: 576px) {
+  .dashboard-range-switch-container {
+    padding-bottom: 0.5rem;
+  }
+  .range-switch-label {
+    font-size: 0.75rem;
+  }
+  .range-toggle-switch {
+    min-height: 36px;
+  }
+  .range-toggle-track {
+    width: 48px;
+    height: 24px;
+  }
+  .range-toggle-thumb {
+    width: 20px;
+    height: 20px;
+  }
+  .range-toggle-switch.active .range-toggle-thumb {
+    transform: translateX(24px);
+  }
 }

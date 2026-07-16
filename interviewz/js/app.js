@@ -370,6 +370,7 @@ function setupEventListeners() {
         dom.dashboardRangeToggle.classList.add('active');
         state.dashboardRange = 'ytd';
       }
+      localStorage.setItem('dashboardRange', state.dashboardRange);
       
       const filtered = getFilteredDashboardApps(state.dashboardRange);
       calculateStatistics(filtered);
@@ -820,7 +821,7 @@ function parseAndInitializeData(csvText) {
   updateFiltersUI();
   applyFilters(true);
 
-  const range = state.dashboardRange || 'weekly';
+  const range = state.dashboardRange || 'ytd';
   const filtered = getFilteredDashboardApps(range);
   calculateStatistics(filtered);
 
@@ -927,13 +928,19 @@ function calculateStatistics(apps = state.rawApplications) {
 
     const dateStr = (app['Create Date'] || '').trim();
     if (dateStr) {
-      const appDate = parseDate(dateStr);
-      appDate.setHours(0, 0, 0, 0);
-      if (appDate >= startOfWeek) {
+      if (state.dashboardRange === 'weekly') {
+        // If range is weekly, we already filtered to only include this week
         appsThisWeek++;
-      }
-      if (appDate >= startOfMonth) {
         appsThisMonth++;
+      } else {
+        const appDate = parseDate(dateStr);
+        appDate.setHours(0, 0, 0, 0);
+        if (appDate >= startOfWeek) {
+          appsThisWeek++;
+        }
+        if (appDate >= startOfMonth) {
+          appsThisMonth++;
+        }
       }
     }
   });
@@ -1592,7 +1599,7 @@ function initTabNavigation() {
 
       if (state.rawApplications.length > 0) {
         try {
-          const range = state.dashboardRange || 'weekly';
+          const range = state.dashboardRange || 'ytd';
           const filtered = getFilteredDashboardApps(range);
           calculateStatistics(filtered);
           renderAllDashboardWidgets(filtered);

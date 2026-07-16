@@ -14,5 +14,5 @@ export const state = {
   currentApp: null,
   currentSortVal: 'date-desc',
   dataVersion: 0,
-  dashboardRange: 'weekly'
+  dashboardRange: localStorage.getItem('dashboardRange') || 'ytd'
 };
