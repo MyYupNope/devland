@@ -489,9 +489,16 @@ body {
   transition: opacity var(--transition-base);
 }
 
+.brand-split {
+  display: inline;
+}
+
 @media (max-width: 576px) {
   .topbar-brand {
     font-size: 1.15rem;
+    line-height: 1.1;
+    display: flex;
+    flex-direction: column;
   }
 }
 
