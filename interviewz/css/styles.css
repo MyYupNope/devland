@@ -487,6 +487,9 @@ body {
   color: var(--color-primary);
   text-decoration: none;
   transition: opacity var(--transition-base);
+  line-height: 1.1;
+  display: flex;
+  flex-direction: column;
 }
 
 .brand-split {
@@ -496,9 +499,6 @@ body {
 @media (max-width: 991px) {
   .topbar-brand {
     font-size: 1.15rem;
-    line-height: 1.1;
-    display: flex;
-    flex-direction: column;
   }
 }
 
