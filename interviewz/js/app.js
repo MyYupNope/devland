@@ -259,6 +259,9 @@ function initDomCache() {
   dom.btnResetInterviewNotes = document.getElementById('btnResetInterviewNotes');
   dom.btnSubmitOverviewUpdates = document.getElementById('btnSubmitOverviewUpdates');
   dom.themeToggleBtn = document.getElementById('themeToggleBtn');
+  dom.dashboardRangeToggle = document.getElementById('dashboardRangeToggle');
+  dom.statCardThisMonth = document.getElementById('statCardThisMonth');
+  dom.globalDashboardRangeContainer = document.getElementById('globalDashboardRangeContainer');
 }
 
 // Global drop-down components
@@ -353,6 +356,24 @@ function setupEventListeners() {
         document.documentElement.classList.add('theme-dark');
         localStorage.setItem('theme', 'dark');
       }
+    });
+  }
+
+  // Dashboard Range Switch Toggle Button
+  if (dom.dashboardRangeToggle) {
+    dom.dashboardRangeToggle.addEventListener('click', () => {
+      const isYearly = dom.dashboardRangeToggle.classList.contains('active');
+      if (isYearly) {
+        dom.dashboardRangeToggle.classList.remove('active');
+        state.dashboardRange = 'weekly';
+      } else {
+        dom.dashboardRangeToggle.classList.add('active');
+        state.dashboardRange = 'ytd';
+      }
+      
+      const filtered = getFilteredDashboardApps(state.dashboardRange);
+      calculateStatistics(filtered);
+      renderAllDashboardWidgets(filtered, true);
     });
   }
 
@@ -798,18 +819,61 @@ function parseAndInitializeData(csvText) {
   state.dataVersion++;
   updateFiltersUI();
   applyFilters(true);
-  calculateStatistics();
+
+  const range = state.dashboardRange || 'weekly';
+  const filtered = getFilteredDashboardApps(range);
+  calculateStatistics(filtered);
+
+  // Render dashboard range toggle switch UI state
+  if (dom.dashboardRangeToggle) {
+    if (range === 'ytd') {
+      dom.dashboardRangeToggle.classList.add('active');
+    } else {
+      dom.dashboardRangeToggle.classList.remove('active');
+    }
+  }
 
   // Render all dashboard widgets
-  renderAllDashboardWidgets(state.rawApplications, true);
+  renderAllDashboardWidgets(filtered, true);
+}
+
+function getFilteredDashboardApps(range) {
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  let cutoff;
+
+  if (range === 'weekly') {
+    // Current week from Monday until Sunday
+    const day = today.getDay();
+    const distanceToMonday = day === 0 ? 6 : day - 1;
+    cutoff = new Date(today);
+    cutoff.setDate(today.getDate() - distanceToMonday);
+    cutoff.setHours(0, 0, 0, 0);
+  } else {
+    // Yearly (YTD) — January 1st of current year
+    cutoff = new Date(today.getFullYear(), 0, 1);
+    cutoff.setHours(0, 0, 0, 0);
+  }
+
+  return state.rawApplications.filter(app => {
+    const dateStr = (app['Create Date'] || '').trim();
+    if (!dateStr) return false;
+    const appDate = parseDate(dateStr);
+    return appDate >= cutoff && appDate <= today;
+  });
 }
 
 /**
  * Optimized dashboard statistics calculation in a single-pass loop.
  */
-function calculateStatistics() {
-  if (dom.statTotal) dom.statTotal.textContent = state.rawApplications.length;
-  if (dom.statActivePipeline) dom.statActivePipeline.textContent = state.activeApplications.length;
+function calculateStatistics(apps = state.rawApplications) {
+  if (dom.statTotal) dom.statTotal.textContent = apps.length;
+
+  const activeAppsSubset = apps.filter(app => {
+    const status = (app['Application Status'] || '').trim().toLowerCase();
+    return status !== 'rejected' && status !== 'withdrawn';
+  });
+  if (dom.statActivePipeline) dom.statActivePipeline.textContent = activeAppsSubset.length;
 
   const uniqueCompanies = new Set();
   const uniqueJobs = new Set();
@@ -832,7 +896,7 @@ function calculateStatistics() {
   let appsThisWeek = 0;
   let appsThisMonth = 0;
 
-  state.rawApplications.forEach(app => {
+  apps.forEach(app => {
     const company = (app['Company Name'] || '').trim();
     if (company) uniqueCompanies.add(company);
 
@@ -878,13 +942,13 @@ function calculateStatistics() {
   if (dom.statJobs) dom.statJobs.textContent = uniqueJobs.size;
   if (dom.statActiveApps) dom.statActiveApps.textContent = activeAppsCount;
 
-  const conversionRate = state.rawApplications.length > 0
-    ? Math.round((conversionCount / state.rawApplications.length) * 100)
+  const conversionRate = apps.length > 0
+    ? Math.round((conversionCount / apps.length) * 100)
     : 0;
   if (dom.statConversion) dom.statConversion.textContent = `${conversionRate}%`;
 
-  const rejectionRate = state.rawApplications.length > 0
-    ? Math.round((rejectedCount / state.rawApplications.length) * 100)
+  const rejectionRate = apps.length > 0
+    ? Math.round((rejectedCount / apps.length) * 100)
     : 0;
   if (dom.statRejectionRate) dom.statRejectionRate.textContent = `${rejectionRate}%`;
 
@@ -893,6 +957,15 @@ function calculateStatistics() {
 
   if (dom.statThisWeek) dom.statThisWeek.textContent = appsThisWeek;
   if (dom.statThisMonth) dom.statThisMonth.textContent = appsThisMonth;
+
+  // Hide "Applied This Month" card in weekly view, show it in yearly (YTD) view
+  if (dom.statCardThisMonth) {
+    if (state.dashboardRange === 'weekly') {
+      dom.statCardThisMonth.style.display = 'none';
+    } else {
+      dom.statCardThisMonth.style.display = '';
+    }
+  }
 }
 
 function updateFiltersUI() {
@@ -1485,6 +1558,7 @@ function initTabNavigation() {
       hideEl(dom.analyticsSection);
       hideEl(dom.newApplicationSection);
       hideEl(dom.resumeSection);
+      hideEl(dom.globalDashboardRangeContainer);
 
       // Start landing particle network
       if (!window._landingParticles) {
@@ -1502,6 +1576,7 @@ function initTabNavigation() {
       hideEl(dom.analyticsSection);
       hideEl(dom.newApplicationSection);
       hideEl(dom.resumeSection);
+      hideEl(dom.globalDashboardRangeContainer);
     } else if (targetTab === 'dashboard') {
       hideEl(dom.landingTabContent);
       hideEl(dom.heroBanner);
@@ -1513,10 +1588,14 @@ function initTabNavigation() {
       showEl(dom.analyticsSection);
       hideEl(dom.newApplicationSection);
       hideEl(dom.resumeSection);
+      showEl(dom.globalDashboardRangeContainer);
 
       if (state.rawApplications.length > 0) {
         try {
-          renderAllDashboardWidgets(state.rawApplications);
+          const range = state.dashboardRange || 'weekly';
+          const filtered = getFilteredDashboardApps(range);
+          calculateStatistics(filtered);
+          renderAllDashboardWidgets(filtered);
         } catch (error) {
           console.error("Failed to render dashboard widgets on tab switch:", error);
         }
@@ -1532,6 +1611,7 @@ function initTabNavigation() {
       hideEl(dom.analyticsSection);
       showEl(dom.newApplicationSection);
       hideEl(dom.resumeSection);
+      hideEl(dom.globalDashboardRangeContainer);
 
       if (!window._formApp) {
         window._formApp = new FormApp();
@@ -1546,6 +1626,7 @@ function initTabNavigation() {
       hideEl(dom.statsSection);
       hideEl(dom.analyticsSection);
       hideEl(dom.newApplicationSection);
+      hideEl(dom.globalDashboardRangeContainer);
       // Lazy-load resume.css if not already loaded
       const initResumeTab = () => {
         showEl(dom.resumeSection);

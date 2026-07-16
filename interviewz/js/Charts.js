@@ -322,7 +322,7 @@ export function renderAllDashboardWidgets(applications, force = false) {
   if (applications.length === 0) return;
 
   const isDark = document.documentElement.classList.contains('theme-dark');
-  const currentRenderHash = `theme:${isDark}-v:${state.dataVersion}-len:${applications.length}`;
+  const currentRenderHash = `theme:${isDark}-v:${state.dataVersion}-len:${applications.length}-range:${state.dashboardRange || 'weekly'}`;
   if (!force && lastRenderHash === currentRenderHash) {
     return;
   }

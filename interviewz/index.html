@@ -128,6 +128,17 @@
   </header>
 
   <div class="container app-container">
+    <!-- Global Dashboard Range Toggle placed above all tabs, centered -->
+    <div class="dashboard-range-switch-container tab-hidden" id="globalDashboardRangeContainer">
+      <span class="range-switch-label">Weekly</span>
+      <button type="button" class="range-toggle-switch" id="dashboardRangeToggle" aria-label="Toggle dashboard range">
+        <span class="range-toggle-track">
+          <span class="range-toggle-thumb"></span>
+        </span>
+      </button>
+      <span class="range-switch-label">Yearly</span>
+    </div>
+
     <!-- New Landing/Home Tab Content -->
     <div class="landing-tab-content" id="landingTabContent">
       
@@ -488,7 +499,7 @@
           </div>
         </div>
         <!-- Applied This Month -->
-        <div class="stat-card">
+        <div class="stat-card" id="statCardThisMonth">
           <div class="stat-icon velocity-month">
             <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -797,7 +808,7 @@
               <label class="chart-filter-toggle" for="hideInactiveCompanies">
                 <span class="chart-filter-label">Active only</span>
                 <span class="toggle-switch-track">
-                  <input type="checkbox" id="hideInactiveCompanies">
+                  <input type="checkbox" id="hideInactiveCompanies" checked>
                   <span class="toggle-switch-thumb"></span>
                 </span>
               </label>

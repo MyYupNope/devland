@@ -13,5 +13,6 @@ export const state = {
   rowsPerPage: 5,
   currentApp: null,
   currentSortVal: 'date-desc',
-  dataVersion: 0
+  dataVersion: 0,
+  dashboardRange: 'weekly'
 };
