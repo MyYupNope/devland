@@ -1,5 +1,5 @@
 import { parseDate } from './Utils.js';
-import { state } from './State.js';
+import { state } from './State.js?v=2';
 
 let cumulativeSubmissionsChartInstance = null;
 let statusSplitChartInstance = null;
