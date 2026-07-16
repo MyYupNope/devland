@@ -1,6 +1,6 @@
 import { FacetedSelect } from './FacetedSelect.js';
 import { FormApp } from './FormApp.js';
-import { state } from './State.js?v=3';
+import { state } from './State.js?v=4';
 import { resumeApp } from './Resume.js';
 import { renderAllDashboardWidgets } from './Charts.js?v=3';
 import { parseMarkdown } from './Markdown.js';
@@ -368,7 +368,7 @@ function setupEventListeners() {
         state.dashboardRange = 'weekly';
       } else {
         dom.dashboardRangeToggle.classList.add('active');
-        state.dashboardRange = 'ytd';
+        state.dashboardRange = 'yearly';
       }
       localStorage.setItem('dashboardRange', state.dashboardRange);
       
@@ -821,13 +821,13 @@ function parseAndInitializeData(csvText) {
   updateFiltersUI();
   applyFilters(true);
 
-  const range = state.dashboardRange || 'ytd';
+  const range = state.dashboardRange || 'yearly';
   const filtered = getFilteredDashboardApps(range);
   calculateStatistics(filtered);
 
   // Render dashboard range toggle switch UI state
   if (dom.dashboardRangeToggle) {
-    if (range === 'ytd') {
+    if (range === 'yearly') {
       dom.dashboardRangeToggle.classList.add('active');
     } else {
       dom.dashboardRangeToggle.classList.remove('active');
@@ -1599,7 +1599,7 @@ function initTabNavigation() {
 
       if (state.rawApplications.length > 0) {
         try {
-          const range = state.dashboardRange || 'ytd';
+          const range = state.dashboardRange || 'yearly';
           const filtered = getFilteredDashboardApps(range);
           calculateStatistics(filtered);
           renderAllDashboardWidgets(filtered);
