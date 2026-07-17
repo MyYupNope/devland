@@ -3462,12 +3462,12 @@ a {
 
 /* Footer Styling */
 .resume-contact-section {
-  padding: 100px 20px 30px 20px !important;
+  padding: 100px 20px 48px 20px !important;
 }
 
 .resume-footer {
   width: 100% !important;
-  padding: 0 24px 16px 24px !important;
+  padding: 0 24px 28px 24px !important;
   background: transparent !important;
   position: relative !important;
   z-index: 10 !important;
@@ -3489,7 +3489,7 @@ a {
   margin: 0 auto !important;
   text-align: center !important;
   border-top: 1px solid #dadce0 !important;
-  padding-top: 16px !important;
+  padding-top: 20px !important;
   display: flex !important;
   justify-content: center !important;
   align-items: center !important;
