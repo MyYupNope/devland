@@ -41,6 +41,7 @@ export class ResumeApp {
     
     this._initDomReferences();
     this._initScrollObservers();
+    this._initHamburgerMenu();
     this._initHeroCanvas();
     this._initTypingAnimation();
     this._initPillarCards();
@@ -619,6 +620,40 @@ export class ResumeApp {
           item.classList.add('active');
         }
       });
+    });
+  }
+
+  _initHamburgerMenu() {
+    const navHamburger = document.getElementById('navHamburger');
+    const navLinks = document.querySelector('.nav-links');
+    if (!navHamburger || !navLinks) return;
+
+    // Toggle menu state on click
+    navHamburger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isExpanded = navHamburger.getAttribute('aria-expanded') === 'true';
+      navHamburger.setAttribute('aria-expanded', !isExpanded);
+      navHamburger.classList.toggle('active');
+      navLinks.classList.toggle('active');
+    });
+
+    // Close menu when clicking on any link
+    const links = navLinks.querySelectorAll('a');
+    links.forEach(link => {
+      link.addEventListener('click', () => {
+        navHamburger.setAttribute('aria-expanded', 'false');
+        navHamburger.classList.remove('active');
+        navLinks.classList.remove('active');
+      });
+    });
+
+    // Close menu when clicking outside of the navigation bar
+    document.addEventListener('click', (e) => {
+      if (!navHamburger.contains(e.target) && !navLinks.contains(e.target)) {
+        navHamburger.setAttribute('aria-expanded', 'false');
+        navHamburger.classList.remove('active');
+        navLinks.classList.remove('active');
+      }
     });
   }
 }
