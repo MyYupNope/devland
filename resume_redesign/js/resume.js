@@ -317,14 +317,20 @@ export class ResumeApp {
     // 2. Metric Cards Count-Up Observer
     const metricsGrid = document.querySelector('.resume-metrics-grid');
     if (metricsGrid) {
+      this._metricsAnimated = false;
       const countersObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
-            this._startMetricCounters();
-            countersObserver.unobserve(entry.target);
+            if (!this._metricsAnimated) {
+              this._startMetricCounters();
+              this._metricsAnimated = true;
+            }
+          } else {
+            // Reset state when it exits viewport so it can animate again when entering
+            this._metricsAnimated = false;
           }
         });
-      }, { threshold: 0.25 });
+      }, { threshold: 0.15 });
       
       countersObserver.observe(metricsGrid);
       this.observers.push(countersObserver);
@@ -344,21 +350,24 @@ export class ResumeApp {
   }
 
   _countUp(element, start, end, duration) {
+    if (element._animId) {
+      cancelAnimationFrame(element._animId);
+    }
     let startTime = null;
     const step = (timestamp) => {
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / duration, 1);
-      // Linear progress for steady, even count-up
       const ease = progress;
       const val = Math.floor(ease * (end - start) + start);
       element.textContent = val;
       if (progress < 1) {
-        requestAnimationFrame(step);
+        element._animId = requestAnimationFrame(step);
       } else {
         element.textContent = end;
+        element._animId = null;
       }
     };
-    requestAnimationFrame(step);
+    element._animId = requestAnimationFrame(step);
   }
 
   /* --------------------------------------------------------------------------
@@ -527,6 +536,13 @@ export class ResumeApp {
           if (targetEl) {
             const navHeight = siteNav.offsetHeight || 60;
             const targetPosition = targetEl.offsetTop - navHeight + 2;
+            // Reset metrics animated state and trigger animation if clicking "Impact"
+            if (targetId === '#metrics') {
+              this._metricsAnimated = false;
+              this._startMetricCounters();
+              this._metricsAnimated = true;
+            }
+            
             window.scrollTo({
               top: targetPosition,
               behavior: 'smooth'
