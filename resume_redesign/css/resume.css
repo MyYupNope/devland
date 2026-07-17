@@ -3201,12 +3201,14 @@ a {
 }
 
 /* 2x2 Bento grid configuration */
-.bento-skills-grid {
-  display: grid !important;
-  grid-template-columns: repeat(2, 1fr) !important;
-  grid-auto-rows: minmax(250px, auto) !important;
-  gap: 24px !important;
-  width: 100% !important;
+@media (min-width: 769px) {
+  .bento-skills-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    grid-auto-rows: minmax(250px, auto) !important;
+    gap: 24px !important;
+    width: 100% !important;
+  }
 }
 
 /* Standardize Card 1 (AI & Low-Code) to match the other cards in the 2x2 layout */
