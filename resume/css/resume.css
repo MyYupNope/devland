@@ -2801,23 +2801,48 @@ a {
 @media (max-width: 900px) {
   .bento-skills-grid {
     grid-template-columns: 1fr;
-    grid-auto-rows: minmax(180px, auto);
+    grid-auto-rows: auto;
   }
-  
+
+  .bento-card {
+    min-height: 160px;
+    height: auto;
+  }
+
   .bento-card.card-ai {
     grid-column: span 1;
     grid-row: span 1;
     flex-direction: column;
-    gap: 20px;
+    gap: 0;
   }
-  
-  .bento-card-content, .bento-card.card-ai .bento-card-content {
+
+  .bento-card-content,
+  .bento-card.card-ai .bento-card-content {
     max-width: 100%;
-  }
-  
-  .bento-widget-ai {
     width: 100%;
-    height: 140px;
+    height: auto;
+  }
+
+  /* Hide all decorative animated widgets on mobile — they overlap pills */
+  .bento-widget-ai,
+  .bento-widget-radar,
+  .bento-widget-gantt,
+  .bento-widget-chart,
+  .bento-widget-chatbot {
+    display: none !important;
+  }
+
+  /* Ensure tag pills are always fully visible */
+  .bento-tag-list {
+    margin-top: 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .bento-tag {
+    font-size: 0.82rem;
+    padding: 6px 14px;
+    white-space: normal;
   }
 }
 
