@@ -2624,15 +2624,15 @@ a {
   bottom: 25px;
   right: 25px;
   width: 140px;
-  height: 90px;
+  height: 102px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
   pointer-events: none;
   z-index: 2;
   background: var(--rm-bg-card);
   border: 1px solid var(--rm-border);
-  padding: 10px;
+  padding: 10px 10px 8px 10px;
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.02);
 }
@@ -3505,7 +3505,7 @@ a {
 
 /* Styling for Selected Gantt Chart and Milestone Badge */
 .bento-card.selected .bento-widget-gantt {
-  height: 96px !important;
+  height: 102px !important;
   bottom: 25px !important;
   right: 25px !important;
   display: flex !important;
