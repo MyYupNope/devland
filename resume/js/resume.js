@@ -573,6 +573,11 @@ export class ResumeApp {
       }
     });
 
+    // Map 'pillars' section to highlight the 'metrics' (Impact) menu option
+    if (activeId === 'pillars') {
+      activeId = 'metrics';
+    }
+
     // Fallback: If scrolled close to the very bottom of the page, force active section to be 'contact'
     const isAtBottom = (window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 60);
     if (isAtBottom) {
