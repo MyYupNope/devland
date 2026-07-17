@@ -2805,7 +2805,7 @@ a {
   }
 
   .bento-card {
-    min-height: 160px;
+    min-height: 200px;
     height: auto;
   }
 
@@ -2821,19 +2821,14 @@ a {
     max-width: 100%;
     width: 100%;
     height: auto;
+    position: relative;
+    z-index: 3;
   }
 
-  /* Hide all decorative animated widgets on mobile — they overlap pills */
-  .bento-widget-ai,
-  .bento-widget-radar,
-  .bento-widget-gantt,
-  .bento-widget-chart,
-  .bento-widget-chatbot {
-    display: none !important;
-  }
-
-  /* Ensure tag pills are always fully visible */
+  /* Tag pills always sit above widgets */
   .bento-tag-list {
+    position: relative;
+    z-index: 4;
     margin-top: 14px;
     flex-wrap: wrap;
     gap: 8px;
@@ -2843,6 +2838,43 @@ a {
     font-size: 0.82rem;
     padding: 6px 14px;
     white-space: normal;
+  }
+
+  /* Shrink widgets and pin to bottom-right corner so they don't block pills */
+  .bento-widget-radar {
+    width: 100px !important;
+    height: 100px !important;
+    bottom: -20px !important;
+    right: -20px !important;
+    opacity: 0.6;
+    z-index: 2;
+  }
+
+  .bento-widget-gantt {
+    width: 110px !important;
+    height: 75px !important;
+    bottom: 16px !important;
+    right: 16px !important;
+    z-index: 2;
+  }
+
+  .bento-widget-chart {
+    bottom: 12px !important;
+    right: 12px !important;
+    width: 100px !important;
+    z-index: 2;
+  }
+
+  .bento-widget-chatbot {
+    width: 140px !important;
+    bottom: 12px !important;
+    right: 12px !important;
+    z-index: 2;
+  }
+
+  .bento-widget-ai {
+    width: 100%;
+    height: 140px;
   }
 }
 
