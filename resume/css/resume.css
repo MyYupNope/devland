@@ -3441,11 +3441,7 @@ a {
   gap: 6px !important;
 }
 
-@media (max-width: 900px) {
-  .bento-tag-list {
-    max-width: 100% !important;
-  }
-}
+
 
 /* Hide tags from the 4th onwards by default to keep the card compact */
 .bento-card:not(.selected) .bento-tag:nth-child(n+4) {
