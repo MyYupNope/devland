@@ -2497,17 +2497,20 @@ a {
   opacity: 0;
 }
 
-/* Start radar sweep rotation on hover */
-.bento-card:hover .radar-line {
+/* Start radar sweep rotation on hover or selection */
+.bento-card:hover .radar-line,
+.bento-card.selected .radar-line {
   animation: radar-sweep 6s linear infinite !important;
 }
 
 /* Detect sweep animation - fades dot in and then out shortly after */
-.bento-card:hover .radar-dot.dot-3 {
+.bento-card:hover .radar-dot.dot-3,
+.bento-card.selected .radar-dot.dot-3 {
   animation: radarDetect 6s infinite linear 3.6s !important;
 }
 
-.bento-card:hover .radar-dot.dot-4 {
+.bento-card:hover .radar-dot.dot-4,
+.bento-card.selected .radar-dot.dot-4 {
   animation: radarDetect 6s infinite linear 5.1s !important;
 }
 
