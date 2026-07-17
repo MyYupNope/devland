@@ -47,6 +47,7 @@ export class ResumeApp {
     this._initTimeline();
     this._initSkillsConstellation();
     this._initCursorGlow();
+    this._initCertItems();
     
     window.addEventListener('resize', this.handleResize);
   }
@@ -337,7 +338,7 @@ export class ResumeApp {
     const certsEl = document.getElementById('metricCerts');
     
     if (yearsEl) this._countUp(yearsEl, 0, 20, 1500);
-    if (regionsEl) this._countUp(regionsEl, 0, 4, 1200);
+    if (regionsEl) this._countUp(regionsEl, 1, 4, 1200);
     if (solutionsEl) this._countUp(solutionsEl, 0, 50, 1800);
     if (certsEl) this._countUp(certsEl, 0, 11, 1000);
   }
@@ -347,8 +348,8 @@ export class ResumeApp {
     const step = (timestamp) => {
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / duration, 1);
-      // Easing function easeOutExpo
-      const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+      // Linear progress for steady, even count-up
+      const ease = progress;
       const val = Math.floor(ease * (end - start) + start);
       element.textContent = val;
       if (progress < 1) {
@@ -367,7 +368,6 @@ export class ResumeApp {
     const cards = document.querySelectorAll('.resume-pillar-card');
     cards.forEach(card => {
       card.addEventListener('click', (e) => {
-        // Prevent action if clicking inside already active buttons/links inside extra section (if any)
         if (e.target.closest('a') || e.target.closest('button') && !e.target.closest('.resume-pillar-card')) return;
         
         const isExpanded = card.classList.contains('expanded');
@@ -441,72 +441,162 @@ export class ResumeApp {
       }
     });
   }
-
   /* --------------------------------------------------------------------------
-     INTERACTIVE: SKILLS ORBITAL GRAPH
+     INTERACTIVE: BENTO GRID OF SKILLS & WIDGETS
      -------------------------------------------------------------------------- */
   _initSkillsConstellation() {
-    const nodes = document.querySelectorAll('.resume-skill-node');
-    const rings = document.querySelectorAll('.resume-skills-ring');
-    
-    nodes.forEach(node => {
-      node.addEventListener('mouseenter', () => {
-        const related = node.getAttribute('data-related');
-        if (!related) return;
-        
-        const relatedArray = related.split(',');
-        
-        nodes.forEach(otherNode => {
-          const otherId = otherNode.getAttribute('data-id');
-          if (otherId === node.getAttribute('data-id') || relatedArray.includes(otherId)) {
-            otherNode.classList.add('highlighted');
+    const bentoCards = document.querySelectorAll('.bento-card');
+    bentoCards.forEach(card => {
+      card.addEventListener('mousemove', (e) => {
+        const rect = card.getBoundingClientRect();
+        card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+        card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+      });
+
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('a') || e.target.closest('button')) return;
+        const isSelected = card.classList.contains('selected');
+        bentoCards.forEach(c => c.classList.remove('selected'));
+        if (!isSelected) {
+          card.classList.add('selected');
+        }
+      });
+    });
+
+    const bentoTags = document.querySelectorAll('.bento-tag');
+    bentoTags.forEach((tag, idx) => {
+      tag.style.opacity = '0';
+      tag.style.transform = 'translateY(10px)';
+      tag.style.transition = `opacity 0.4s ease ${idx * 0.03}s, transform 0.4s ease ${idx * 0.03}s`;
+    });
+
+    const bentoGrid = document.querySelector('.bento-skills-grid');
+    if (bentoGrid) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            bentoTags.forEach(tag => {
+              tag.style.opacity = '1';
+              tag.style.transform = 'translateY(0)';
+            });
+            observer.unobserve(entry.target);
           }
         });
-      });
-      
-      node.addEventListener('mouseleave', () => {
-        nodes.forEach(otherNode => otherNode.classList.remove('highlighted'));
-      });
-    });
-    
-    const centerHub = document.querySelector('.resume-skills-center');
-
-    // Rings highlight nodes inside them and update center hub style
-    rings.forEach((ring, index) => {
-      const ringNum = index + 1;
-      let selector = '';
-      if (ringNum === 1) selector = '.skill-t1, .skill-t2, .skill-t3, .skill-t4';
-      if (ringNum === 2) selector = '.skill-p1, .skill-p2, .skill-p3, .skill-p4, .skill-p5';
-      if (ringNum === 3) selector = '.skill-d1, .skill-d2, .skill-d3, .skill-d4, .skill-d5';
-      if (ringNum === 4) selector = '.skill-a1, .skill-a2, .skill-a3, .skill-a4, .skill-a5';
-      
-      ring.addEventListener('mouseenter', () => {
-        document.querySelectorAll(selector).forEach(node => {
-          node.classList.add('highlighted');
-        });
-        if (centerHub) {
-          centerHub.classList.add(`hover-ring-${ringNum}`);
-        }
-      });
-      
-      ring.addEventListener('mouseleave', () => {
-        document.querySelectorAll(selector).forEach(node => {
-          node.classList.remove('highlighted');
-        });
-        if (centerHub) {
-          centerHub.classList.remove(`hover-ring-${ringNum}`);
-        }
-      });
-    });
+      }, { threshold: 0.1 });
+      observer.observe(bentoGrid);
+      this.observers.push(observer);
+    }
   }
 
   _initCursorGlow() {
-    const cards = document.querySelectorAll('.resume-card');
+    const cards = document.querySelectorAll('.resume-card, .theme-toggle-btn');
     cards.forEach(card => {
       card.addEventListener('mousemove', (e) => {
         const rect = card.getBoundingClientRect();
         card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
         card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+      });
+    });
+
+    this._initStickyNav();
+  }
+
+  _initStickyNav() {
+    const siteNav = document.getElementById('siteNav');
+    if (!siteNav) return;
+
+    let lastScrollY = window.scrollY;
+    
+    window.addEventListener('scroll', () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > 80) {
+        siteNav.classList.add('scrolled');
+      } else {
+        siteNav.classList.remove('scrolled');
+      }
+      this._updateActiveNavLinks();
+    }, { passive: true });
+
+    const links = siteNav.querySelectorAll('.nav-links a');
+    links.forEach(link => {
+      link.addEventListener('click', (e) => {
+        const targetId = link.getAttribute('href');
+        if (targetId.startsWith('#')) {
+          e.preventDefault();
+          const targetEl = document.querySelector(targetId);
+          if (targetEl) {
+            const navHeight = siteNav.offsetHeight || 60;
+            const targetPosition = targetEl.offsetTop - navHeight + 2;
+            window.scrollTo({
+              top: targetPosition,
+              behavior: 'smooth'
+            });
+          }
+        }
+      });
+    });
+    this._updateActiveNavLinks();
+  }
+
+  _updateActiveNavLinks() {
+    const siteNav = document.getElementById('siteNav');
+    if (!siteNav) return;
+
+    const sections = document.querySelectorAll('section.resume-container, header.resume-hero');
+    const links = siteNav.querySelectorAll('.nav-links a');
+    const navHeight = siteNav.offsetHeight || 60;
+    
+    let activeId = '';
+    const scrollPos = window.scrollY + navHeight + 10;
+
+    sections.forEach(section => {
+      const top = section.offsetTop;
+      const height = section.offsetHeight;
+      if (scrollPos >= top && scrollPos < top + height) {
+        activeId = section.getAttribute('id');
+      }
+    });
+
+    // Fallback: If scrolled close to the very bottom of the page, force active section to be 'contact'
+    const isAtBottom = (window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 60);
+    if (isAtBottom) {
+      activeId = 'contact';
+    }
+
+    if (!activeId && sections.length > 0) {
+      activeId = 'about';
+    }
+
+    links.forEach(link => {
+      const href = link.getAttribute('href').substring(1);
+      if (href === activeId) {
+        link.classList.add('active');
+      } else {
+        link.classList.remove('active');
+      }
+    });
+
+    // Hide the brand (photo & name logo) when on 'about' (the hero/top portion)
+    const navBrand = document.getElementById('navBrand');
+    if (navBrand) {
+      if (activeId === 'about') {
+        navBrand.classList.add('hidden');
+      } else {
+        navBrand.classList.remove('hidden');
+      }
+    }
+  }
+
+  _initCertItems() {
+    const certItems = document.querySelectorAll('.resume-edu-cert-item');
+    certItems.forEach(item => {
+      item.style.cursor = 'pointer';
+      item.addEventListener('click', () => {
+        const isActive = item.classList.contains('active');
+        certItems.forEach(c => c.classList.remove('active'));
+        if (!isActive) {
+          item.classList.add('active');
+        }
       });
     });
   }

@@ -12,7 +12,7 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   
   <!-- Standalone Stylesheet -->
   <link rel="stylesheet" href="css/resume.css">
@@ -20,7 +20,15 @@
   <!-- Theme Detection script to prevent flashing -->
   <script>
     (function() {
-      const savedTheme = localStorage.getItem('theme');
+      // Force light theme default on first load of redesign to clear any cached dark setting
+      let savedTheme = localStorage.getItem('theme_redesign_v2');
+      if (!savedTheme) {
+        localStorage.setItem('theme_redesign_v2', 'initialized');
+        localStorage.setItem('theme', 'light');
+        savedTheme = 'light';
+      } else {
+        savedTheme = localStorage.getItem('theme');
+      }
       const isDark = savedTheme === 'dark';
       if (isDark) {
         document.documentElement.classList.add('theme-dark');
@@ -50,54 +58,101 @@
       <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
     </svg>
   </button>
-    <section class="resume-section">
+      <!-- Sticky Header / Nav Bar -->
+      <nav class="site-nav" id="siteNav">
+        <div class="nav-content">
+          <div class="nav-brand hide-on-about" id="navBrand">
+            <img src="assets/avatar.png" alt="Rodrigo Matias" class="nav-avatar">
+            <div class="nav-logo-text">
+              <span class="nav-logo-top">Rodrigo</span>
+              <span class="nav-logo-bottom">Matias</span>
+            </div>
+          </div>
+          <div class="nav-links">
+            <a href="#about">About</a>
+            <a href="#metrics">Impact</a>
+            <a href="#experience">Experience</a>
+            <a href="#skills">Skills</a>
+            <a href="#education">Qualifications</a>
+            <a href="#contact">Contacts</a>
+          </div>
+        </div>
+      </nav>
+
+    <section class="resume-section" id="about">
       <!-- Section 1: Hero -->
       <header class="resume-hero">
         <canvas id="resumeHeroCanvas"></canvas>
         <div class="resume-hero-content resume-animate">
-          <div class="resume-avatar">
-            <img src="assets/avatar.png" loading="lazy" alt="Rodrigo Matias" class="resume-avatar-img">
-          </div>
-          <h1 class="resume-hero-name">Rodrigo Matias</h1>
+          <h1 class="resume-hero-name"><span class="accent-text">Rodrigo Matias</span></h1>
+          <p class="resume-hero-subtitle">IT Business Partner & Digital Transformation Leader</p>
           <blockquote class="resume-hero-quote">
             “Empowering people through technology for over two decades.”
           </blockquote>
-          <div class="resume-hero-title-container">
-            <span class="resume-hero-title" id="resumeTypingTarget"></span>
-          </div>
-          <p class="resume-hero-tagline">
-            I’m a global IT and digital transformation leader with deep experience in healthcare and medical devices, where I’ve helped translate business needs into technology solutions across regions. I’ve led Agile delivery, operational improvement, analytics, automation, and recent GenAI initiatives, with a strong focus on stakeholder alignment, high-quality execution, and measurable outcomes.
-          </p>
           <div class="resume-hero-ctas">
             <a href="https://www.linkedin.com/in/rodrigo-gc-matias/" target="_blank" rel="noopener noreferrer" class="resume-btn resume-btn-primary">
               <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
-              LinkedIn
+              LinkedIn Profile
             </a>
             <a href="mailto:rodrigo.gc.matias@gmail.com" class="resume-btn resume-btn-secondary">
               <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
               Email Me
             </a>
-            <a href="assets/RodrigoMatias_CV_2026_EN_Original.md" target="_blank" class="resume-btn resume-btn-secondary">
-              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-              View Original CV
-            </a>
           </div>
         </div>
       </header>
 
-      <!-- Section 2: Strategic Pillars -->
-      <section class="resume-container resume-pillars">
+      <!-- Section 4: Impact Metrics (Repositioned here for Apple hierarchy) -->
+      <section class="resume-container resume-metrics" id="metrics">
         <div class="resume-title-block resume-animate">
-          <span class="resume-pre-title">Core Strategy</span>
-          <h2 class="resume-title">Five Dimensions of Impact</h2>
-          <div class="resume-title-line"></div>
+          <span class="resume-pre-title">Impact</span>
+          <h2 class="resume-title">Metrics that Matter.</h2>
+        </div>
+        <div class="resume-metrics-grid resume-stagger">
+          <article class="resume-card resume-metric-card">
+            <div class="resume-metric-number-container">
+              <span class="resume-metric-number" id="metricYears">0</span>
+              <span class="resume-metric-suffix">+</span>
+            </div>
+            <h4 class="resume-metric-label">Years of Experience</h4>
+          </article>
+
+          <article class="resume-card resume-metric-card">
+            <div class="resume-metric-number-container">
+              <span class="resume-metric-number" id="metricRegions">1</span>
+            </div>
+            <h4 class="resume-metric-label">Regions of Experience</h4>
+          </article>
+
+          <article class="resume-card resume-metric-card">
+            <div class="resume-metric-number-container">
+              <span class="resume-metric-number" id="metricSolutions">0</span>
+              <span class="resume-metric-suffix">+</span>
+            </div>
+            <h4 class="resume-metric-label">Solutions Delivered</h4>
+          </article>
+
+          <article class="resume-card resume-metric-card">
+            <div class="resume-metric-number-container">
+              <span class="resume-metric-number" id="metricCerts">0</span>
+              <span class="resume-metric-suffix">+</span>
+            </div>
+            <h4 class="resume-metric-label">Certifications</h4>
+          </article>
+        </div>
+      </section>
+
+      <!-- Section 2: Strategic Pillars -->
+      <section class="resume-container resume-pillars" id="pillars">
+        <div class="resume-title-block resume-animate">
+          <h2 class="resume-title">Five Dimensions of Impact.</h2>
         </div>
 
         <div class="resume-pillars-grid resume-stagger">
           <!-- Card 1 -->
-          <article class="resume-card resume-pillar-card" style="--accent-color: var(--rm-accent-teal); --accent-color-glow: rgba(5, 222, 186, 0.15);">
+          <article class="resume-card resume-pillar-card">
             <div class="resume-pillar-icon">
-              <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 18a4 4 0 0 0-8 0m8 0h4m-12 0H4M8 11V7m0 4h8m0 0V7m-4-4v4m-4-1a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm8 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.48 0-.96.06-1.4.17A5.5 5.5 0 0 0 5 13c0 2.2 1.8 4 4 4"/><path d="M12 11v9M9 14l3-3 3 3"/></svg>
             </div>
             <h3>
               Digital Transformation
@@ -121,9 +176,9 @@
           </article>
 
           <!-- Card 2 -->
-          <article class="resume-card resume-pillar-card" style="--accent-color: var(--rm-accent-amber); --accent-color-glow: rgba(255, 174, 0, 0.15);">
+          <article class="resume-card resume-pillar-card">
             <div class="resume-pillar-icon">
-              <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             </div>
             <h3>
               Process Automation & Digitization
@@ -147,9 +202,9 @@
           </article>
 
           <!-- Card 3 -->
-          <article class="resume-card resume-pillar-card" style="--accent-color: var(--rm-accent-coral); --accent-color-glow: rgba(255, 87, 127, 0.15);">
+          <article class="resume-card resume-pillar-card">
             <div class="resume-pillar-icon">
-              <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1 0-4.12 2.5 2.5 0 0 1 0-4.88A2.5 2.5 0 0 1 9.5 2zM14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 0-4.12 2.5 2.5 0 0 0 0-4.88A2.5 2.5 0 0 0 14.5 2z"/></svg>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1 0-4.12 2.5 2.5 0 0 1 0-4.88A2.5 2.5 0 0 1 9.5 2zM14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 0-4.12 2.5 2.5 0 0 0 0-4.88A2.5 2.5 0 0 0 14.5 2z"/></svg>
             </div>
             <h3>
               Generative AI & Innovation
@@ -175,9 +230,9 @@
 
         <div class="resume-pillars-grid-bottom resume-stagger">
           <!-- Card 4 -->
-          <article class="resume-card resume-pillar-card" style="--accent-color: var(--rm-accent-violet); --accent-color-glow: rgba(130, 87, 255, 0.15);">
+          <article class="resume-card resume-pillar-card">
             <div class="resume-pillar-icon">
-              <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3v18h18M7 16l4-4 4 4 5-8"/></svg>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/><path d="M15 8h3.7V11.7"/></svg>
             </div>
             <h3>
               Data-Driven Decision Making
@@ -201,9 +256,9 @@
           </article>
 
           <!-- Card 5 -->
-          <article class="resume-card resume-pillar-card" style="--accent-color: var(--rm-accent-mint); --accent-color-glow: rgba(0, 230, 255, 0.15);">
+          <article class="resume-card resume-pillar-card">
             <div class="resume-pillar-icon">
-              <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/></svg>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/><circle cx="12" cy="12" r="2"/></svg>
             </div>
             <h3>
               Global Service Delivery
@@ -219,9 +274,9 @@
                 <li><strong>Vendor Alignment:</strong> Strategic vendor evaluations to optimize Service Level Agreements (SLAs).</li>
               </ul>
               <div class="resume-pillar-badges">
+                <span class="resume-pillar-badge">Mobile MDM</span>
                 <span class="resume-pillar-badge">ITIL</span>
-                <span class="resume-pillar-badge">Service Delivery</span>
-                <span class="resume-pillar-badge">Team Leadership</span>
+                <span class="resume-pillar-badge">Vendor Mgmt</span>
               </div>
             </div>
           </article>
@@ -229,10 +284,10 @@
       </section>
 
       <!-- Section 3: Career Timeline -->
-      <section class="resume-container resume-timeline-section">
+      <section class="resume-container resume-timeline-section" id="experience">
         <div class="resume-title-block resume-animate">
-          <span class="resume-pre-title">My Background</span>
-          <h2 class="resume-title">A Journey of Continuous Elevation</h2>
+          <span class="resume-pre-title">Experience</span>
+          <h2 class="resume-title">A Journey of Continuous Elevation.</h2>
           <div class="resume-title-line"></div>
         </div>
 
@@ -512,61 +567,13 @@
         </div>
       </section>
 
-      <!-- Section 4: Impact Metrics -->
-      <section class="resume-container resume-metrics">
+
+
+      <!-- Section 5: Skills Constellation (Replaced with Bento Grid) -->
+      <section class="resume-container resume-skills" id="skills">
         <div class="resume-title-block resume-animate">
-          <span class="resume-pre-title">Performance</span>
-          <h2 class="resume-title">By the Numbers</h2>
-          <div class="resume-title-line"></div>
-        </div>
-
-        <div class="resume-metrics-grid resume-stagger">
-          <article class="resume-card resume-metric-card">
-            <div class="resume-metric-number-container">
-              <span class="resume-metric-number" id="metricYears">0</span>
-              <span class="resume-metric-suffix">+</span>
-            </div>
-            <h4 class="resume-metric-label">Years of Experience</h4>
-            <p class="resume-metric-desc">Building and managing corporate IT systems.</p>
-            <div class="resume-metric-watermark">YR</div>
-          </article>
-
-          <article class="resume-card resume-metric-card">
-            <div class="resume-metric-number-container">
-              <span class="resume-metric-number" id="metricRegions">0</span>
-            </div>
-            <h4 class="resume-metric-label">Global Regions</h4>
-            <p class="resume-metric-desc">Managing stakeholders across NA, LA, EMEA, and ASPAC.</p>
-            <div class="resume-metric-watermark">RG</div>
-          </article>
-
-          <article class="resume-card resume-metric-card">
-            <div class="resume-metric-number-container">
-              <span class="resume-metric-number" id="metricSolutions">0</span>
-              <span class="resume-metric-suffix">+</span>
-            </div>
-            <h4 class="resume-metric-label">Solutions Delivered</h4>
-            <p class="resume-metric-desc">Low-Code automations, dashboards, and custom business tools.</p>
-            <div class="resume-metric-watermark">SL</div>
-          </article>
-
-          <article class="resume-card resume-metric-card">
-            <div class="resume-metric-number-container">
-              <span class="resume-metric-number" id="metricCerts">0</span>
-              <span class="resume-metric-suffix">+</span>
-            </div>
-            <h4 class="resume-metric-label">Certifications & Courses</h4>
-            <p class="resume-metric-desc">Diverse professional credentials and continuous training.</p>
-            <div class="resume-metric-watermark">CT</div>
-          </article>
-        </div>
-      </section>
-
-      <!-- Section 5: Skills Constellation -->
-      <section class="resume-container resume-skills">
-        <div class="resume-title-block resume-animate">
-          <span class="resume-pre-title">Capabilities</span>
-          <h2 class="resume-title">The Toolkit</h2>
+          <span class="resume-pre-title">Skills</span>
+          <h2 class="resume-title">The Toolkit.</h2>
           <div class="resume-title-line"></div>
         </div>
 
@@ -574,8 +581,7 @@
           <div class="resume-skills-info">
             <h3>Interactive Competencies</h3>
             <p>
-              Hover over the orbital rings or individual skill nodes to highlight connected capabilities across domains. 
-              My experience sits at the intersection of business strategy, execution management, data insights, and automation tech.
+              Hover over each card to experience interactive micro-visualizations representing my real-world expertise and technological focus.
             </p>
             <div class="resume-skills-legend">
               <div class="resume-skills-legend-item">
@@ -597,84 +603,123 @@
             </div>
           </div>
 
-          <div class="resume-skills-visual">
-            <div class="resume-skills-center">
-              <span>Core<br>Skills</span>
-            </div>
-            
-            <div class="resume-skills-ring resume-skills-ring-1">
-              <span class="resume-skill-node skill-t1" data-id="s-plan" data-related="a-genai,d-mbi,p-agile">Strategic Planning</span>
-              <span class="resume-skill-node skill-t2" data-id="c-change" data-related="p-agile,d-mbi">Change Management</span>
-              <span class="resume-skill-node skill-t3" data-id="s-design" data-related="a-pp,a-rpa,d-mbi">Solution Design</span>
-              <span class="resume-skill-node skill-t4" data-id="s-engage" data-related="p-water,p-agile">Stakeholder Engagement</span>
-            </div>
-
-            <div class="resume-skills-ring resume-skills-ring-2">
-              <span class="resume-skill-node skill-p1" data-id="p-agile" data-related="s-plan,c-change,p-safe">Scrum / Kanban</span>
-              <span class="resume-skill-node skill-p2" data-id="p-water" data-related="s-engage,p-sdlc">Waterfall</span>
-              <span class="resume-skill-node skill-p3" data-id="p-safe" data-related="p-agile">SAFE Framework</span>
-              <span class="resume-skill-node skill-p4" data-id="p-sdlc" data-related="p-water,s-design">SDLC</span>
-              <span class="resume-skill-node skill-p5" data-id="p-jira" data-related="p-agile">Jira & Confluence</span>
-            </div>
-
-            <div class="resume-skills-ring resume-skills-ring-3">
-              <span class="resume-skill-node skill-d1" data-id="d-mbi" data-related="s-plan,d-pbi">Data-Driven Decisions</span>
-              <span class="resume-skill-node skill-d2" data-id="d-pbi" data-related="d-mbi,d-etl">Power BI</span>
-              <span class="resume-skill-node skill-d3" data-id="d-etl" data-related="d-pbi,a-pp">Data ETL/ELT</span>
-              <span class="resume-skill-node skill-d4" data-id="d-next" data-related="d-mbi">Nexthink Analytics</span>
-              <span class="resume-skill-node skill-d5" data-id="d-mig" data-related="p-sdlc">Data Migration</span>
-            </div>
-
-            <div class="resume-skills-ring resume-skills-ring-4">
-              <span class="resume-skill-node skill-a1" data-id="a-genai" data-related="s-plan,a-rag,a-prompt">Generative AI</span>
-              <span class="resume-skill-node skill-a2" data-id="a-pp" data-related="s-design,d-etl">Power Platform</span>
-              <span class="resume-skill-node skill-a3" data-id="a-rpa" data-related="s-design,a-pp">RPA Tools</span>
-              <span class="resume-skill-node skill-a4" data-id="a-rag" data-related="a-genai,a-prompt">RAG & Prompt Eng</span>
-              <span class="resume-skill-node skill-a5" data-id="a-share" data-related="a-pp">SharePoint/Dataverse</span>
-            </div>
-          </div>
-
-          <div class="resume-skills-fallback">
-            <div class="resume-skills-fallback-category" style="--fallback-color: var(--rm-accent-teal);">
-              <h4 class="resume-skills-fallback-title">Transformation & Strategy</h4>
-              <div class="resume-skills-fallback-list">
-                <span class="resume-skills-fallback-tag">Strategic Planning</span>
-                <span class="resume-skills-fallback-tag">Change Management</span>
-                <span class="resume-skills-fallback-tag">Solution Design</span>
-                <span class="resume-skills-fallback-tag">Stakeholder Engagement</span>
+          <div class="bento-skills-grid">
+            <!-- Bento Card 1: AI & Automation (Double size/Featured) -->
+            <div class="bento-card card-ai" style="--card-accent: var(--rm-accent-coral);">
+              <div class="bento-card-bg-gradient"></div>
+              <div class="bento-card-content">
+                <span class="bento-card-category" style="color: var(--rm-accent-coral)">Process Digitalization & AI</span>
+                <h4 class="bento-card-title">Generative AI & Low-Code</h4>
+                <div class="bento-tag-list">
+                  <span class="bento-tag">Generative AI</span>
+                  <span class="bento-tag">RAG & Prompt Eng</span>
+                  <span class="bento-tag">Power Platform</span>
+                  <span class="bento-tag">RPA Tools</span>
+                  <span class="bento-tag">SharePoint/Dataverse</span>
+                </div>
+              </div>
+              <div class="bento-widget-chatbot">
+                <div class="chatbot-header">
+                  <div class="chatbot-avatar">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 16h.01M16 16h.01"/></svg>
+                    <span class="chatbot-status-dot"></span>
+                  </div>
+                  <span class="chatbot-name">Copilot</span>
+                </div>
+                <div class="chatbot-messages">
+                  <div class="chat-msg user-msg">Optimize workflow</div>
+                  <div class="chat-msg bot-loader">
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                  </div>
+                  <div class="chat-msg bot-response">Saved 400+ hours!</div>
+                </div>
               </div>
             </div>
 
-            <div class="resume-skills-fallback-category" style="--fallback-color: var(--rm-accent-amber);">
-              <h4 class="resume-skills-fallback-title">Project Management & Delivery</h4>
-              <div class="resume-skills-fallback-list">
-                <span class="resume-skills-fallback-tag">Scrum / Kanban</span>
-                <span class="resume-skills-fallback-tag">Waterfall</span>
-                <span class="resume-skills-fallback-tag">SAFE 5 PO/PM</span>
-                <span class="resume-skills-fallback-tag">SDLC</span>
-                <span class="resume-skills-fallback-tag">Jira & Confluence</span>
+            <!-- Bento Card 2: Strategy & Transformation -->
+            <div class="bento-card card-strategy" style="--card-accent: var(--rm-accent-teal);">
+              <div class="bento-card-bg-gradient"></div>
+              <div class="bento-card-content">
+                <span class="bento-card-category" style="color: var(--rm-accent-teal)">Transformation & Strategy</span>
+                <h4 class="bento-card-title">Digital Transformation</h4>
+                <div class="bento-tag-list">
+                  <span class="bento-tag">Strategic Planning</span>
+                  <span class="bento-tag">Change Management</span>
+                  <span class="bento-tag">Solution Design</span>
+                  <span class="bento-tag">Stakeholder Engagement</span>
+                </div>
+              </div>
+              <div class="bento-widget-radar">
+                <div class="radar-circle circle-1"></div>
+                <div class="radar-circle circle-2"></div>
+                <div class="radar-line"></div>
+                <div class="radar-dot dot-1"></div>
+                <div class="radar-dot dot-2"></div>
+                <div class="radar-dot dot-3"></div>
+                <div class="radar-dot dot-4"></div>
               </div>
             </div>
 
-            <div class="resume-skills-fallback-category" style="--fallback-color: var(--rm-accent-violet);">
-              <h4 class="resume-skills-fallback-title">Data & Analytics</h4>
-              <div class="resume-skills-fallback-list">
-                <span class="resume-skills-fallback-tag">Data-Driven Decisions</span>
-                <span class="resume-skills-fallback-tag">Power BI</span>
-                <span class="resume-skills-fallback-tag">Data ETL/ELT</span>
-                <span class="resume-skills-fallback-tag">Nexthink Analytics</span>
-                <span class="resume-skills-fallback-tag">Data Migration</span>
+            <!-- Bento Card 3: Project Management & Delivery -->
+            <div class="bento-card card-delivery" style="--card-accent: var(--rm-accent-amber);">
+              <div class="bento-card-bg-gradient"></div>
+              <div class="bento-card-content">
+                <span class="bento-card-category" style="color: var(--rm-accent-amber)">Project Management & Delivery</span>
+                <h4 class="bento-card-title">Agile & SDLC Execution</h4>
+                <div class="bento-tag-list">
+                  <span class="bento-tag">Scrum / Kanban</span>
+                  <span class="bento-tag">Waterfall</span>
+                  <span class="bento-tag">SAFE Framework</span>
+                  <span class="bento-tag">SDLC</span>
+                  <span class="bento-tag">Jira & Confluence</span>
+                </div>
+              </div>
+              <div class="bento-widget-gantt">
+                <div class="gantt-row">
+                  <span class="gantt-label">Plan</span>
+                  <div class="gantt-bar-bg">
+                    <div class="gantt-bar-fill fill-plan"></div>
+                  </div>
+                </div>
+                <div class="gantt-row">
+                  <span class="gantt-label">Build</span>
+                  <div class="gantt-bar-bg">
+                    <div class="gantt-bar-fill fill-build"></div>
+                  </div>
+                </div>
+                <div class="gantt-row">
+                  <span class="gantt-label">Deploy</span>
+                  <div class="gantt-bar-bg">
+                    <div class="gantt-bar-fill fill-deploy"></div>
+                  </div>
+                </div>
+                <div class="gantt-milestone">
+                  <span class="milestone-text">Goal Achieved!</span>
+                </div>
               </div>
             </div>
 
-            <div class="resume-skills-fallback-category" style="--fallback-color: var(--rm-accent-coral);">
-              <h4 class="resume-skills-fallback-title">Process Digitalization & AI</h4>
-              <div class="resume-skills-fallback-list">
-                <span class="resume-skills-fallback-tag">Generative AI</span>
-                <span class="resume-skills-fallback-tag">Power Platform</span>
-                <span class="resume-skills-fallback-tag">RPA (Robotic Process Automation)</span>
-                <span class="resume-skills-fallback-tag">RAG & Prompt Engineering</span>
-                <span class="resume-skills-fallback-tag">SharePoint / Dataverse</span>
+            <!-- Bento Card 4: Data & Analytics -->
+            <div class="bento-card card-analytics" style="--card-accent: var(--rm-accent-violet);">
+              <div class="bento-card-bg-gradient"></div>
+              <div class="bento-card-content">
+                <span class="bento-card-category" style="color: var(--rm-accent-violet)">Data & Analytics</span>
+                <h4 class="bento-card-title">Data Insights & BI</h4>
+                <div class="bento-tag-list">
+                  <span class="bento-tag">Power BI</span>
+                  <span class="bento-tag">Data-Driven Decisions</span>
+                  <span class="bento-tag">Data ETL/ELT</span>
+                  <span class="bento-tag">Nexthink Analytics</span>
+                  <span class="bento-tag">Data Migration</span>
+                </div>
+              </div>
+              <div class="bento-widget-chart">
+                <div class="chart-bar bar-1"></div>
+                <div class="chart-bar bar-2"></div>
+                <div class="chart-bar bar-3"></div>
+                <div class="chart-bar bar-4"></div>
               </div>
             </div>
           </div>
@@ -682,10 +727,10 @@
       </section>
 
       <!-- Section 6: Education & Certifications -->
-      <section class="resume-container resume-education">
+      <section class="resume-container resume-education" id="education">
         <div class="resume-title-block resume-animate">
-          <span class="resume-pre-title">Credentials</span>
-          <h2 class="resume-title">Always Learning</h2>
+          <span class="resume-pre-title">Qualifications</span>
+          <h2 class="resume-title">Always Learning.</h2>
           <div class="resume-title-line"></div>
         </div>
 
@@ -706,7 +751,7 @@
 
           <section>
             <h4 class="resume-edu-group-title" style="--accent-color: var(--rm-accent-coral);">
-              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
               AI & Automation
             </h4>
             <div class="resume-edu-cert-list">
@@ -834,8 +879,7 @@
       </section>
 
       <!-- Section 7: Contact CTA & Languages -->
-      <section class="resume-container resume-contact-section">
-        <canvas id="resumeBottomCanvas"></canvas>
+      <section class="resume-container resume-contact-section" id="contact">
         <div class="resume-card resume-contact-card resume-animate">
           <h2 class="resume-contact-title">Let's Build What's Next</h2>
           <p class="resume-contact-subtitle">
