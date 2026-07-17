@@ -3135,19 +3135,21 @@ a {
 }
 
 /* Prevent first and last timeline nodes from being cut off */
-.resume-timeline-inner {
-  padding-left: 50px !important;
-  padding-right: 50px !important;
-}
+@media (min-width: 769px) {
+  .resume-timeline-inner {
+    padding-left: 50px !important;
+    padding-right: 50px !important;
+  }
 
-.resume-timeline-line-track {
-  left: 50px !important;
-  right: 50px !important;
-  background: #8e8e93 !important; /* Darker neutral grey line */
-}
+  .resume-timeline-line-track {
+    left: 50px !important;
+    right: 50px !important;
+    background: #8e8e93 !important; /* Darker neutral grey line */
+  }
 
-:root.theme-dark .resume-timeline-line-track {
-  background: #636366 !important; /* Darker grey line in dark mode */
+  :root.theme-dark .resume-timeline-line-track {
+    background: #636366 !important; /* Darker grey line in dark mode */
+  }
 }
 
 /* Highlights for Active and Inactive Timeline Nodes */
