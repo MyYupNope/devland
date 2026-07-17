@@ -2022,8 +2022,8 @@ a {
 }
 
 .nav-links a {
-  font-size: 0.75rem;
-  font-weight: 400;
+  font-size: 0.88rem;
+  font-weight: 500;
   color: var(--rm-text-secondary);
   opacity: 0.88;
   transition: opacity 0.2s, color 0.2s;
