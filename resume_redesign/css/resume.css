@@ -2825,13 +2825,14 @@ a {
     z-index: 3;
   }
 
-  /* Tag pills always sit above widgets */
+  /* Tag pills always sit above widgets and are concentrated on the left */
   .bento-tag-list {
     position: relative;
     z-index: 4;
     margin-top: 14px;
     flex-wrap: wrap;
     gap: 8px;
+    max-width: 58% !important;
   }
 
   .bento-tag {
@@ -2877,6 +2878,10 @@ a {
   .bento-widget-ai {
     width: 100%;
     height: 140px;
+  }
+
+  .milestone-text {
+    font-size: 0.55rem !important;
   }
 }
 
@@ -3281,10 +3286,6 @@ a {
 /* Style the new interactive Chatbot Widget */
 .bento-widget-chatbot {
   position: absolute !important;
-  bottom: 20px !important;
-  right: 20px !important;
-  width: 160px !important;
-  height: 125px !important;
   background: var(--rm-bg-card) !important;
   border: 1px solid var(--rm-border) !important;
   border-radius: 16px !important;
@@ -3295,6 +3296,15 @@ a {
   box-shadow: 0 4px 12px rgba(0,0,0,0.02) !important;
   z-index: 2 !important;
   pointer-events: none !important;
+}
+
+@media (min-width: 769px) {
+  .bento-widget-chatbot {
+    bottom: 20px !important;
+    right: 20px !important;
+    width: 160px !important;
+    height: 125px !important;
+  }
 }
 
 :root.theme-dark .bento-widget-chatbot {
