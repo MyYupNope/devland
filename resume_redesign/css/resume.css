@@ -2398,7 +2398,8 @@ a {
   mix-blend-mode: screen;
 }
 
-.bento-card:hover .bento-card-bg-gradient {
+.bento-card:hover .bento-card-bg-gradient,
+.bento-card.selected .bento-card-bg-gradient {
   opacity: 0.12;
 }
 
@@ -2455,7 +2456,8 @@ a {
   border-color: rgba(255, 255, 255, 0.04);
 }
 
-.bento-card:hover .bento-tag {
+.bento-card:hover .bento-tag,
+.bento-card.selected .bento-tag {
   background: rgba(0, 113, 227, 0.06);
   color: var(--card-accent);
   border-color: rgba(0, 113, 227, 0.03);
@@ -2734,7 +2736,8 @@ a {
 }
 
 /* On hover, change Deploy tip dot to a green checkmark badge when 100% is reached */
-.bento-card:hover .gantt-bar-fill.fill-deploy::after {
+.bento-card:hover .gantt-bar-fill.fill-deploy::after,
+.bento-card.selected .gantt-bar-fill.fill-deploy::after {
   content: '✓' !important;
   right: -5px !important;
   width: 10px !important;
@@ -2757,11 +2760,13 @@ a {
 }
 
 /* Hover state triggers gantt timeline expansion / progress */
-.bento-card:hover .gantt-bar-fill.fill-build {
+.bento-card:hover .gantt-bar-fill.fill-build,
+.bento-card.selected .gantt-bar-fill.fill-build {
   width: 90%;
 }
 
-.bento-card:hover .gantt-bar-fill.fill-deploy {
+.bento-card:hover .gantt-bar-fill.fill-deploy,
+.bento-card.selected .gantt-bar-fill.fill-deploy {
   width: 60%;
 }
 
@@ -2791,10 +2796,14 @@ a {
 .chart-bar.bar-3 { height: 45px; }
 .chart-bar.bar-4 { height: 80px; }
 
-.bento-card:hover .chart-bar.bar-1 { height: 50px; }
-.bento-card:hover .chart-bar.bar-2 { height: 85px; }
-.bento-card:hover .chart-bar.bar-3 { height: 35px; }
-.bento-card:hover .chart-bar.bar-4 { height: 95px; }
+.bento-card:hover .chart-bar.bar-1,
+.bento-card.selected .chart-bar.bar-1 { height: 50px; }
+.bento-card:hover .chart-bar.bar-2,
+.bento-card.selected .chart-bar.bar-2 { height: 85px; }
+.bento-card:hover .chart-bar.bar-3,
+.bento-card.selected .chart-bar.bar-3 { height: 35px; }
+.bento-card:hover .chart-bar.bar-4,
+.bento-card.selected .chart-bar.bar-4 { height: 95px; }
 
 
 /* Responsive Bento Grid */
@@ -3408,11 +3417,13 @@ a {
 }
 
 /* Hover interactions to animate chatbot processing */
-.bento-card:hover .chat-msg.bot-loader {
+.bento-card:hover .chat-msg.bot-loader,
+.bento-card.selected .chat-msg.bot-loader {
   display: none !important;
 }
 
-.bento-card:hover .chat-msg.bot-response {
+.bento-card:hover .chat-msg.bot-response,
+.bento-card.selected .chat-msg.bot-response {
   display: block !important;
   animation: messageFadeIn 0.3s ease forwards !important;
 }
@@ -3534,11 +3545,13 @@ a {
 }
 
 /* Hover State - Animate Deploy to 100% and Fade in Milestone Badge */
-.bento-card:hover .gantt-bar-fill.fill-deploy {
+.bento-card:hover .gantt-bar-fill.fill-deploy,
+.bento-card.selected .gantt-bar-fill.fill-deploy {
   width: 100% !important;
 }
 
-.bento-card:hover .gantt-milestone {
+.bento-card:hover .gantt-milestone,
+.bento-card.selected .gantt-milestone {
   opacity: 1 !important;
   transform: translateY(0) !important;
   transition-delay: 0.4s !important; /* Delay showing milestone until progress completes */
