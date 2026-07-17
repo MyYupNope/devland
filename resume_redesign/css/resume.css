@@ -2866,10 +2866,12 @@ a {
   }
 
   .bento-widget-chatbot {
-    width: 140px !important;
-    bottom: 12px !important;
-    right: 12px !important;
+    width: 110px !important;
+    height: 75px !important;
+    bottom: 14px !important;
+    right: 14px !important;
     z-index: 2;
+    overflow: hidden;
   }
 
   .bento-widget-ai {
@@ -3416,6 +3418,12 @@ a {
   display: flex !important;
   flex-wrap: wrap !important;
   gap: 6px !important;
+}
+
+@media (max-width: 900px) {
+  .bento-tag-list {
+    max-width: 100% !important;
+  }
 }
 
 /* Hide tags from the 4th onwards by default to keep the card compact */
