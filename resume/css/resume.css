@@ -389,26 +389,19 @@ a {
   width: 110px;
   height: 110px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--rm-accent-teal) 0%, var(--rm-accent-violet) 100%);
+  border: 2px solid var(--rm-accent-teal);
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 24px;
   box-shadow: 0 0 30px var(--rm-border-glow);
   position: relative;
+  padding: 3px;
 }
 
 .resume-avatar::after {
-  content: '';
-  position: absolute;
-  top: -4px;
-  left: -4px;
-  right: -4px;
-  bottom: -4px;
-  border-radius: 50%;
-  border: 2px solid var(--rm-accent-teal);
-  opacity: 0.5;
-  animation: pulse-ring 2s cubic-bezier(0.215, 0.610, 0.355, 1) infinite;
+  display: none !important;
 }
 
 .resume-avatar-img {
@@ -2105,15 +2098,16 @@ a {
   width: 120px !important;
   height: 120px !important;
   margin-bottom: 30px !important;
-  background: linear-gradient(135deg, var(--rm-accent-teal), var(--rm-accent-violet), var(--rm-accent-coral));
-  padding: 3px;
+  background: transparent !important;
+  border: 2px solid var(--rm-accent-teal) !important;
+  padding: 3px !important;
   box-shadow: 0 10px 30px rgba(0,0,0,0.06) !important;
   border-radius: 50%;
   display: inline-flex;
 }
 
 .resume-avatar::after {
-  display: none !important; /* Remove simple border pulse animation */
+  display: none !important;
 }
 
 .resume-hero-name {
