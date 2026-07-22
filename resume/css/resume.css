@@ -22,6 +22,9 @@ body {
   min-height: 100vh;
   font-family: 'Inter', -apple-system, system-ui, sans-serif;
 }
+body.nav-open {
+  overflow: hidden !important;
+}
 img {
   max-width: 100%;
   height: auto;
@@ -48,6 +51,16 @@ a {
   justify-content: center;
   z-index: 1000;
   transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .theme-toggle-btn {
+    bottom: 1.25rem;
+    right: 1.25rem;
+    width: 48px;
+    height: 48px;
+    z-index: 99;
+  }
 }
 
 .theme-toggle-btn svg {
@@ -216,6 +229,19 @@ a {
 /* --------------------------------------------------------------------------
    UTILITIES & ANIMATION CLASSES
    -------------------------------------------------------------------------- */
+/* Screen reader accessibility utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .resume-animate {
   opacity: 0;
   transform: translateY(20px);
@@ -3064,6 +3090,19 @@ a {
   text-align: center !important;
   animation: heroTextReveal 1s cubic-bezier(0.16, 1, 0.3, 1) both !important;
   animation-delay: 0.15s !important;
+}
+
+.typing-cursor {
+  display: inline-block;
+  margin-left: 2px;
+  color: var(--rm-accent-teal);
+  font-weight: 400;
+  animation: blinkCursor 0.8s infinite;
+}
+
+@keyframes blinkCursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
 .resume-hero-quote {

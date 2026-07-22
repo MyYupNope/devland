@@ -9,6 +9,8 @@ export class ResumeApp {
     this.particles = [];
     this.animationFrameId = null;
     this.isActive = false;
+    this.isHeroCanvasVisible = true;
+    this.heroCanvasObserver = null;
     
     // Typing animation state
     this.roles = [
@@ -61,11 +63,19 @@ export class ResumeApp {
     
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
     }
     if (this.typingTimeout) {
       clearTimeout(this.typingTimeout);
     }
+    if (this.heroCanvasObserver) {
+      this.heroCanvasObserver.disconnect();
+      this.heroCanvasObserver = null;
+    }
     
+    if (this.handleNavScroll) {
+      window.removeEventListener('scroll', this.handleNavScroll);
+    }
     window.removeEventListener('resize', this.handleResize);
     
     this.observers.forEach(obs => obs.disconnect());
@@ -75,37 +85,46 @@ export class ResumeApp {
   _initDomReferences() {
     this.typingTarget = document.getElementById('resumeTypingTarget');
     this.canvas = document.getElementById('resumeHeroCanvas');
-    this.bottomCanvas = document.getElementById('resumeBottomCanvas');
   }
 
   /* --------------------------------------------------------------------------
      HERO BACKGROUND: CANVAS PARTICLE NETWORK
      -------------------------------------------------------------------------- */
   _initHeroCanvas() {
-    // Get contexts first so they are defined when _onResize runs
-    if (this.canvas) {
-      this.ctx = this.canvas.getContext('2d');
-    }
-    if (this.bottomCanvas) {
-      this.bottomCtx = this.bottomCanvas.getContext('2d');
+    if (!this.canvas) return;
+
+    this.ctx = this.canvas.getContext('2d');
+    this._onResize(true);
+    this.particles = this._createParticles(this.canvas);
+
+    // Pause animation when hero canvas is out of viewport to save CPU/battery
+    if ('IntersectionObserver' in window) {
+      this.heroCanvasObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          this.isHeroCanvasVisible = entry.isIntersecting;
+          if (this.isHeroCanvasVisible) {
+            if (!this.animationFrameId) {
+              this._animateCanvas();
+            }
+          } else {
+            if (this.animationFrameId) {
+              cancelAnimationFrame(this.animationFrameId);
+              this.animationFrameId = null;
+            }
+          }
+        });
+      }, { threshold: 0.05 });
+
+      this.heroCanvasObserver.observe(this.canvas);
+      this.observers.push(this.heroCanvasObserver);
     }
 
-    this._onResize(true);
-    
-    // Create particles after sizing
-    if (this.canvas) {
-      this.particles = this._createParticles(this.canvas);
-    }
-    if (this.bottomCanvas) {
-      this.bottomParticles = this._createParticles(this.bottomCanvas);
-    }
-    
     this._animateCanvas();
   }
 
   _createParticles(canvas) {
     const particles = [];
-    const particleCount = window.innerWidth < 768 ? 50 : 110;
+    const particleCount = window.innerWidth < 768 ? 40 : 80;
     const dpr = window.devicePixelRatio || 1;
     const width = canvas.width / dpr;
     const height = canvas.height / dpr;
@@ -134,15 +153,6 @@ export class ResumeApp {
         if (this.ctx) {
           this.ctx.resetTransform();
           this.ctx.scale(dpr, dpr);
-        }
-      }
-      if (this.bottomCanvas) {
-        const parent = this.bottomCanvas.parentElement;
-        this.bottomCanvas.width = parent.clientWidth * dpr;
-        this.bottomCanvas.height = parent.clientHeight * dpr;
-        if (this.bottomCtx) {
-          this.bottomCtx.resetTransform();
-          this.bottomCtx.scale(dpr, dpr);
         }
       }
     };
@@ -185,16 +195,10 @@ export class ResumeApp {
   }
 
   _animateCanvas() {
-    if (!this.isActive) return;
+    if (!this.isActive || !this.isHeroCanvasVisible) return;
     
-    // Animate Hero Canvas
     if (this.canvas && this.ctx && this.particles.length > 0) {
       this._updateAndDrawCanvas(this.canvas, this.ctx, this.particles);
-    }
-    
-    // Animate Bottom Canvas
-    if (this.bottomCanvas && this.bottomCtx && this.bottomParticles.length > 0) {
-      this._updateAndDrawCanvas(this.bottomCanvas, this.bottomCtx, this.bottomParticles);
     }
     
     this.animationFrameId = requestAnimationFrame(() => this._animateCanvas());
@@ -377,17 +381,33 @@ export class ResumeApp {
   _initPillarCards() {
     const cards = document.querySelectorAll('.resume-pillar-card');
     cards.forEach(card => {
-      card.addEventListener('click', (e) => {
-        if (e.target.closest('a') || e.target.closest('button') && !e.target.closest('.resume-pillar-card')) return;
+      card.setAttribute('tabindex', '0');
+      card.setAttribute('role', 'button');
+      card.setAttribute('aria-expanded', 'false');
+
+      const toggleCard = (e) => {
+        if (e.target.closest('a') || (e.target.closest('button') && !e.target.closest('.resume-pillar-card'))) return;
         
         const isExpanded = card.classList.contains('expanded');
         
         // Collapse all others
-        cards.forEach(c => c.classList.remove('expanded'));
+        cards.forEach(c => {
+          c.classList.remove('expanded');
+          c.setAttribute('aria-expanded', 'false');
+        });
         
         // Toggle current card
         if (!isExpanded) {
           card.classList.add('expanded');
+          card.setAttribute('aria-expanded', 'true');
+        }
+      };
+
+      card.addEventListener('click', toggleCard);
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleCard(e);
         }
       });
     });
@@ -398,15 +418,27 @@ export class ResumeApp {
      -------------------------------------------------------------------------- */
   _initTimeline() {
     const nodes = document.querySelectorAll('.resume-timeline-node-item');
-    const detailCards = document.querySelectorAll('.resume-timeline-detail-card');
     
-    // Add Click listener to node dot to change active detail
+    // Add Click & Keydown listener to node dot to change active detail
     nodes.forEach(node => {
       const dot = node.querySelector('.resume-timeline-node-dot');
       if (dot) {
-        dot.addEventListener('click', () => {
+        dot.setAttribute('tabindex', '0');
+        dot.setAttribute('role', 'button');
+        const roleTitle = node.querySelector('.resume-timeline-node-title')?.textContent || 'role';
+        dot.setAttribute('aria-label', `View experience details for ${roleTitle}`);
+
+        const selectNode = () => {
           const index = node.getAttribute('data-index');
           this._switchTimelineNode(index);
+        };
+
+        dot.addEventListener('click', selectNode);
+        dot.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            selectNode();
+          }
         });
       }
     });
@@ -451,24 +483,36 @@ export class ResumeApp {
       }
     });
   }
+
   /* --------------------------------------------------------------------------
      INTERACTIVE: BENTO GRID OF SKILLS & WIDGETS
      -------------------------------------------------------------------------- */
   _initSkillsConstellation() {
     const bentoCards = document.querySelectorAll('.bento-card');
     bentoCards.forEach(card => {
+      card.setAttribute('tabindex', '0');
+      card.setAttribute('role', 'button');
+
+      const selectBento = (e) => {
+        if (e.target.closest('a') || e.target.closest('button')) return;
+        const isSelected = card.classList.contains('selected');
+        bentoCards.forEach(c => c.classList.remove('selected'));
+        if (!isSelected) {
+          card.classList.add('selected');
+        }
+      };
+
       card.addEventListener('mousemove', (e) => {
         const rect = card.getBoundingClientRect();
         card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
         card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
       });
 
-      card.addEventListener('click', (e) => {
-        if (e.target.closest('a') || e.target.closest('button')) return;
-        const isSelected = card.classList.contains('selected');
-        bentoCards.forEach(c => c.classList.remove('selected'));
-        if (!isSelected) {
-          card.classList.add('selected');
+      card.addEventListener('click', selectBento);
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          selectBento(e);
         }
       });
     });
@@ -515,17 +559,35 @@ export class ResumeApp {
     const siteNav = document.getElementById('siteNav');
     if (!siteNav) return;
 
-    let lastScrollY = window.scrollY;
-    
-    window.addEventListener('scroll', () => {
-      const currentScrollY = window.scrollY;
-      if (currentScrollY > 80) {
+    this.handleNavScroll = () => {
+      if (window.scrollY > 80) {
         siteNav.classList.add('scrolled');
       } else {
         siteNav.classList.remove('scrolled');
       }
-      this._updateActiveNavLinks();
-    }, { passive: true });
+    };
+
+    window.addEventListener('scroll', this.handleNavScroll, { passive: true });
+    this.handleNavScroll();
+
+    const sections = document.querySelectorAll('section.resume-container, header.resume-hero');
+    if ('IntersectionObserver' in window && sections.length > 0) {
+      const sectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            let activeId = entry.target.getAttribute('id');
+            if (activeId === 'pillars') activeId = 'metrics';
+            this._setActiveNavLink(activeId);
+          }
+        });
+      }, {
+        rootMargin: '-15% 0px -65% 0px',
+        threshold: 0.1
+      });
+
+      sections.forEach(sec => sectionObserver.observe(sec));
+      this.observers.push(sectionObserver);
+    }
 
     const links = siteNav.querySelectorAll('.nav-links a');
     links.forEach(link => {
@@ -537,7 +599,6 @@ export class ResumeApp {
           if (targetEl) {
             const navHeight = siteNav.offsetHeight || 60;
             const targetPosition = targetEl.offsetTop - navHeight + 2;
-            // Reset metrics animated state and trigger animation if clicking "Impact"
             if (targetId === '#metrics') {
               this._metricsAnimated = false;
               this._startMetricCounters();
@@ -552,42 +613,14 @@ export class ResumeApp {
         }
       });
     });
-    this._updateActiveNavLinks();
   }
 
-  _updateActiveNavLinks() {
+  _setActiveNavLink(activeId) {
     const siteNav = document.getElementById('siteNav');
     if (!siteNav) return;
 
-    const sections = document.querySelectorAll('section.resume-container, header.resume-hero');
     const links = siteNav.querySelectorAll('.nav-links a');
-    const navHeight = siteNav.offsetHeight || 60;
-    
-    let activeId = '';
-    const scrollPos = window.scrollY + navHeight + 10;
-
-    sections.forEach(section => {
-      const top = section.offsetTop;
-      const height = section.offsetHeight;
-      if (scrollPos >= top && scrollPos < top + height) {
-        activeId = section.getAttribute('id');
-      }
-    });
-
-    // Map 'pillars' section to highlight the 'metrics' (Impact) menu option
-    if (activeId === 'pillars') {
-      activeId = 'metrics';
-    }
-
-    // Fallback: If scrolled close to the very bottom of the page, force active section to be 'contact'
-    const isAtBottom = (window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 60);
-    if (isAtBottom) {
-      activeId = 'contact';
-    }
-
-    if (!activeId && sections.length > 0) {
-      activeId = 'about';
-    }
+    if (!activeId) activeId = 'about';
 
     links.forEach(link => {
       const href = link.getAttribute('href').substring(1);
@@ -598,7 +631,6 @@ export class ResumeApp {
       }
     });
 
-    // Hide the brand (photo & name logo) when on 'about' (the hero/top portion)
     const navBrand = document.getElementById('navBrand');
     if (navBrand) {
       if (activeId === 'about') {
@@ -612,12 +644,23 @@ export class ResumeApp {
   _initCertItems() {
     const certItems = document.querySelectorAll('.resume-edu-cert-item');
     certItems.forEach(item => {
+      item.setAttribute('tabindex', '0');
+      item.setAttribute('role', 'button');
       item.style.cursor = 'pointer';
-      item.addEventListener('click', () => {
+
+      const toggleCert = () => {
         const isActive = item.classList.contains('active');
         certItems.forEach(c => c.classList.remove('active'));
         if (!isActive) {
           item.classList.add('active');
+        }
+      };
+
+      item.addEventListener('click', toggleCert);
+      item.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleCert();
         }
       });
     });
@@ -628,31 +671,34 @@ export class ResumeApp {
     const navLinks = document.querySelector('.nav-links');
     if (!navHamburger || !navLinks) return;
 
+    const closeMenu = () => {
+      navHamburger.setAttribute('aria-expanded', 'false');
+      navHamburger.classList.remove('active');
+      navLinks.classList.remove('active');
+      document.body.classList.remove('nav-open');
+    };
+
     // Toggle menu state on click
     navHamburger.addEventListener('click', (e) => {
       e.stopPropagation();
       const isExpanded = navHamburger.getAttribute('aria-expanded') === 'true';
-      navHamburger.setAttribute('aria-expanded', !isExpanded);
-      navHamburger.classList.toggle('active');
-      navLinks.classList.toggle('active');
+      const nextState = !isExpanded;
+      navHamburger.setAttribute('aria-expanded', nextState);
+      navHamburger.classList.toggle('active', nextState);
+      navLinks.classList.toggle('active', nextState);
+      document.body.classList.toggle('nav-open', nextState);
     });
 
     // Close menu when clicking on any link
     const links = navLinks.querySelectorAll('a');
     links.forEach(link => {
-      link.addEventListener('click', () => {
-        navHamburger.setAttribute('aria-expanded', 'false');
-        navHamburger.classList.remove('active');
-        navLinks.classList.remove('active');
-      });
+      link.addEventListener('click', closeMenu);
     });
 
     // Close menu when clicking outside of the navigation bar
     document.addEventListener('click', (e) => {
       if (!navHamburger.contains(e.target) && !navLinks.contains(e.target)) {
-        navHamburger.setAttribute('aria-expanded', 'false');
-        navHamburger.classList.remove('active');
-        navLinks.classList.remove('active');
+        closeMenu();
       }
     });
   }
