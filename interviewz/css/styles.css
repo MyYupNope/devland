@@ -2884,7 +2884,7 @@ a.topbar-nav-btn:hover svg {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  margin-top: 1rem;
+  margin-top: 2.5rem;
 }
 
 .analytics-header {
@@ -2937,6 +2937,20 @@ a.topbar-nav-btn:hover svg {
   font-size: 0.85rem;
   color: var(--color-text-secondary);
   font-weight: 500;
+}
+
+.analytics-no-data-message {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+  border-radius: var(--radius-lg);
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 1.05rem;
+  font-weight: 500;
+  box-shadow: var(--shadow-sm);
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .analytics-chart-card {

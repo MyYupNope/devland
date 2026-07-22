@@ -363,7 +363,21 @@ export function initTopCompaniesChart(applications, tokens) {
 }
 
 export function renderAllDashboardWidgets(applications, force = false) {
-  if (applications.length === 0) return;
+  const mainGrid = document.querySelector('.analytics-main-grid');
+  const secondaryGrid = document.querySelector('.analytics-secondary-grid');
+  const noDataMsg = document.getElementById('analyticsNoDataMessage');
+
+  if (!applications || applications.length === 0) {
+    if (mainGrid) mainGrid.style.display = 'none';
+    if (secondaryGrid) secondaryGrid.style.display = 'none';
+    if (noDataMsg) noDataMsg.style.display = 'block';
+    lastRenderHash = '';
+    return;
+  }
+
+  if (mainGrid) mainGrid.style.display = '';
+  if (secondaryGrid) secondaryGrid.style.display = '';
+  if (noDataMsg) noDataMsg.style.display = 'none';
 
   const isDark = document.documentElement.classList.contains('theme-dark');
   const currentRenderHash = `theme:${isDark}-v:${state.dataVersion}-len:${applications.length}-range:${state.dashboardRange || 'weekly'}`;
