@@ -565,14 +565,23 @@ export class ResumeApp {
       } else {
         siteNav.classList.remove('scrolled');
       }
+
+      // Check if user has scrolled near bottom of page
+      if ((window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 100)) {
+        this._setActiveNavLink('contact');
+      }
     };
 
     window.addEventListener('scroll', this.handleNavScroll, { passive: true });
     this.handleNavScroll();
 
-    const sections = document.querySelectorAll('section.resume-container, header.resume-hero');
+    const sections = document.querySelectorAll('#about, #metrics, #pillars, #experience, #skills, #education, #contact');
     if ('IntersectionObserver' in window && sections.length > 0) {
       const sectionObserver = new IntersectionObserver((entries) => {
+        if ((window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 100)) {
+          this._setActiveNavLink('contact');
+          return;
+        }
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             let activeId = entry.target.getAttribute('id');
@@ -581,7 +590,7 @@ export class ResumeApp {
           }
         });
       }, {
-        rootMargin: '-15% 0px -65% 0px',
+        rootMargin: '-15% 0px -40% 0px',
         threshold: 0.1
       });
 
@@ -605,6 +614,8 @@ export class ResumeApp {
               this._metricsAnimated = true;
             }
             
+            this._setActiveNavLink(targetId.substring(1));
+
             window.scrollTo({
               top: targetPosition,
               behavior: 'smooth'
