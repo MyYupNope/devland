@@ -39,22 +39,26 @@ export function initCumulativeSubmissionsChart(applications, tokens) {
     dateMap[dateStr]++;
   });
 
-  // 2. Sort dates chronologically
-  const sortedDates = Object.keys(dateMap).sort((a, b) => parseDate(a) - parseDate(b));
+  // 2. Sort dates chronologically (parse dates once, avoiding O(N log N) re-parsing in sort)
+  const dateEntries = Object.keys(dateMap).map(dateStr => ({
+    dateStr,
+    dateObj: parseDate(dateStr)
+  }));
+  dateEntries.sort((a, b) => a.dateObj - b.dateObj);
 
   // 3. Prepare cumulative dataset
   let runningTotal = 0;
-  const cumulativeData = sortedDates.map(date => {
-    runningTotal += dateMap[date];
+  const cumulativeData = dateEntries.map(entry => {
+    runningTotal += dateMap[entry.dateStr];
     return runningTotal;
   });
 
   // 4. Render or Update Chart
-  const chartLabels = sortedDates.map(dateStr => {
-    const date = parseDate(dateStr);
+  const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+  const chartLabels = dateEntries.map(entry => {
+    const date = entry.dateObj;
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
-    const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
     return `${day}-${month} (${weekdays[date.getDay()]})`;
   });
 

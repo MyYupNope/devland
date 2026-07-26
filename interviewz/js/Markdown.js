@@ -3,6 +3,7 @@ import { escapeHtml } from './Utils.js';
 /**
  * Simple Markdown-to-HTML parser that supports headers, bold, italics, lists, and tables.
  */
+const MAX_CACHE_SIZE = 150;
 const markdownCache = new Map();
 
 export function parseMarkdown(text) {
@@ -10,6 +11,14 @@ export function parseMarkdown(text) {
   
   if (markdownCache.has(text)) {
     return markdownCache.get(text);
+  }
+  
+  // Evict oldest item if cache size exceeds capacity
+  if (markdownCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = markdownCache.keys().next().value;
+    if (firstKey !== undefined) {
+      markdownCache.delete(firstKey);
+    }
   }
   
   // Escape HTML first to prevent XSS

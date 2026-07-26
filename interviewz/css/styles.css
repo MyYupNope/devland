@@ -726,26 +726,32 @@ a.topbar-nav-btn:hover svg {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   user-select: none;
   margin-top: 0 !important;
   margin-bottom: 0 !important;
   padding-top: 0;
-  padding-bottom: 1rem;
-  width: 100%;
+  padding-bottom: 0;
 }
 
 .topbar-brand-group .dashboard-range-switch-container {
   width: auto;
   padding-bottom: 0;
-  margin-left: 0.75rem;
+  margin-left: 0.5rem;
 }
 
 .range-switch-label {
-  font-size: 0.85rem;
-  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--color-text-secondary);
   transition: color var(--transition-base);
+}
+
+.range-switch-label svg {
+  width: 18px;
+  height: 18px;
+  display: block;
 }
 
 .range-toggle-switch {
@@ -757,52 +763,50 @@ a.topbar-nav-btn:hover svg {
   align-items: center;
   outline: none;
   -webkit-tap-highlight-color: transparent;
-  min-height: 44px;
+  min-height: 32px;
 }
 
 .range-toggle-track {
   position: relative;
   display: flex;
   align-items: center;
-  width: 56px;
-  height: 28px;
+  width: 48px;
+  height: 24px;
   border-radius: 999px;
-  background-color: rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(0, 0, 0, 0.04);
-  transition: background-color var(--transition-base), border-color var(--transition-base), box-shadow var(--transition-base);
+  background-color: rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: background-color var(--transition-base), border-color var(--transition-base);
 }
 
 .theme-dark .range-toggle-track {
-  background-color: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.06);
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .range-toggle-thumb {
   position: absolute;
   top: 1px;
   left: 1px;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background-color: var(--color-primary);
   transition: transform var(--transition-base), background-color var(--transition-base);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   z-index: 1;
 }
 
 /* When checked/active (Yearly state), shift thumb right */
 .range-toggle-switch.active .range-toggle-thumb {
-  transform: translateX(28px);
+  transform: translateX(24px);
 }
 
 .range-toggle-switch:hover .range-toggle-track {
-  background-color: rgba(0, 0, 0, 0.12);
-  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
+  background-color: rgba(0, 0, 0, 0.14);
 }
 
 .theme-dark .range-toggle-switch:hover .range-toggle-track {
-  background-color: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.22);
 }
 
 .range-toggle-switch:focus-visible .range-toggle-track {
@@ -1223,22 +1227,6 @@ a.topbar-nav-btn:hover svg {
 /* ==========================================================================
    Results Grid Card layout
    ========================================================================== */
-.results-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  position: relative;
-  z-index: 10;
-}
-
-.results-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-
-
 .badge {
   background: var(--color-primary-light);
   padding: 0.2rem 0.8rem;
@@ -1254,33 +1242,6 @@ a.topbar-nav-btn:hover svg {
   font-weight: 600;
   font-size: 0.75em;
   padding: 0.1rem 0.6rem;
-}
-
-#activeInterviewsCount.badge {
-  color: var(--color-warning);
-  background-color: var(--bg-warning-light);
-  font-weight: 600;
-  font-size: 0.75em;
-  padding: 0.1rem 0.6rem;
-}
-
-
-/* ==========================================================================
-   Tabular Registry Component
-   ========================================================================== */
-.registry-card {
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  border: 1px solid rgba(0, 0, 0, 0.04);
-  transition: box-shadow var(--transition-base);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.registry-card:hover {
-  box-shadow: var(--shadow-lg);
 }
 
 
@@ -1312,213 +1273,6 @@ a.topbar-nav-btn:hover svg {
 
 .btn-refresh:active svg {
   transform: rotate(180deg);
-}
-
-.registry-table-container {
-  overflow-x: auto;
-  background: transparent;
-}
-
-.registry-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-  font-size: 0.95rem;
-}
-
-.registry-table th {
-  background-color: var(--bg-surface-variant);
-  color: var(--color-text-secondary);
-  font-weight: 500;
-  padding: 1.25rem 1.5rem;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.registry-table td {
-  padding: 1.15rem 1.5rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  color: var(--color-text-primary);
-  vertical-align: middle;
-}
-
-.registry-table tr {
-  transition: background-color var(--transition-base);
-  cursor: pointer;
-}
-
-.registry-table tr:hover {
-  background-color: rgba(26, 115, 232, 0.04);
-}
-
-.registry-table tr:last-child td {
-  border-bottom: none;
-}
-
-.table-job-title {
-  font-weight: 500;
-  color: var(--color-text-primary);
-}
-
-.table-company {
-  color: var(--color-text-secondary);
-}
-
-.table-date {
-  white-space: nowrap;
-}
-
-.table-action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--color-primary);
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  padding: 0.35rem 0.75rem;
-  border-radius: 100px;
-  transition: background-color var(--transition-base), color var(--transition-base);
-}
-
-.table-action-btn:hover {
-  background-color: transparent;
-}
-
-.table-action-btn svg {
-  width: 14px;
-  height: 14px;
-  transition: transform var(--transition-base);
-}
-
-.registry-table tr:hover .table-action-btn svg {
-  transform: translateX(3px);
-}
-
-/* Table Header Sorting */
-.sortable-header {
-  cursor: pointer;
-  user-select: none;
-  position: relative;
-  padding-right: 2rem !important;
-  transition: background-color var(--transition-base), color var(--transition-base) !important;
-}
-
-.sortable-header:hover {
-  background-color: var(--bg-surface-variant-hover) !important;
-  color: var(--color-text-primary) !important;
-}
-
-.sort-icon {
-  display: inline-block;
-  margin-left: 4px;
-  font-size: 0.75rem;
-  vertical-align: middle;
-  transition: transform var(--transition-base);
-}
-
-.sort-icon.asc::after {
-  content: ' \25B2';
-  color: var(--color-primary);
-}
-
-.sort-icon.desc::after {
-  content: ' \25BC';
-  color: var(--color-primary);
-}
-
-/* Pagination Control Panel */
-.table-pagination {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
-  background-color: var(--bg-surface-variant);
-  border-top: 1px solid var(--color-border);
-}
-
-.pagination-left {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-.rows-per-page {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-  color: var(--color-text-secondary);
-}
-
-.rows-per-page select {
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 0.25rem 0.5rem;
-  font-size: 0.85rem;
-  color: var(--color-text-primary);
-  cursor: pointer;
-  outline: none;
-  transition: border-color var(--transition-base);
-}
-
-.rows-per-page select:hover {
-  border-color: var(--color-border-hover);
-}
-
-.rows-per-page select:focus {
-  border-color: var(--color-primary);
-}
-
-.pagination-info {
-  font-size: 0.85rem;
-  color: var(--color-text-secondary);
-  font-weight: 500;
-}
-
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.btn-pagination {
-  background: transparent;
-  border: none;
-  color: var(--color-text-secondary);
-  width: 44px; /* A5: Touch Target width */
-  height: 44px; /* A5: Touch Target height */
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color var(--transition-base), color var(--transition-base);
-  outline: none;
-}
-
-.btn-pagination:hover:not(:disabled) {
-  background-color: var(--color-hover-overlay);
-  color: var(--color-text-primary);
-}
-
-.btn-pagination:focus-visible {
-  box-shadow: 0 0 0 2px var(--color-primary);
-}
-
-.btn-pagination:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.btn-pagination svg {
-  width: 18px;
-  height: 18px;
 }
 
 /* Badges style */
@@ -1587,36 +1341,7 @@ a.topbar-nav-btn:hover svg {
 
 /* ==========================================================================
    Table Shimmer Skeletons
-   ========================================================================== */
-.table-skeleton td {
-  padding: 1.5rem;
-}
 
-.skeleton-bar {
-  height: 18px;
-  background: linear-gradient(90deg,
-      rgba(0, 0, 0, 0.03) 0%,
-      rgba(0, 0, 0, 0.08) 50%,
-      rgba(0, 0, 0, 0.03) 100%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 4px;
-  width: 85%;
-}
-
-.table-skeleton:nth-child(even) .skeleton-bar {
-  width: 65%;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-
-  100% {
-    background-position: -200% 0;
-  }
-}
 
 /* ==========================================================================
    No Results view
@@ -2831,25 +2556,7 @@ a.topbar-nav-btn:hover svg {
     margin: 0.15rem 0;
   }
 
-  /* Mobile table responsiveness */
-  .registry-table {
-    min-width: 600px;
-  }
 
-  /* Mobile pagination responsiveness */
-  .table-pagination {
-    flex-direction: column;
-    gap: 1rem;
-    align-items: center;
-    padding: 1rem;
-    text-align: center;
-  }
-
-  .pagination-left {
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-  }
 
   /* Mobile filters responsiveness */
   .filters-container {
@@ -3626,161 +3333,7 @@ a.topbar-nav-btn:hover svg {
   height: 260px;
 }
 
-/* Active Interviews Pipeline Widget styling (Header moved outside) */
-.active-interviews-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.25rem;
-}
 
-
-
-.active-interviews-header h2 svg {
-  width: 20px;
-  height: 20px;
-  color: var(--color-warning);
-}
-
-.active-interviews-card {
-  background: var(--color-surface);
-  border: 1px solid rgba(0, 0, 0, 0.04);
-  border-radius: var(--radius-lg);
-  padding: 2rem;
-  box-shadow: var(--shadow-md);
-  transition: box-shadow var(--transition-base);
-}
-
-.active-interviews-card:hover {
-  box-shadow: var(--shadow-lg);
-}
-
-.interviews-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-}
-
-.interview-card {
-  background: var(--bg-stats-card);
-  border: 1px solid rgba(26, 115, 232, 0.06);
-  border-radius: var(--radius-md);
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  transition: box-shadow var(--transition-base), transform var(--transition-base);
-}
-
-.interview-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  background: var(--bg-stats-card-hover);
-}
-
-.interview-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
-}
-
-.interview-company {
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin: 0 0 0.25rem 0;
-}
-
-.interview-title {
-  font-size: 0.9rem;
-  color: var(--color-text-secondary);
-  font-weight: 500;
-  margin: 0;
-}
-
-.interview-card-body {
-  flex-grow: 1;
-}
-
-.interview-latest-activity {
-  background: var(--color-surface);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  border-radius: var(--radius-sm);
-  padding: 0.85rem 1rem;
-}
-
-.activity-label {
-  display: block;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--color-text-secondary);
-  letter-spacing: 0.05em;
-  margin-bottom: 0.25rem;
-}
-
-.activity-content {
-  font-size: 0.85rem;
-  color: var(--color-text-primary);
-  line-height: 1.45;
-}
-
-.comment-date {
-  font-weight: 600;
-  color: var(--color-warning);
-}
-
-.interview-card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  padding-top: 1rem;
-  flex-wrap: wrap;
-}
-
-.interview-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  background-color: var(--color-primary);
-  color: #ffffff;
-  border: none;
-  font-family: inherit;
-  font-size: 0.8rem;
-  font-weight: 500;
-  padding: 0.45rem 1rem;
-  border-radius: 100px;
-  cursor: pointer;
-  text-decoration: none;
-  transition: background-color var(--transition-base), transform var(--transition-base);
-}
-
-.interview-btn:hover {
-  background-color: #1557b0;
-}
-
-.interview-btn.secondary {
-  background-color: transparent;
-  color: var(--color-primary);
-}
-
-.interview-btn.secondary:hover {
-  background-color: var(--color-primary-light);
-}
-
-.interview-btn svg {
-  width: 14px;
-  height: 14px;
-}
-
-.followup-text {
-  font-size: 0.8rem;
-  color: var(--color-text-secondary);
-  font-style: italic;
-}
 
 /* Grids for side-by-side dashboard analytics widgets */
 .analytics-main-grid,
@@ -4694,7 +4247,9 @@ a.topbar-nav-btn:hover svg {
 /* Tab Fade Transitions */
 .landing-tab-content,
 .filters-section,
+.applications-section,
 .results-section,
+.kanban-view-section,
 .active-interviews-section-wrapper,
 .sync-container,
 .stats-section,
@@ -4743,4 +4298,303 @@ a.topbar-nav-btn:hover svg {
   .range-toggle-switch.active .range-toggle-thumb {
     transform: translateX(24px);
   }
-}
+}
+
+/* ==========================================================================
+   Applications View Mode Toggle & Kanban Board Styles
+   ========================================================================== */
+
+.applications-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 0;
+}
+
+.view-mode-toggle {
+  display: inline-flex;
+  background-color: var(--bg-surface-variant);
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  padding: 3px;
+  gap: 2px;
+  align-items: center;
+}
+
+.topbar-brand-group .view-mode-toggle {
+  margin-left: 0.5rem;
+}
+
+.btn-view-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.btn-view-mode:hover {
+  color: var(--color-text-primary);
+}
+
+.btn-view-mode.active {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.btn-view-mode svg {
+  pointer-events: none;
+}
+
+/* Kanban Board Layout */
+.kanban-view-section {
+  width: 100%;
+  margin-top: 0;
+}
+
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(295px, 1fr));
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 1rem;
+  align-items: start;
+}
+
+.kanban-column {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  min-height: 500px;
+  max-height: 820px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  contain: layout style;
+}
+
+.kanban-column-header {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.kanban-column-header .col-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+  flex-grow: 1;
+}
+
+.kanban-column-header .col-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.col-ready .col-dot { background-color: var(--color-text-secondary); }
+.col-applied .col-dot { background-color: var(--color-primary); }
+.col-interviewed .col-dot { background-color: var(--color-warning); }
+.col-offered .col-dot { background-color: var(--color-success); }
+.col-rejected .col-dot { background-color: var(--color-error); }
+
+.kanban-column-header .col-count {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 12px;
+  background-color: var(--bg-surface-variant);
+  color: var(--color-text-primary);
+}
+
+.kanban-cards-container {
+  padding: 0.75rem;
+  flex-grow: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 400px;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  transition: background-color var(--transition-base), border-color var(--transition-base);
+  scrollbar-width: thin;
+  contain: layout style;
+}
+
+.kanban-cards-container::-webkit-scrollbar {
+  width: 5px;
+}
+.kanban-cards-container::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+
+.kanban-cards-container.drag-over {
+  background-color: rgba(26, 115, 232, 0.08);
+  border: 2px dashed var(--color-primary);
+}
+
+.kanban-card {
+  background: var(--bg-surface-variant);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  cursor: grab;
+  user-select: none;
+  transition: box-shadow var(--transition-base), transform var(--transition-base), border-color var(--transition-base);
+  will-change: transform;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.kanban-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+}
+
+.kanban-card.dragging {
+  opacity: 0.4;
+  transform: scale(0.96);
+  cursor: grabbing;
+}
+
+.kanban-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.kanban-card-company {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.kanban-card-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.kanban-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  margin-top: 0.25rem;
+}
+
+.kanban-score-pill {
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.72rem;
+}
+
+.kanban-score-pill.score-high {
+  background-color: var(--bg-success-light);
+  color: var(--color-success);
+}
+
+.kanban-score-pill.score-mid {
+  background-color: rgba(251, 188, 4, 0.15);
+  color: #b06000;
+}
+
+.kanban-score-pill.score-low {
+  background-color: var(--color-hover-overlay);
+  color: var(--color-text-secondary);
+}
+
+.kanban-card-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.btn-kanban-followup {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: var(--color-primary);
+  color: #ffffff !important;
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: none;
+  text-decoration: none !important;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(26, 115, 232, 0.25);
+  transition: all var(--transition-base);
+  flex-shrink: 0;
+}
+
+.btn-kanban-followup:hover {
+  background-color: var(--color-primary-hover);
+  box-shadow: 0 2px 5px rgba(26, 115, 232, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-kanban-followup svg {
+  stroke: currentColor;
+}
+
+.kanban-btn-details-link {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--transition-base);
+  flex-shrink: 0;
+}
+
+.kanban-btn-details-link:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+

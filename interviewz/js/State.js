@@ -9,8 +9,6 @@ export const state = {
   selectedCompany: null,
   selectedJobTitle: null,
   selectedStatus: null,
-  currentPage: 1,
-  rowsPerPage: 5,
   currentApp: null,
   currentSortVal: 'date-desc',
   dataVersion: 0,

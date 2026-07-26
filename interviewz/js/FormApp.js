@@ -142,10 +142,11 @@ export class FormApp {
     localStorage.removeItem('job_app_draft');
 
     // Restore standard blue color on success
-    this.submitBtn.classList.remove('btn-danger');
-    this.submitBtn.classList.add('btn-primary');
+    if (this.resetTimerId) {
+      clearTimeout(this.resetTimerId);
+    }
 
-    setTimeout(() => {
+    this.resetTimerId = setTimeout(() => {
       this.form.reset();
       this.form.classList.remove('was-validated');
       this.inputs.forEach(input => {
@@ -155,6 +156,7 @@ export class FormApp {
         this.hiringTeam.value = "Not Defined";
       }
       this.initCharacterCounters();
+      this.resetTimerId = null;
       
       // Auto-switch to Home tab
       if (typeof window.switchTab === 'function') {

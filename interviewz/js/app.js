@@ -178,11 +178,8 @@ function initDomCache() {
   dom.statThisMonth = document.getElementById('statThisMonth');
 
   dom.btnResetFilters = document.getElementById('btnResetFilters');
-  dom.registryTableBody = document.getElementById('registryTableBody');
   dom.noResults = document.getElementById('noResults');
   dom.resultsCount = document.getElementById('resultsCount');
-  dom.activeInterviewsCount = document.getElementById('activeInterviewsCount');
-  dom.registryTableContainer = document.querySelector('.registry-table-container');
 
   dom.companySelectContainer = document.getElementById('companySelectContainer');
   dom.companyTrigger = document.getElementById('companyTrigger');
@@ -220,31 +217,28 @@ function initDomCache() {
   dom.sectionComments = document.getElementById('sectionComments');
   dom.drawerJobDescription = document.getElementById('drawerJobDescription');
   dom.drawerCompanyDescription = document.getElementById('drawerCompanyDescription');
-  dom.linkJobUrl = document.getElementById('linkJobUrl');
+  dom.drawerlinkJobUrl = document.getElementById('drawerlinkJobUrl');
   dom.linkJobUrlAnchor = document.getElementById('linkJobUrlAnchor');
   dom.linkCompanyFolder = document.getElementById('linkCompanyFolder');
   dom.drawerInterviewCompany = document.getElementById('drawerInterviewCompany');
   dom.drawerInterviewPreparation = document.getElementById('drawerInterviewPreparation');
 
-  dom.activeInterviewsSection = document.getElementById('activeInterviewsSection');
-  dom.activeInterviewsGrid = document.getElementById('activeInterviewsGrid');
   dom.filtersSection = document.querySelector('.filters-section');
-  dom.resultsSection = document.querySelector('.results-section');
+  dom.applicationsSection = document.getElementById('applicationsSection');
+  dom.applicationsSectionHeader = document.getElementById('applicationsSectionHeader');
   dom.statsSection = document.querySelector('.stats-section');
   dom.analyticsSection = document.querySelector('.analytics-section');
   dom.newApplicationSection = document.querySelector('.new-application-section');
   dom.resumeSection = document.querySelector('.resume-section');
+  dom.globalDashboardRangeContainer = document.getElementById('globalDashboardRangeContainer');
+  dom.kanbanViewSection = document.getElementById('kanbanViewSection');
+  dom.kanbanBoard = document.getElementById('kanbanBoard');
   dom.fabBtn = document.getElementById('fabNewApplication');
   dom.refreshBtn = document.getElementById('btnHeaderRefresh');
   dom.syncContainer = document.querySelector('.sync-container');
   dom.heroBanner = document.querySelector('.hero-banner');
   dom.topbarBrandLink = document.getElementById('topbarBrandLink');
   dom.landingTabContent = document.getElementById('landingTabContent');
-
-  dom.paginationInfo = document.getElementById('paginationInfo');
-  dom.btnPrevPage = document.getElementById('btnPrevPage');
-  dom.btnNextPage = document.getElementById('btnNextPage');
-  dom.rowsPerPageSelect = document.getElementById('rowsPerPageSelect');
 
   dom.tabSuitability = document.getElementById('tabSuitability');
   dom.scoreCircleFill = document.getElementById('scoreCircleFill');
@@ -384,6 +378,8 @@ function setupEventListeners() {
   }
 
 
+
+
   // Refresh Button (Forces a manual reload and re-parse of the data)
   if (dom.refreshBtn) {
     dom.refreshBtn.addEventListener('click', () => {
@@ -495,84 +491,23 @@ function setupEventListeners() {
     }
   });
 
-  // Table sorting from header clicks
-  document.querySelectorAll('.sortable-header').forEach(header => {
-    header.addEventListener('click', () => {
-      const field = header.getAttribute('data-sort-field');
-      const currentVal = state.currentSortVal;
-      const [currentField, currentDir] = currentVal.split('-');
-      
-      let newDir = 'asc';
-      if (field === currentField) {
-        newDir = currentDir === 'asc' ? 'desc' : 'asc';
-      } else {
-        newDir = field === 'date' ? 'desc' : 'asc';
-      }
-      
-      state.currentSortVal = `${field}-${newDir}`;
-      applyFilters(true);
-    });
-  });
 
-  // Event Delegation: Registry Table Row Clicks
-  if (dom.registryTableBody) {
-    dom.registryTableBody.addEventListener('click', (e) => {
-      const row = e.target.closest('tr');
-      if (row) {
-        // Prevent trigger if clicking details button directly (though both open drawer)
-        const index = parseInt(row.getAttribute('data-index'), 10);
-        const app = state.filteredApplications[index];
-        if (app) openDetailsDrawer(app);
-      }
-    });
-  }
 
-  // Event Delegation: Active Interviews Pipeline Card Click
-  if (dom.activeInterviewsGrid) {
-    dom.activeInterviewsGrid.addEventListener('click', (e) => {
-      const trigger = e.target.closest('.view-detail-trigger');
-      if (trigger) {
+  // Event Delegation: Kanban Board Details Click
+  if (dom.kanbanBoard) {
+    dom.kanbanBoard.addEventListener('click', (e) => {
+      const detailsBtn = e.target.closest('.kanban-btn-details');
+      if (detailsBtn) {
         e.stopPropagation();
-        const card = trigger.closest('.interview-card');
-        const company = card.getAttribute('data-company');
-        const title = card.getAttribute('data-title');
-        
-        const app = state.rawApplications.find(a => 
-          (a['Company Name'] || '').trim() === company && 
-          (a['Job Title'] || '').trim() === title
-        );
+        const origIndex = parseInt(detailsBtn.getAttribute('data-index'), 10);
+        const app = state.rawApplications.find(a => a.originalIndex === origIndex) || state.filteredApplications[origIndex];
         if (app) openDetailsDrawer(app);
       }
     });
   }
 
-  // Paging controls
-  if (dom.btnPrevPage) {
-    dom.btnPrevPage.addEventListener('click', () => {
-      if (state.currentPage > 1) {
-        state.currentPage--;
-        renderTable();
-      }
-    });
-  }
-  if (dom.btnNextPage) {
-    dom.btnNextPage.addEventListener('click', () => {
-      const maxPage = Math.ceil(state.filteredApplications.length / state.rowsPerPage);
-      if (state.currentPage < maxPage) {
-        state.currentPage++;
-        renderTable();
-      }
-    });
-  }
-
-  // Rows per page dropdown listener
-  if (dom.rowsPerPageSelect) {
-    dom.rowsPerPageSelect.addEventListener('change', (e) => {
-      state.rowsPerPage = parseInt(e.target.value, 10) || 5;
-      state.currentPage = 1;
-      renderTable();
-    });
-  }
+  // Initialize Kanban drag and drop event handlers ONCE
+  setupKanbanDragAndDrop();
 
   // Copy HTML buttons in Job Interview accordion
   const btnCopyCompany = document.getElementById('btnCopyInterviewCompany');
@@ -647,7 +582,6 @@ function fetchData(isTabSwitch = false, isForceRefresh = false) {
   if (!hasLoadedFromCache) {
     setSyncState('loading', 'Loading Registry...');
     dom.noResults.classList.add('hidden');
-    if (dom.registryTableContainer) dom.registryTableContainer.style.display = 'none';
   }
 
   fetch(SHEET_EXPORT_URL)
@@ -687,6 +621,11 @@ function fetchData(isTabSwitch = false, isForceRefresh = false) {
         localStorage.setItem(CACHE_KEY_CSV(), JSON.stringify(newCache));
       } catch (e) {
         console.warn('[OpportunityTracker] Failed to write cache to localStorage:', e);
+      }
+
+      // Clear local status overrides so fresh DB data takes precedence
+      if (state.statusOverrides) {
+        state.statusOverrides = {};
       }
 
       parseAndInitializeData(csvText);
@@ -739,38 +678,38 @@ function setSyncState(status, message) {
 function parseCSV(text) {
   const rows = [];
   let currentRow = [];
-  let currentFieldChars = [];
+  let currentField = '';
   let inQuotes = false;
+  const len = text.length;
 
-  for (let i = 0; i < text.length; i++) {
+  for (let i = 0; i < len; i++) {
     const c = text[i];
-    const nextC = text[i + 1];
 
     if (c === '"') {
-      if (inQuotes && nextC === '"') {
-        currentFieldChars.push('"');
+      if (inQuotes && i + 1 < len && text[i + 1] === '"') {
+        currentField += '"';
         i++;
       } else {
         inQuotes = !inQuotes;
       }
     } else if (c === ',' && !inQuotes) {
-      currentRow.push(currentFieldChars.join(''));
-      currentFieldChars = [];
+      currentRow.push(currentField);
+      currentField = '';
     } else if ((c === '\r' || c === '\n') && !inQuotes) {
-      currentRow.push(currentFieldChars.join(''));
-      currentFieldChars = [];
-      if (c === '\r' && nextC === '\n') {
+      currentRow.push(currentField);
+      currentField = '';
+      if (c === '\r' && i + 1 < len && text[i + 1] === '\n') {
         i++;
       }
       rows.push(currentRow);
       currentRow = [];
     } else {
-      currentFieldChars.push(c);
+      currentField += c;
     }
   }
 
-  if (currentFieldChars.length > 0 || currentRow.length > 0) {
-    currentRow.push(currentFieldChars.join(''));
+  if (currentField.length > 0 || currentRow.length > 0) {
+    currentRow.push(currentField);
     rows.push(currentRow);
   }
 
@@ -804,23 +743,27 @@ function parseAndInitializeData(csvText) {
     });
     app.originalIndex = i;
     app._parsedDate = parseDate(app['Create Date']);
-    state.rawApplications.push(app);
-  }
 
-  // Normalize column name aliases once at load time
-  state.rawApplications.forEach(app => {
+    // Single-pass column alias normalization
     if (!app['Job_Suitability'] && app['Job Suitability']) {
       app['Job_Suitability'] = app['Job Suitability'];
     }
     if (!app['Job_Suitability_Evaluation'] && app['Job Suitability Evaluation']) {
       app['Job_Suitability_Evaluation'] = app['Job Suitability Evaluation'];
     }
-  });
 
-  state.activeApplications = state.rawApplications.filter(app => {
-    const status = app['Application Status'].toLowerCase();
-    return status !== 'rejected' && status !== 'withdrawn';
-  });
+    // Apply local status override if present
+    if (state.statusOverrides) {
+      const key = (app['Company Name'] || '').trim() + '|' + (app['Job Title'] || '').trim();
+      if (state.statusOverrides[key]) {
+        app['Application Status'] = state.statusOverrides[key];
+      }
+    }
+
+    state.rawApplications.push(app);
+  }
+
+  state.activeApplications = state.rawApplications;
 
   state.dataVersion++;
   updateFiltersUI();
@@ -1082,11 +1025,9 @@ function updateFiltersUI() {
   });
 }
 
-function applyFilters(resetPage = true) {
-  if (resetPage) {
-    state.currentPage = 1;
-  }
+const sortCollator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
 
+function applyFilters() {
   dom.btnResetFilters.disabled = !state.selectedCompany && !state.selectedJobTitle && !state.selectedStatus;
 
   state.filteredApplications = state.activeApplications.filter(app => {
@@ -1115,23 +1056,23 @@ function applyFilters(resetPage = true) {
     } else if (sortVal.startsWith('job')) {
       const jobA = (a['Job Title'] || '').trim();
       const jobB = (b['Job Title'] || '').trim();
-      comparison = jobA.localeCompare(jobB, undefined, { sensitivity: 'base', numeric: true });
+      comparison = sortCollator.compare(jobA, jobB);
       if (sortVal === 'job-desc') {
-        comparison = jobB.localeCompare(jobA, undefined, { sensitivity: 'base', numeric: true });
+        comparison = sortCollator.compare(jobB, jobA);
       }
     } else if (sortVal.startsWith('company')) {
       const companyA = (a['Company Name'] || '').trim();
       const companyB = (b['Company Name'] || '').trim();
-      comparison = companyA.localeCompare(companyB, undefined, { sensitivity: 'base', numeric: true });
+      comparison = sortCollator.compare(companyA, companyB);
       if (sortVal === 'company-desc') {
-        comparison = companyB.localeCompare(companyA, undefined, { sensitivity: 'base', numeric: true });
+        comparison = sortCollator.compare(companyB, companyA);
       }
     } else if (sortVal.startsWith('status')) {
       const statusA = (a['Application Status'] || '').trim();
       const statusB = (b['Application Status'] || '').trim();
-      comparison = statusA.localeCompare(statusB, undefined, { sensitivity: 'base', numeric: true });
+      comparison = sortCollator.compare(statusA, statusB);
       if (sortVal === 'status-desc') {
-        comparison = statusB.localeCompare(statusA, undefined, { sensitivity: 'base', numeric: true });
+        comparison = sortCollator.compare(statusB, statusA);
       }
     } else if (sortVal.startsWith('suitability')) {
       const valA = (a['Job_Suitability'] || '').trim();
@@ -1159,104 +1100,229 @@ function applyFilters(resetPage = true) {
     return comparison;
   });
 
-  renderTable();
-  if (typeof state.rawApplications !== 'undefined' && state.rawApplications.length > 0) {
-    renderActiveInterviewsPanel(state.rawApplications);
-  }
+  renderKanbanBoard();
 }
 
-function updateHeaderSortIndicators() {
-  const currentVal = state.currentSortVal;
-  const [currentField, currentDir] = currentVal.split('-');
-  
-  document.querySelectorAll('.sortable-header').forEach(header => {
-    const field = header.getAttribute('data-sort-field');
-    const icon = header.querySelector('.sort-icon');
-    if (icon) {
-      icon.className = 'sort-icon';
-      if (field === currentField) {
-        icon.classList.add(currentDir);
-      }
+function renderKanbanBoard() {
+  if (dom.resultsCount) {
+    dom.resultsCount.textContent = (state.filteredApplications || []).length;
+  }
+
+  const columns = {
+    Ready: document.getElementById('kanbanCardsReady'),
+    Applied: document.getElementById('kanbanCardsApplied'),
+    Interviewed: document.getElementById('kanbanCardsInterviewed'),
+    Offered: document.getElementById('kanbanCardsOffered'),
+    Rejected: document.getElementById('kanbanCardsRejected')
+  };
+
+  const counts = {
+    Ready: document.getElementById('countReady'),
+    Applied: document.getElementById('countApplied'),
+    Interviewed: document.getElementById('countInterviewed'),
+    Offered: document.getElementById('countOffered'),
+    Rejected: document.getElementById('countRejected')
+  };
+
+  Object.values(columns).forEach(col => {
+    if (col) col.innerHTML = '';
+  });
+
+  const columnApps = {
+    Ready: [],
+    Applied: [],
+    Interviewed: [],
+    Offered: [],
+    Rejected: []
+  };
+
+  const apps = state.filteredApplications || [];
+
+  apps.forEach((app, idx) => {
+    const lowerStatus = (app['Application Status'] || '').trim().toLowerCase();
+    let colKey = 'Applied';
+
+    if (lowerStatus === 'ready') colKey = 'Ready';
+    else if (lowerStatus === 'applied') colKey = 'Applied';
+    else if (lowerStatus.includes('interview')) colKey = 'Interviewed';
+    else if (lowerStatus === 'offered' || lowerStatus === 'accepted') colKey = 'Offered';
+    else if (lowerStatus === 'rejected' || lowerStatus === 'withdrawn') colKey = 'Rejected';
+
+    columnApps[colKey].push({ app, idx });
+  });
+
+  Object.keys(counts).forEach(key => {
+    if (counts[key]) {
+      counts[key].textContent = columnApps[key].length;
     }
   });
+
+  Object.keys(columnApps).forEach(colKey => {
+    const container = columns[colKey];
+    if (!container) return;
+
+    if (columnApps[colKey].length === 0) {
+      container.innerHTML = `<div class="kanban-empty-msg" style="font-size:0.8rem; color:var(--color-text-secondary); text-align:center; padding: 1.5rem 0;">No applications</div>`;
+      return;
+    }
+
+    columnApps[colKey].forEach(({ app, idx }) => {
+      const company = (app['Company Name'] || '').trim();
+      const title = (app['Job Title'] || '').trim();
+      const status = (app['Application Status'] || '').trim();
+      const dateStr = (app['Create Date'] || '').trim();
+      const suitabilityScore = (app['Job_Suitability'] || '').trim();
+      const scoreNum = parseInt(suitabilityScore, 10);
+      let scoreClass = 'score-low';
+      if (!isNaN(scoreNum)) {
+        if (scoreNum >= 4) scoreClass = 'score-high';
+        else if (scoreNum >= 3) scoreClass = 'score-mid';
+      }
+
+      const followUpRaw = (app['Follow-Up'] || app['Follow_Up'] || app['Link'] || app['Job Link'] || app['URL'] || '').trim();
+      const isUrl = followUpRaw.startsWith('http://') || followUpRaw.startsWith('https://');
+
+      const card = document.createElement('div');
+      card.className = 'kanban-card';
+      card.setAttribute('draggable', 'true');
+      card.setAttribute('data-index', app.originalIndex !== undefined ? app.originalIndex : idx);
+
+      card.innerHTML = `
+        <div class="kanban-card-top">
+          <span class="kanban-card-company">${escapeHtml(company)}</span>
+          ${suitabilityScore ? `<span class="kanban-score-pill ${scoreClass}">★ ${escapeHtml(suitabilityScore)}/5</span>` : ''}
+        </div>
+        <h4 class="kanban-card-title">${escapeHtml(title)}</h4>
+        <div class="kanban-card-meta">
+          <span class="kanban-card-date">${escapeHtml(formatDisplayDate(dateStr))}</span>
+        </div>
+        <div class="kanban-card-actions">
+          ${isUrl ? `
+            <a href="${escapeHtml(followUpRaw)}" target="_blank" rel="noopener noreferrer" class="btn-kanban-followup">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                <polyline points="15 3 21 3 21 9"/>
+                <line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+              Follow Up
+            </a>
+          ` : `
+            <button type="button" class="btn-kanban-followup kanban-btn-details" data-index="${app.originalIndex !== undefined ? app.originalIndex : idx}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                <polyline points="15 3 21 3 21 9"/>
+                <line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+              Follow Up
+            </button>
+          `}
+          <button type="button" class="kanban-btn-details-link kanban-btn-details" data-index="${app.originalIndex !== undefined ? app.originalIndex : idx}">
+            View Details &rarr;
+          </button>
+        </div>
+      `;
+
+      card.addEventListener('dragstart', (e) => {
+        card.classList.add('dragging');
+        state.draggingKanbanApp = app;
+        e.dataTransfer.setData('text/plain', (app['Company Name'] || '') + '|' + (app['Job Title'] || ''));
+        e.dataTransfer.effectAllowed = 'move';
+      });
+
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+      });
+
+      container.appendChild(card);
+    });
+  });
 }
 
-function renderTable() {
-  if (!dom.registryTableBody) return;
-  dom.registryTableBody.innerHTML = '';
-  if (dom.resultsCount) dom.resultsCount.textContent = state.filteredApplications.length;
+function setupKanbanDragAndDrop() {
+  const containers = document.querySelectorAll('.kanban-cards-container');
+  containers.forEach(container => {
+    container.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      container.classList.add('drag-over');
+    });
 
-  if (state.filteredApplications.length === 0) {
-    dom.noResults.classList.remove('hidden');
-    if (dom.registryTableContainer) dom.registryTableContainer.style.display = 'none';
-    return;
-  }
+    container.addEventListener('dragleave', (e) => {
+      if (!container.contains(e.relatedTarget)) {
+        container.classList.remove('drag-over');
+      }
+    });
 
-  dom.noResults.classList.add('hidden');
-  if (dom.registryTableContainer) dom.registryTableContainer.style.display = '';
+    container.addEventListener('drop', (e) => {
+      e.preventDefault();
+      container.classList.remove('drag-over');
+      
+      const app = state.draggingKanbanApp;
+      state.draggingKanbanApp = null;
+      if (!app) return;
 
-  const totalRows = state.filteredApplications.length;
-  const maxPage = Math.ceil(totalRows / state.rowsPerPage) || 1;
-  
-  if (state.currentPage > maxPage) {
-    state.currentPage = maxPage;
-  }
-  if (state.currentPage < 1) {
-    state.currentPage = 1;
-  }
-
-  const startIdx = (state.currentPage - 1) * state.rowsPerPage;
-  const endIdx = Math.min(startIdx + state.rowsPerPage, totalRows);
-
-  const pageApplications = state.filteredApplications.slice(startIdx, endIdx);
-
-  const frag = document.createDocumentFragment();
-  pageApplications.forEach((app, idx) => {
-    const row = document.createElement('tr');
-    row.setAttribute('data-index', startIdx + idx); // Store index for event delegation
-    
-    const company = (app['Company Name'] || '').trim();
-    const title = (app['Job Title'] || '').trim();
-    const status = (app['Application Status'] || '').trim();
-    const dateStr = (app['Create Date'] || '').trim();
-    const suitabilityScore = (app['Job_Suitability'] || '').trim();
-    const scoreNum = parseInt(suitabilityScore, 10);
-    const scoreClass = !isNaN(scoreNum) && scoreNum >= 1 && scoreNum <= 5 ? `score-${scoreNum}` : '';
-    
-    const statusClass = status.toLowerCase().replace(/\s+/g, '-');
-
-    row.innerHTML = `
-      <td><span class="table-job-title">${escapeHtml(title)}</span></td>
-      <td><span class="table-company">${escapeHtml(company)}</span></td>
-      <td><span class="status-badge ${statusClass}">${escapeHtml(status)}</span></td>
-      <td><span class="table-date">${escapeHtml(formatDisplayDate(dateStr))}</span></td>
-      <td>
-        ${suitabilityScore ? `<span class="score-badge ${scoreClass}">Score: ${escapeHtml(suitabilityScore)}</span>` : '<span style="color: var(--color-text-secondary)">-</span>'}
-      </td>
-      <td>
-        <button type="button" class="table-action-btn">
-          View Detail
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-        </button>
-      </td>
-    `;
-
-    frag.appendChild(row);
+      const targetStatus = container.getAttribute('data-status');
+      if (app && targetStatus) {
+        updateApplicationStatusDirect(app, targetStatus);
+      }
+    });
   });
-  dom.registryTableBody.appendChild(frag);
+}
 
-  if (dom.paginationInfo) {
-    dom.paginationInfo.textContent = `Showing ${totalRows === 0 ? 0 : startIdx + 1} to ${endIdx} of ${totalRows} applications`;
-  }
-  
-  if (dom.btnPrevPage) {
-    dom.btnPrevPage.disabled = state.currentPage === 1;
-  }
-  if (dom.btnNextPage) {
-    dom.btnNextPage.disabled = state.currentPage === maxPage;
-  }
+async function updateApplicationStatusDirect(app, newStatus) {
+  if (!app) return;
+  const oldStatus = (app['Application Status'] || '').trim();
+  if (oldStatus === newStatus) return;
 
-  updateHeaderSortIndicators();
+  const appKey = (app['Company Name'] || '').trim() + '|' + (app['Job Title'] || '').trim();
+  if (!state.statusOverrides) state.statusOverrides = {};
+
+  // 1. Initial Toast matching btnSubmitOverviewUpdates exactly
+  showToast('Submitting updates... Please wait for feedback.', 'info');
+
+  // Optimistically set status and render local board immediately in target column
+  app['Application Status'] = newStatus;
+  state.statusOverrides[appKey] = newStatus;
+  applyFilters();
+  renderKanbanBoard();
+
+  // 2. Generate submit update request with all card elements (matching drawer form fields)
+  const formData = new FormData();
+  formData.append('drawerJobTitle', app['Job Title'] || '');
+  formData.append('drawerCompanyName', app['Company Name'] || '');
+  formData.append('drawerlinkJobUrl', app['Job URL'] || app['linkJobUrl'] || app['drawerlinkJobUrl'] || app['Link'] || '');
+  formData.append('drawerApplicationStatus', newStatus);
+  formData.append('drawerCommentsInput', app['Comments'] || '');
+  formData.append('drawerFollowUp', app['Follow-Up'] || app['Follow_Up'] || '');
+  formData.append('drawerHiringTeam', app['Hiring Team'] || '');
+
+  const handleFailure = (err) => {
+    delete state.statusOverrides[appKey];
+    app['Application Status'] = oldStatus;
+    applyFilters();
+    renderKanbanBoard();
+    const errMsg = err && err.name === 'AbortError'
+      ? 'Submission error: Request timed out after 90 seconds.'
+      : 'Submission error: ' + (err && err.message ? err.message : 'Failed to update status');
+    showToast(errMsg, 'error');
+  };
+
+  try {
+    await postForm(NOTES_API_ENDPOINT, formData, {
+      setLoading: () => {},
+      onSuccess: () => {
+        // 3. Success Confirmation: Card stays in target column with no further changes
+        showToast('Changes submitted successfully!', 'success');
+      },
+      onError: (err) => {
+        // 4. Failure: Card moves back to original column and status remains unchanged
+        handleFailure(err);
+      }
+    });
+  } catch (err) {
+    // 4. Exception Failure: Card moves back to original column and status remains unchanged
+    handleFailure(err);
+  }
 }
 
 function selectTab(tabId) {
@@ -1526,7 +1592,7 @@ function openDetailsDrawer(app) {
   dom.drawerCompanyDescription.textContent = (app['Company Description'] || 'Not available.').trim();
 
   const jobUrl = (app['Job URL'] || '').trim();
-  if (dom.linkJobUrl) dom.linkJobUrl.value = jobUrl;
+  if (dom.drawerlinkJobUrl) dom.drawerlinkJobUrl.value = jobUrl;
   if (dom.linkJobUrlAnchor) {
     if (jobUrl) { dom.linkJobUrlAnchor.href = jobUrl; dom.linkJobUrlAnchor.style.display = ''; }
     else        { dom.linkJobUrlAnchor.style.display = 'none'; }
@@ -1585,29 +1651,22 @@ function closeDetailsDrawer() {
 
 function showEl(el) {
   if (!el) return;
-  el.classList.remove('tab-hidden');
-  el.classList.remove('tab-exit');
-  el.classList.add('tab-enter');
-  
-  // Force browser layout reflow to register style changes
-  void el.offsetWidth;
-  
+  if (el._hideTimeout) {
+    clearTimeout(el._hideTimeout);
+    el._hideTimeout = null;
+  }
+  el.classList.remove('tab-hidden', 'tab-exit', 'tab-enter');
   el.classList.add('tab-fade-in');
 }
 
 function hideEl(el) {
   if (!el) return;
-  el.classList.remove('tab-fade-in');
-  el.classList.remove('tab-enter');
-  el.classList.add('tab-exit');
-  
-  // Wait for the exit transition duration (150ms) before hiding element
-  setTimeout(() => {
-    if (el.classList.contains('tab-exit')) {
-      el.classList.add('tab-hidden');
-      el.classList.remove('tab-exit');
-    }
-  }, 150);
+  if (el._hideTimeout) {
+    clearTimeout(el._hideTimeout);
+    el._hideTimeout = null;
+  }
+  el.classList.remove('tab-fade-in', 'tab-enter', 'tab-exit');
+  el.classList.add('tab-hidden');
 }
 
 function initScrollReveal() {
@@ -1666,8 +1725,7 @@ function initTabNavigation() {
       showEl(dom.landingTabContent);
       hideEl(dom.heroBanner);
       hideEl(dom.filtersSection);
-      hideEl(dom.resultsSection);
-      hideEl(dom.activeInterviewsSection);
+      hideEl(dom.applicationsSection);
       hideEl(dom.syncContainer);
       hideEl(dom.statsSection);
       hideEl(dom.analyticsSection);
@@ -1684,9 +1742,10 @@ function initTabNavigation() {
       hideEl(dom.landingTabContent);
       hideEl(dom.heroBanner);
       showEl(dom.filtersSection);
-      showEl(dom.resultsSection);
+      showEl(dom.applicationsSection);
       showEl(dom.syncContainer);
-      if (state.rawApplications.length > 0) renderActiveInterviewsPanel(state.rawApplications);
+      showEl(dom.kanbanViewSection);
+      renderKanbanBoard();
       hideEl(dom.statsSection);
       hideEl(dom.analyticsSection);
       hideEl(dom.newApplicationSection);
@@ -1696,8 +1755,7 @@ function initTabNavigation() {
       hideEl(dom.landingTabContent);
       hideEl(dom.heroBanner);
       hideEl(dom.filtersSection);
-      hideEl(dom.resultsSection);
-      hideEl(dom.activeInterviewsSection);
+      hideEl(dom.applicationsSection);
       showEl(dom.syncContainer);
       showEl(dom.statsSection);
       showEl(dom.analyticsSection);
@@ -1719,8 +1777,7 @@ function initTabNavigation() {
       hideEl(dom.landingTabContent);
       hideEl(dom.heroBanner);
       hideEl(dom.filtersSection);
-      hideEl(dom.resultsSection);
-      hideEl(dom.activeInterviewsSection);
+      hideEl(dom.applicationsSection);
       hideEl(dom.syncContainer);
       hideEl(dom.statsSection);
       hideEl(dom.analyticsSection);
@@ -1840,103 +1897,4 @@ async function submitJobInterviewForm(submitterId) {
   isInterviewSubmitting = false;
 }
 
-function renderActiveInterviewsPanel(applications) {
-  if (!dom.activeInterviewsSection || !dom.activeInterviewsGrid) return;
-  
-  const activeApps = applications.filter(app => {
-    const status = (app['Application Status'] || '').trim().toLowerCase();
-    const isActive = status !== '' && status !== 'ready' && status !== 'rejected' && status !== 'withdrawn' && status !== 'applied';
-    
-    const matchCompany = !state.selectedCompany || (app['Company Name'] || '').trim() === state.selectedCompany;
-    const matchJob = !state.selectedJobTitle || (app['Job Title'] || '').trim() === state.selectedJobTitle;
-    const matchStatus = !state.selectedStatus || (app['Application Status'] || '').trim() === state.selectedStatus;
-    
-    return isActive && matchCompany && matchJob && matchStatus;
-  });
-  
-  const activeTabBtn = document.querySelector('.topbar-nav-btn.active');
-  const isHomeTab = activeTabBtn ? activeTabBtn.getAttribute('data-tab') === 'home' : true;
-  const hasActiveFilters = !!(state.selectedCompany || state.selectedJobTitle || state.selectedStatus);
-  
-  if (activeApps.length === 0 || !isHomeTab) {
-    if (isHomeTab && hasActiveFilters) {
-      dom.activeInterviewsSection.classList.remove('tab-hidden');
-      if (dom.activeInterviewsCount) dom.activeInterviewsCount.textContent = '0';
-      dom.activeInterviewsGrid.innerHTML = '<div class="no-results-pipeline">No results found for this filter.</div>';
-      return;
-    }
-    dom.activeInterviewsSection.classList.add('tab-hidden');
-    return;
-  }
-  
-  dom.activeInterviewsSection.classList.remove('tab-hidden');
-  if (dom.activeInterviewsCount) {
-    dom.activeInterviewsCount.textContent = activeApps.length;
-  }
 
-  // Create hash/signature of data to prevent redundant DOM painting
-  const currentRenderHash = `${state.dataVersion}-${state.selectedCompany || ''}-${state.selectedJobTitle || ''}-${state.selectedStatus || ''}`;
-  if (dom.activeInterviewsGrid.getAttribute('data-render-hash') === currentRenderHash) {
-    return; // Skip re-rendering if data is identical
-  }
-  dom.activeInterviewsGrid.setAttribute('data-render-hash', currentRenderHash);
-  dom.activeInterviewsGrid.innerHTML = '';
-  
-  const frag = document.createDocumentFragment();
-  
-  activeApps.forEach(app => {
-    const company = (app['Company Name'] || '').trim();
-    const title = (app['Job Title'] || '').trim();
-    const status = (app['Application Status'] || '').trim();
-    const statusClass = status.toLowerCase().replace(/\s+/g, '-');
-    const commentsVal = (app['Comments'] || '').trim();
-    const followUpVal = (app['Follow-Up'] || '').trim();
-    
-    const lastCommentLine = getLastComment(commentsVal);
-    const formattedComment = parseCommentLine(lastCommentLine);
-    
-    let followUpHtml = '';
-    if (followUpVal) {
-      const isUrl = followUpVal.startsWith('http://') || followUpVal.startsWith('https://');
-      if (isUrl) {
-        followUpHtml = `
-          <a href="${escapeHtml(followUpVal)}" target="_blank" class="interview-btn">
-            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
-            Follow Up
-          </a>`;
-      } else {
-        followUpHtml = `<span class="followup-text">Follow Up: ${escapeHtml(followUpVal)}</span>`;
-      }
-    }
-    
-    const card = document.createElement('div');
-    card.className = 'interview-card';
-    card.setAttribute('data-company', company);
-    card.setAttribute('data-title', title);
-    card.innerHTML = `
-      <div class="interview-card-header">
-        <div>
-          <h4 class="interview-company">${escapeHtml(company)}</h4>
-          <p class="interview-title">${escapeHtml(title)}</p>
-        </div>
-        <span class="status-badge ${statusClass}">${escapeHtml(status)}</span>
-      </div>
-      <div class="interview-card-body">
-        <div class="interview-latest-activity">
-          <span class="activity-label">Latest Activity</span>
-          <div class="activity-content">${formattedComment}</div>
-        </div>
-      </div>
-      <div class="interview-card-footer">
-        ${followUpHtml}
-        <button type="button" class="interview-btn secondary view-detail-trigger">
-          View Details
-          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-        </button>
-      </div>
-    `;
-    
-    frag.appendChild(card);
-  });
-  dom.activeInterviewsGrid.appendChild(frag);
-}

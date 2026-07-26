@@ -53,7 +53,7 @@ export function formatDisplayDate(dateStr) {
  * Shared form submission utility.
  * Handles AbortController timeout, fetch, JSON result check, and error routing
  */
-export async function postForm(url, formData, { setLoading, onSuccess, onError }) {
+export async function postForm(url, formData, { setLoading = () => {}, onSuccess = () => {}, onError = () => {} } = {}) {
   setLoading(true);
   const controller = new AbortController();
   const timeoutId  = setTimeout(() => controller.abort(), FORM_TIMEOUT_MS);
