@@ -607,7 +607,8 @@ export class ResumeApp {
           const targetEl = document.querySelector(targetId);
           if (targetEl) {
             const navHeight = siteNav.offsetHeight || 60;
-            const targetPosition = targetEl.offsetTop - navHeight + 2;
+            const rect = targetEl.getBoundingClientRect();
+            const targetPosition = rect.top + window.scrollY - navHeight + 10;
             if (targetId === '#metrics') {
               this._metricsAnimated = false;
               this._startMetricCounters();

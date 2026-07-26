@@ -274,7 +274,7 @@ a {
 
 /* Section layouts */
 .resume-container {
-  padding: 80px 40px;
+  padding: 50px 40px;
   position: relative;
   z-index: 2;
   max-width: 1300px;
@@ -1922,14 +1922,14 @@ a {
 
 /* Section breathing room */
 .resume-container {
-  padding: 100px 40px !important;
+  padding: 24px 40px 40px 40px !important;
   max-width: 1080px !important;
   margin: 0 auto;
 }
 
 .resume-title-block {
   text-align: center;
-  margin-bottom: 60px !important;
+  margin-bottom: 36px !important;
 }
 
 .resume-title {
@@ -2977,7 +2977,7 @@ a {
 
 /* Metrics Section clean typographic look (no cards, plain text) */
 .resume-metrics {
-  padding: 60px 20px 30px 20px !important;
+  padding: 24px 20px 30px 20px !important;
   background: #ffffff !important;
 }
 
@@ -3165,7 +3165,7 @@ a {
 .resume-skills,
 .resume-education,
 .resume-contact-section {
-  padding: 100px 20px !important;
+  padding: 24px 20px 50px 20px !important;
 }
 
 :root:not(.theme-dark) .resume-pillars,
@@ -3675,7 +3675,7 @@ a {
 
 /* Footer Styling */
 .resume-contact-section {
-  padding: 100px 20px 40px 20px !important;
+  padding: 24px 20px 40px 20px !important;
 }
 
 .resume-footer {
