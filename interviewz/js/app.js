@@ -14,10 +14,12 @@ import {
   parseCacheTimestamp
 } from './Utils.js';
 import {
-  SHEET_EXPORT_URL,
-  NOTES_API_ENDPOINT,
+  getSheetExportUrl,
+  getNotesApiEndpoint,
   CSV_CACHE_KEY
 } from './Config.js';
+
+const sortCollator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
 
 /* --------------------------------------------------------------------------
    LANDING HERO: CANVAS PARTICLE NETWORK
@@ -584,7 +586,7 @@ function fetchData(isTabSwitch = false, isForceRefresh = false) {
     if (dom.noResults) dom.noResults.classList.add('hidden');
   }
 
-  fetch(SHEET_EXPORT_URL)
+  fetch(getSheetExportUrl())
     .then(response => {
       if (!response.ok) throw new Error(`Fetch failed: ${response.statusText}`);
       return response.text();
@@ -958,8 +960,6 @@ function calculateStatistics(apps = state.rawApplications) {
   }
 }
 
-const sortCollator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
-
 function updateFiltersUI() {
   const companySet = new Set();
   const jobSet = new Set();
@@ -1156,6 +1156,17 @@ function renderKanbanBoard() {
       counts[key].textContent = columnApps[key].length;
     }
   });
+  // Sort each column by creation date (newest first)
+  Object.keys(columnApps).forEach(key => {
+    columnApps[key].sort((a, b) => {
+      const dateA = parseDate(a.app['Create Date']);
+      const dateB = parseDate(b.app['Create Date']);
+      if (dateA && dateB) return dateB - dateA;
+      if (dateA) return -1;
+      if (dateB) return 1;
+      return 0;
+    });
+  });
 
   Object.keys(columnApps).forEach(colKey => {
     const container = columns[colKey];
@@ -1272,7 +1283,7 @@ function setupKanbanDragAndDrop() {
       card.classList.add('dragging');
       const rawIdx = card.getAttribute('data-index');
       const idx = parseInt(rawIdx, 10);
-      const app = (state.rawApplications || [])[idx] || (state.filteredApplications || [])[idx];
+      const app = (state.rawApplications || []).find(a => a.originalIndex === idx) || (state.filteredApplications || [])[idx];
       state.draggingKanbanApp = app;
       state.draggingKanbanEl = card;
       if (app) {
@@ -1351,6 +1362,21 @@ async function updateApplicationStatusDirect(app, newStatus, targetContainer, ca
   const isCrossColumn = oldColKey !== newColKey;
   if (isCrossColumn && cardEl && targetContainer) {
     targetContainer.appendChild(cardEl);
+    // Re-sort target column cards by creation date (newest first)
+    const cards = Array.from(targetContainer.querySelectorAll('.kanban-card'));
+    cards.sort((a, b) => {
+      const idxA = parseInt(a.getAttribute('data-index'), 10);
+      const idxB = parseInt(b.getAttribute('data-index'), 10);
+      const appA = (state.rawApplications || []).find(x => x.originalIndex === idxA);
+      const appB = (state.rawApplications || []).find(x => x.originalIndex === idxB);
+      const dateA = appA ? parseDate(appA['Create Date']) : null;
+      const dateB = appB ? parseDate(appB['Create Date']) : null;
+      if (dateA && dateB) return dateB - dateA;
+      if (dateA) return -1;
+      if (dateB) return 1;
+      return 0;
+    });
+    cards.forEach(c => targetContainer.appendChild(c));
     updateColumnEmptyState(targetContainer);
     if (sourceContainer) updateColumnEmptyState(sourceContainer);
     updateColumnHeaderCount(oldColKey, -1);
@@ -1386,7 +1412,7 @@ async function updateApplicationStatusDirect(app, newStatus, targetContainer, ca
   };
 
   try {
-    await postForm(NOTES_API_ENDPOINT, formData, {
+    await postForm(getNotesApiEndpoint(), formData, {
       setLoading: () => {},
       onSuccess: () => {
         // 3. Success Confirmation: Card stays in target column with zero re-renders
@@ -1932,7 +1958,7 @@ async function submitJobInterviewForm(submitterId) {
   const msg = submitterId === 'btnSubmitOverviewUpdates' ? 'Submitting updates... Please wait for feedback.' : 'Submitting your notes... Please wait for feedback.';
   showToast(msg, 'info');
 
-  await postForm(NOTES_API_ENDPOINT, new FormData(form), {
+  await postForm(getNotesApiEndpoint(), new FormData(form), {
     setLoading: (v) => setInterviewLoadingState(v),
     onSuccess: () => {
       form.classList.remove('was-validated');

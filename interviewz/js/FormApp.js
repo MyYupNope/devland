@@ -1,6 +1,6 @@
 import { showToast } from './Toast.js';
 import { postForm } from './Utils.js';
-import { FORM_API_ENDPOINT, FORM_SUBMISSION_RESET_TIMEOUT } from './Config.js';
+import { getFormApiEndpoint, FORM_SUBMISSION_RESET_TIMEOUT } from './Config.js';
 
 export class FormApp {
   constructor() {
@@ -117,7 +117,7 @@ export class FormApp {
     this.submitBtn.classList.remove('btn-danger');
     this.submitBtn.classList.add('btn-primary');
 
-    await postForm(FORM_API_ENDPOINT, new FormData(this.form), {
+    await postForm(getFormApiEndpoint(), new FormData(this.form), {
       setLoading: (v) => this.setLoadingState(v),
       onSuccess:  ()  => this.handleSuccess(),
       onError:    (e) => this.handleError(e.name === 'AbortError'
