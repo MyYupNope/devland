@@ -60,26 +60,34 @@ export class FormApp {
       });
     }
 
-    // Keyboard navigation
-    document.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') {
-          // Only trigger if form is visible/active
-          if (this.newAppSection && !this.newAppSection.classList.contains('tab-hidden')) {
-            this.form.requestSubmit();
+    // Keyboard navigation scoped to form
+    if (this.form) {
+      this.form.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          if (document.activeElement && (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT')) {
+            if (this.newAppSection && !this.newAppSection.classList.contains('tab-hidden')) {
+              this.form.requestSubmit();
+            }
           }
         }
-      }
-    });
+      });
+    }
   }
 
   validateField(input) {
+    if (input._validTimer) {
+      clearTimeout(input._validTimer);
+      input._validTimer = null;
+    }
     if (!input.checkValidity()) {
       input.classList.add('is-invalid');
     } else {
       input.classList.remove('is-invalid');
       input.classList.add('is-valid');
-      setTimeout(() => input.classList.remove('is-valid'), 2000);
+      input._validTimer = setTimeout(() => {
+        input.classList.remove('is-valid');
+        input._validTimer = null;
+      }, 2000);
     }
   }
 

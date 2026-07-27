@@ -3,19 +3,23 @@ import { escapeHtml } from './Utils.js';
 /**
  * Dynamic Toast Alert Utility
  */
+let toastContainerEl = null;
+
 export function showToast(message, type = 'success') {
-  let container = document.getElementById('toastContainer');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = 'toastContainer';
-    container.className = 'toast-container';
-    document.body.appendChild(container);
+  if (!toastContainerEl || !toastContainerEl.parentNode) {
+    toastContainerEl = document.getElementById('toastContainer');
+    if (!toastContainerEl) {
+      toastContainerEl = document.createElement('div');
+      toastContainerEl.id = 'toastContainer';
+      toastContainerEl.className = 'toast-container';
+      document.body.appendChild(toastContainerEl);
+    }
   }
   
   const toast = document.createElement('div');
   toast.className = `toast-item ${type}`;
   toast.innerHTML = `<span class="toast-message">${escapeHtml(message)}</span>`;
-  container.appendChild(toast);
+  toastContainerEl.appendChild(toast);
   
   // Trigger transition
   setTimeout(() => toast.classList.add('show'), 10);

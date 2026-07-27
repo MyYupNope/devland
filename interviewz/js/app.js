@@ -1,7 +1,7 @@
 import { FacetedSelect } from './FacetedSelect.js';
 import { FormApp } from './FormApp.js';
-import { state } from './State.js?v=4';
-import { renderAllDashboardWidgets } from './Charts.js?v=3';
+import { state } from './State.js';
+import { renderAllDashboardWidgets } from './Charts.js';
 import { parseMarkdown } from './Markdown.js';
 import { showToast } from './Toast.js';
 import {
@@ -602,11 +602,7 @@ function fetchData(isTabSwitch = false, isForceRefresh = false) {
 
       if (!isForceRefresh && parsedCached && parsedCached.csv === csvText) {
         console.log('[OpportunityTracker] Remote CSV is identical to cache. Skipping parse.');
-        // Update cache timestamp to mark it fresh
-        try {
-          const newCache = { csv: csvText, timestamp: Date.now() };
-          localStorage.setItem(CACHE_KEY_CSV(), JSON.stringify(newCache));
-        } catch (e) {}
+        writeCacheIdle(csvText);
         const lastUpdated = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
         setSyncState('success', `Synced ${lastUpdated}`);
         // If we haven't loaded the data yet (e.g. cache expired or disabled but string identical), render once
@@ -616,12 +612,7 @@ function fetchData(isTabSwitch = false, isForceRefresh = false) {
         return;
       }
 
-      try {
-        const newCache = { csv: csvText, timestamp: Date.now() };
-        localStorage.setItem(CACHE_KEY_CSV(), JSON.stringify(newCache));
-      } catch (e) {
-        console.warn('[OpportunityTracker] Failed to write cache to localStorage:', e);
-      }
+      writeCacheIdle(csvText);
 
       // Clear local status overrides so fresh DB data takes precedence
       if (state.statusOverrides) {
@@ -674,44 +665,86 @@ function setSyncState(status, message) {
   `;
 }
 
+function writeCacheIdle(csvText) {
+  const saveAction = () => {
+    try {
+      const newCache = { csv: csvText, timestamp: Date.now() };
+      localStorage.setItem(CACHE_KEY_CSV(), JSON.stringify(newCache));
+    } catch (e) {
+      console.warn('[OpportunityTracker] Failed to write cache to localStorage:', e);
+    }
+  };
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(saveAction);
+  } else {
+    setTimeout(saveAction, 100);
+  }
+}
+
 /**
  * State-Machine CSV Parser
  */
 function parseCSV(text) {
   const rows = [];
   let currentRow = [];
-  let currentField = '';
+  let fieldParts = null;
+  let fieldStart = 0;
   let inQuotes = false;
   const len = text.length;
 
   for (let i = 0; i < len; i++) {
-    const c = text[i];
+    const c = text.charCodeAt(i);
 
-    if (c === '"') {
-      if (inQuotes && i + 1 < len && text[i + 1] === '"') {
-        currentField += '"';
-        i++;
+    if (c === 34) { // quote '"'
+      if (inQuotes) {
+        if (i + 1 < len && text.charCodeAt(i + 1) === 34) {
+          if (!fieldParts) fieldParts = [];
+          fieldParts.push(text.substring(fieldStart, i));
+          fieldStart = i + 1;
+          i++;
+        } else {
+          inQuotes = false;
+          if (!fieldParts) fieldParts = [];
+          fieldParts.push(text.substring(fieldStart, i));
+          fieldStart = i + 1;
+        }
       } else {
-        inQuotes = !inQuotes;
+        inQuotes = true;
+        fieldStart = i + 1;
       }
-    } else if (c === ',' && !inQuotes) {
-      currentRow.push(currentField);
-      currentField = '';
-    } else if ((c === '\r' || c === '\n') && !inQuotes) {
-      currentRow.push(currentField);
-      currentField = '';
-      if (c === '\r' && i + 1 < len && text[i + 1] === '\n') {
+    } else if (c === 44 && !inQuotes) { // comma ','
+      if (fieldParts) {
+        fieldParts.push(text.substring(fieldStart, i));
+        currentRow.push(fieldParts.join(''));
+        fieldParts = null;
+      } else {
+        currentRow.push(text.substring(fieldStart, i));
+      }
+      fieldStart = i + 1;
+    } else if ((c === 13 || c === 10) && !inQuotes) { // \r or \n
+      if (fieldParts) {
+        fieldParts.push(text.substring(fieldStart, i));
+        currentRow.push(fieldParts.join(''));
+        fieldParts = null;
+      } else {
+        currentRow.push(text.substring(fieldStart, i));
+      }
+      if (c === 13 && i + 1 < len && text.charCodeAt(i + 1) === 10) {
         i++;
       }
+      fieldStart = i + 1;
       rows.push(currentRow);
       currentRow = [];
-    } else {
-      currentField += c;
     }
   }
 
-  if (currentField.length > 0 || currentRow.length > 0) {
-    currentRow.push(currentField);
+  if (fieldStart < len || fieldParts || currentRow.length > 0) {
+    if (fieldParts) {
+      fieldParts.push(text.substring(fieldStart));
+      currentRow.push(fieldParts.join(''));
+    } else {
+      currentRow.push(text.substring(fieldStart));
+    }
     rows.push(currentRow);
   }
 
@@ -925,100 +958,67 @@ function calculateStatistics(apps = state.rawApplications) {
   }
 }
 
-function updateFiltersUI() {
-  const companyPool = state.activeApplications.filter(app => {
-    const matchJob = !state.selectedJobTitle || (app['Job Title'] || '').trim() === state.selectedJobTitle;
-    const matchStatus = !state.selectedStatus || (app['Application Status'] || '').trim() === state.selectedStatus;
-    return matchJob && matchStatus;
-  });
+const sortCollator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
 
-  const distinctCompanies = [...new Set(
-    companyPool.map(app => (app['Company Name'] || '').trim()).filter(name => name !== '')
-  )].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+function updateFiltersUI() {
+  const companySet = new Set();
+  const jobSet = new Set();
+  const statusSet = new Set();
+
+  const selCompany = state.selectedCompany;
+  const selJob = state.selectedJobTitle;
+  const selStatus = state.selectedStatus;
+
+  const apps = state.activeApplications || [];
+  const len = apps.length;
+
+  for (let i = 0; i < len; i++) {
+    const app = apps[i];
+    const company = (app['Company Name'] || '').trim();
+    const job = (app['Job Title'] || '').trim();
+    const status = (app['Application Status'] || '').trim();
+
+    const matchCompany = !selCompany || company === selCompany;
+    const matchJob = !selJob || job === selJob;
+    const matchStatus = !selStatus || status === selStatus;
+
+    if (company && matchJob && matchStatus) {
+      companySet.add(company);
+    }
+    if (job && matchCompany && matchStatus) {
+      jobSet.add(job);
+    }
+    if (status && matchCompany && matchJob) {
+      statusSet.add(status);
+    }
+  }
+
+  const sortFn = (a, b) => sortCollator.compare(a, b);
+  const distinctCompanies = Array.from(companySet).sort(sortFn);
+  const distinctJobs = Array.from(jobSet).sort(sortFn);
+  const distinctStatuses = Array.from(statusSet).sort(sortFn);
 
   companySelect.populate(distinctCompanies, state.selectedCompany, (company) => {
     state.selectedCompany = company;
-    
-    if (state.selectedCompany) {
-      const companyApps = state.activeApplications.filter(app => 
-        (app['Company Name'] || '').trim() === state.selectedCompany
-      );
-      const companyJobs = [...new Set(
-        companyApps.map(app => (app['Job Title'] || '').trim()).filter(title => title !== '')
-      )];
-      
-      if (state.selectedJobTitle) {
-        const isValid = companyJobs.includes(state.selectedJobTitle);
-        if (!isValid) {
-          state.selectedJobTitle = null;
-        }
-      }
-    } else {
-      if (state.selectedJobTitle) {
-        const isValid = state.activeApplications.some(app => 
-          (app['Job Title'] || '').trim() === state.selectedJobTitle
-        );
-        if (!isValid) {
-          state.selectedJobTitle = null;
-        }
+    if (state.selectedCompany && state.selectedJobTitle) {
+      if (!jobSet.has(state.selectedJobTitle)) {
+        state.selectedJobTitle = null;
       }
     }
-
     updateFiltersUI();
     applyFilters(true);
   });
-
-  const jobPool = state.activeApplications.filter(app => {
-    const matchCompany = !state.selectedCompany || (app['Company Name'] || '').trim() === state.selectedCompany;
-    const matchStatus = !state.selectedStatus || (app['Application Status'] || '').trim() === state.selectedStatus;
-    return matchCompany && matchStatus;
-  });
-
-  const distinctJobs = [...new Set(
-    jobPool.map(app => (app['Job Title'] || '').trim()).filter(title => title !== '')
-  )].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
   jobSelect.populate(distinctJobs, state.selectedJobTitle, (jobTitle) => {
     state.selectedJobTitle = jobTitle;
-
-    if (state.selectedJobTitle) {
-      const jobApps = state.activeApplications.filter(app => 
-        (app['Job Title'] || '').trim() === state.selectedJobTitle
-      );
-      const jobCompanies = [...new Set(
-        jobApps.map(app => (app['Company Name'] || '').trim()).filter(name => name !== '')
-      )];
-      
-      if (state.selectedCompany) {
-        const isValid = jobCompanies.includes(state.selectedCompany);
-        if (!isValid) {
-          state.selectedCompany = null;
-        }
-      }
-    } else {
-      if (state.selectedCompany) {
-        const isValid = state.activeApplications.some(app => 
-          (app['Company Name'] || '').trim() === state.selectedCompany
-        );
-        if (!isValid) {
-          state.selectedCompany = null;
-        }
+    if (state.selectedJobTitle && state.selectedCompany) {
+      if (!companySet.has(state.selectedCompany)) {
+        state.selectedCompany = null;
       }
     }
-
     updateFiltersUI();
     applyFilters(true);
   });
-
-  const statusPool = state.activeApplications.filter(app => {
-    const matchCompany = !state.selectedCompany || (app['Company Name'] || '').trim() === state.selectedCompany;
-    const matchJob = !state.selectedJobTitle || (app['Job Title'] || '').trim() === state.selectedJobTitle;
-    return matchCompany && matchJob;
-  });
-
-  const distinctStatuses = [...new Set(
-    statusPool.map(app => (app['Application Status'] || '').trim()).filter(status => status !== '')
-  )].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
   statusSelect.populate(distinctStatuses, state.selectedStatus, (statusValue) => {
     state.selectedStatus = statusValue;
@@ -1026,8 +1026,6 @@ function updateFiltersUI() {
     applyFilters(true);
   });
 }
-
-const sortCollator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
 
 function applyFilters() {
   dom.btnResetFilters.disabled = !state.selectedCompany && !state.selectedJobTitle && !state.selectedStatus;
@@ -1168,6 +1166,8 @@ function renderKanbanBoard() {
       return;
     }
 
+    const fragment = document.createDocumentFragment();
+
     columnApps[colKey].forEach(({ app, idx }) => {
       const company = (app['Company Name'] || '').trim();
       const title = (app['Job Title'] || '').trim();
@@ -1224,29 +1224,77 @@ function renderKanbanBoard() {
         </div>
       `;
 
-      card.addEventListener('dragstart', (e) => {
-        card.classList.add('dragging');
-        state.draggingKanbanApp = app;
-        e.dataTransfer.setData('text/plain', (app['Company Name'] || '') + '|' + (app['Job Title'] || ''));
-        e.dataTransfer.effectAllowed = 'move';
-      });
-
-      card.addEventListener('dragend', () => {
-        card.classList.remove('dragging');
-      });
-
-      container.appendChild(card);
+      fragment.appendChild(card);
     });
+
+    container.appendChild(fragment);
   });
 }
 
+function getColKeyForStatus(statusStr) {
+  const lowerStatus = (statusStr || '').trim().toLowerCase();
+  if (lowerStatus === 'ready') return 'Ready';
+  if (lowerStatus === 'applied') return 'Applied';
+  if (lowerStatus.includes('interview')) return 'Interviewed';
+  if (lowerStatus === 'offered' || lowerStatus === 'accepted') return 'Offered';
+  if (lowerStatus === 'rejected' || lowerStatus === 'withdrawn') return 'Rejected';
+  return 'Applied';
+}
+
+function updateColumnEmptyState(container) {
+  if (!container) return;
+  const cards = container.querySelectorAll('.kanban-card');
+  const emptyMsg = container.querySelector('.kanban-empty-msg');
+  if (cards.length === 0) {
+    if (!emptyMsg) {
+      container.innerHTML = `<div class="kanban-empty-msg" style="font-size:0.8rem; color:var(--color-text-secondary); text-align:center; padding: 1.5rem 0;">No applications</div>`;
+    }
+  } else {
+    if (emptyMsg) {
+      emptyMsg.remove();
+    }
+  }
+}
+
+function updateColumnHeaderCount(colKey, delta) {
+  const counterEl = document.getElementById(`count${colKey}`);
+  if (counterEl) {
+    const current = parseInt(counterEl.textContent, 10) || 0;
+    counterEl.textContent = Math.max(0, current + delta);
+  }
+}
+
 function setupKanbanDragAndDrop() {
+  if (dom.kanbanBoard) {
+    dom.kanbanBoard.addEventListener('dragstart', (e) => {
+      const card = e.target.closest('.kanban-card');
+      if (!card) return;
+      card.classList.add('dragging');
+      const rawIdx = card.getAttribute('data-index');
+      const idx = parseInt(rawIdx, 10);
+      const app = (state.rawApplications || [])[idx] || (state.filteredApplications || [])[idx];
+      state.draggingKanbanApp = app;
+      state.draggingKanbanEl = card;
+      if (app) {
+        e.dataTransfer.setData('text/plain', (app['Company Name'] || '') + '|' + (app['Job Title'] || ''));
+      }
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    dom.kanbanBoard.addEventListener('dragend', (e) => {
+      const card = e.target.closest('.kanban-card');
+      if (card) card.classList.remove('dragging');
+    });
+  }
+
   const containers = document.querySelectorAll('.kanban-cards-container');
   containers.forEach(container => {
     container.addEventListener('dragover', (e) => {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
-      container.classList.add('drag-over');
+      if (!container.classList.contains('drag-over')) {
+        container.classList.add('drag-over');
+      }
     });
 
     container.addEventListener('dragleave', (e) => {
@@ -1260,35 +1308,56 @@ function setupKanbanDragAndDrop() {
       container.classList.remove('drag-over');
       
       const app = state.draggingKanbanApp;
+      const cardEl = state.draggingKanbanEl;
       state.draggingKanbanApp = null;
+      state.draggingKanbanEl = null;
       if (!app) return;
 
       const targetStatus = container.getAttribute('data-status');
       if (app && targetStatus) {
-        updateApplicationStatusDirect(app, targetStatus);
+        updateApplicationStatusDirect(app, targetStatus, container, cardEl);
       }
     });
   });
 }
 
-async function updateApplicationStatusDirect(app, newStatus) {
+async function updateApplicationStatusDirect(app, newStatus, targetContainer, cardEl) {
   if (!app) return;
   const oldStatus = (app['Application Status'] || '').trim();
-  if (oldStatus === newStatus) return;
+  if (oldStatus.toLowerCase() === newStatus.toLowerCase()) return;
+
+  const oldColKey = getColKeyForStatus(oldStatus);
+  const newColKey = getColKeyForStatus(newStatus);
+
+  if (!cardEl && app.originalIndex !== undefined) {
+    cardEl = document.querySelector(`.kanban-card[data-index="${app.originalIndex}"]`);
+  }
+  const sourceContainer = cardEl ? cardEl.parentElement : null;
+  if (!targetContainer && newColKey) {
+    targetContainer = document.getElementById(`kanbanCards${newColKey}`);
+  }
 
   const appKey = (app['Company Name'] || '').trim() + '|' + (app['Job Title'] || '').trim();
   if (!state.statusOverrides) state.statusOverrides = {};
 
-  // 1. Initial Toast matching btnSubmitOverviewUpdates exactly
+  // 1. Initial Toast
   showToast('Submitting updates... Please wait for feedback.', 'info');
 
-  // Optimistically set status and render local board immediately in target column
+  // Optimistically set model status & status overrides
   app['Application Status'] = newStatus;
   state.statusOverrides[appKey] = newStatus;
-  applyFilters();
-  renderKanbanBoard();
 
-  // 2. Generate submit update request with all card elements (matching drawer form fields)
+  // Optimistically update DOM position & column counts without re-rendering the full board
+  const isCrossColumn = oldColKey !== newColKey;
+  if (isCrossColumn && cardEl && targetContainer) {
+    targetContainer.appendChild(cardEl);
+    updateColumnEmptyState(targetContainer);
+    if (sourceContainer) updateColumnEmptyState(sourceContainer);
+    updateColumnHeaderCount(oldColKey, -1);
+    updateColumnHeaderCount(newColKey, 1);
+  }
+
+  // 2. Generate submit update payload
   const formData = new FormData();
   formData.append('drawerJobTitle', app['Job Title'] || '');
   formData.append('drawerCompanyName', app['Company Name'] || '');
@@ -1301,8 +1370,15 @@ async function updateApplicationStatusDirect(app, newStatus) {
   const handleFailure = (err) => {
     delete state.statusOverrides[appKey];
     app['Application Status'] = oldStatus;
-    applyFilters();
-    renderKanbanBoard();
+
+    if (isCrossColumn && cardEl && sourceContainer) {
+      sourceContainer.appendChild(cardEl);
+      updateColumnEmptyState(sourceContainer);
+      if (targetContainer) updateColumnEmptyState(targetContainer);
+      updateColumnHeaderCount(oldColKey, 1);
+      updateColumnHeaderCount(newColKey, -1);
+    }
+
     const errMsg = err && err.name === 'AbortError'
       ? 'Submission error: Request timed out after 90 seconds.'
       : 'Submission error: ' + (err && err.message ? err.message : 'Failed to update status');
@@ -1313,16 +1389,15 @@ async function updateApplicationStatusDirect(app, newStatus) {
     await postForm(NOTES_API_ENDPOINT, formData, {
       setLoading: () => {},
       onSuccess: () => {
-        // 3. Success Confirmation: Card stays in target column with no further changes
+        // 3. Success Confirmation: Card stays in target column with zero re-renders
         showToast('Changes submitted successfully!', 'success');
       },
       onError: (err) => {
-        // 4. Failure: Card moves back to original column and status remains unchanged
+        // 4. Failure: Card moves back to original column gracefully
         handleFailure(err);
       }
     });
   } catch (err) {
-    // 4. Exception Failure: Card moves back to original column and status remains unchanged
     handleFailure(err);
   }
 }
@@ -1677,6 +1752,7 @@ function initScrollReveal() {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
       }
     });
   }, {

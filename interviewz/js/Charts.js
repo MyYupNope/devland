@@ -1,5 +1,5 @@
 import { parseDate } from './Utils.js';
-import { state } from './State.js?v=4';
+import { state } from './State.js';
 
 let cumulativeSubmissionsChartInstance = null;
 let statusSplitChartInstance = null;
@@ -9,12 +9,20 @@ let _latestTopCompaniesApps = null;
 let _latestTopCompaniesTokens = null;
 let lastRenderHash = '';
 
+let cachedTokens = null;
+let cachedThemeClass = '';
+
 /**
- * Resolves CSS design tokens in a single layout read.
+ * Resolves CSS design tokens in a single layout read with theme caching.
  */
 export function getDesignTokens() {
+  const currentThemeClass = document.documentElement.className;
+  if (cachedTokens && cachedThemeClass === currentThemeClass) {
+    return cachedTokens;
+  }
+
   const style = getComputedStyle(document.documentElement);
-  return {
+  cachedTokens = {
     primary:      style.getPropertyValue('--color-primary').trim()       || '#1a73e8',
     warning:      style.getPropertyValue('--color-warning').trim()       || '#b06000',
     error:        style.getPropertyValue('--color-error').trim()         || '#d93025',
@@ -23,6 +31,8 @@ export function getDesignTokens() {
       style.getPropertyValue(`--color-score-${n}`).trim() || '#888'
     ),
   };
+  cachedThemeClass = currentThemeClass;
+  return cachedTokens;
 }
 
 export function initCumulativeSubmissionsChart(applications, tokens) {
@@ -46,21 +56,22 @@ export function initCumulativeSubmissionsChart(applications, tokens) {
   }));
   dateEntries.sort((a, b) => a.dateObj - b.dateObj);
 
-  // 3. Prepare cumulative dataset
+  // 3. Prepare cumulative dataset and labels in a single pass
   let runningTotal = 0;
-  const cumulativeData = dateEntries.map(entry => {
-    runningTotal += dateMap[entry.dateStr];
-    return runningTotal;
-  });
-
-  // 4. Render or Update Chart
   const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-  const chartLabels = dateEntries.map(entry => {
+  const cumulativeData = new Array(dateEntries.length);
+  const chartLabels = new Array(dateEntries.length);
+
+  for (let i = 0; i < dateEntries.length; i++) {
+    const entry = dateEntries[i];
+    runningTotal += dateMap[entry.dateStr];
+    cumulativeData[i] = runningTotal;
+
     const date = entry.dateObj;
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
-    return `${day}-${month} (${weekdays[date.getDay()]})`;
-  });
+    chartLabels[i] = `${day}-${month} (${weekdays[date.getDay()]})`;
+  }
 
   if (cumulativeSubmissionsChartInstance) {
     cumulativeSubmissionsChartInstance.data.labels = chartLabels;
@@ -163,16 +174,15 @@ export function initStatusSplitChart(applications, tokens) {
   const data = activeStatuses.map(status => statusCounts[status]);
   const labels = activeStatuses;
   const colors = activeStatuses.map(status => statusColors[status] || '#70757a');
+  const totalSum = data.reduce((a, b) => a + b, 0);
 
   if (statusSplitChartInstance) {
     statusSplitChartInstance.data.labels = labels;
     statusSplitChartInstance.data.datasets[0].data = data;
     statusSplitChartInstance.data.datasets[0].backgroundColor = colors;
     statusSplitChartInstance.options.plugins.tooltip.callbacks.label = (item) => {
-      const datasetData = item.dataset.data;
-      const total = datasetData.reduce((a, b) => a + b, 0);
-      const val = datasetData[item.dataIndex];
-      const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+      const val = item.dataset.data[item.dataIndex];
+      const pct = totalSum > 0 ? Math.round((val / totalSum) * 100) : 0;
       return ` ${item.label}: ${val} (${pct}%)`;
     };
     statusSplitChartInstance.update();
@@ -195,10 +205,8 @@ export function initStatusSplitChart(applications, tokens) {
             cornerRadius: 8,
             callbacks: {
               label: (item) => {
-                const datasetData = item.dataset.data;
-                const total = datasetData.reduce((a, b) => a + b, 0);
-                const val = datasetData[item.dataIndex];
-                const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+                const val = item.dataset.data[item.dataIndex];
+                const pct = totalSum > 0 ? Math.round((val / totalSum) * 100) : 0;
                 return ` ${item.label}: ${val} (${pct}%)`;
               }
             }

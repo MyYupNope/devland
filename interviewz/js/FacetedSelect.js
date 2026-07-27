@@ -106,14 +106,18 @@ export class FacetedSelect {
   
   updateKbdFocusUI() {
     const options = this.getSelectableOptions();
+    let focusedEl = null;
     options.forEach((opt, idx) => {
       if (idx === this.focusedIndex) {
         opt.classList.add('kbd-focused');
-        opt.scrollIntoView({ block: 'nearest' });
+        focusedEl = opt;
       } else {
         opt.classList.remove('kbd-focused');
       }
     });
+    if (focusedEl) {
+      focusedEl.scrollIntoView({ block: 'nearest' });
+    }
   }
   
   getSelectableOptions() {
@@ -146,23 +150,24 @@ export class FacetedSelect {
   
   filterOptions() {
     const filterText = this.searchInput.value.toLowerCase().trim();
-    const options = this.optionsList.querySelectorAll('.option');
-    let matches = 0;
+    const options = Array.from(this.optionsList.querySelectorAll('.option')).filter(opt =>
+      !opt.classList.contains('loading') && !opt.classList.contains('no-match')
+    );
     
-    options.forEach(option => {
-      if (option.classList.contains('loading') || option.classList.contains('no-match')) return;
-      
-      // Always show the "All..." default filter option
-      if (option.textContent.startsWith('All ')) {
-        option.style.display = '';
-        matches++;
-        return;
-      }
-      
+    // Batch read text contents first
+    const visibilityMap = options.map(option => {
+      const isDefault = option.textContent.startsWith('All ');
       const text = option.textContent.toLowerCase();
-      if (text.includes(filterText)) {
+      const matches = isDefault || text.includes(filterText);
+      return { option, matches, isDefault };
+    });
+    
+    let matchesCount = 0;
+    // Batch write display styles
+    visibilityMap.forEach(({ option, matches }) => {
+      if (matches) {
         option.style.display = '';
-        matches++;
+        matchesCount++;
       } else {
         option.style.display = 'none';
       }
@@ -172,7 +177,7 @@ export class FacetedSelect {
     const existingNoMatch = this.optionsList.querySelector('.option.no-match');
     if (existingNoMatch) existingNoMatch.remove();
     
-    if (matches === 1) { // Only the default "All..." matched
+    if (matchesCount === 1) { // Only the default "All..." matched
       const noMatchLi = document.createElement('li');
       noMatchLi.className = 'option no-match';
       noMatchLi.textContent = 'No matching items';
@@ -184,6 +189,8 @@ export class FacetedSelect {
     this.onSelectCallback = onSelectCallback;
     this.optionsList.innerHTML = '';
     
+    const fragment = document.createDocumentFragment();
+
     // Default option
     const allLi = document.createElement('li');
     allLi.className = `option ${selectedValue === null ? 'selected' : ''}`;
@@ -191,7 +198,7 @@ export class FacetedSelect {
     allLi.setAttribute('aria-selected', selectedValue === null ? 'true' : 'false');
     allLi.setAttribute('data-default', 'true');
     allLi.textContent = this.defaultText;
-    this.optionsList.appendChild(allLi);
+    fragment.appendChild(allLi);
     
     items.forEach(item => {
       const li = document.createElement('li');
@@ -200,8 +207,10 @@ export class FacetedSelect {
       li.setAttribute('aria-selected', selectedValue === item ? 'true' : 'false');
       li.setAttribute('data-value', item);
       li.textContent = item;
-      this.optionsList.appendChild(li);
+      fragment.appendChild(li);
     });
+
+    this.optionsList.appendChild(fragment);
     
     this.trigger.querySelector('.trigger-text').textContent = selectedValue || this.defaultText;
     this.filterOptions();
