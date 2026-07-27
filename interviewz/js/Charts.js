@@ -68,7 +68,10 @@ export function initCumulativeSubmissionsChart(applications, tokens) {
     cumulativeSubmissionsChartInstance.data.datasets[0].borderColor = tokens.primary;
     cumulativeSubmissionsChartInstance.data.datasets[0].backgroundColor = tokens.primary + '14';
     cumulativeSubmissionsChartInstance.data.datasets[0].pointBackgroundColor = tokens.primary;
-    cumulativeSubmissionsChartInstance.options.plugins.tooltip.callbacks.title = (items) => sortedDates[items[0].dataIndex] || '';
+    cumulativeSubmissionsChartInstance.options.plugins.tooltip.callbacks.title = (items) => {
+      const entry = dateEntries[items[0].dataIndex];
+      return entry ? entry.dateStr : '';
+    };
     cumulativeSubmissionsChartInstance.update();
   } else {
     cumulativeSubmissionsChartInstance = new Chart(ctx, {
@@ -99,7 +102,10 @@ export function initCumulativeSubmissionsChart(applications, tokens) {
             padding: 10,
             cornerRadius: 8,
             callbacks: {
-              title: (items) => sortedDates[items[0].dataIndex] || ''
+              title: (items) => {
+                const entry = dateEntries[items[0].dataIndex];
+                return entry ? entry.dateStr : '';
+              }
             }
           }
         },

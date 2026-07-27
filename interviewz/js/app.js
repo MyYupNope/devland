@@ -581,7 +581,7 @@ function fetchData(isTabSwitch = false, isForceRefresh = false) {
 
   if (!hasLoadedFromCache) {
     setSyncState('loading', 'Loading Registry...');
-    dom.noResults.classList.add('hidden');
+    if (dom.noResults) dom.noResults.classList.add('hidden');
   }
 
   fetch(SHEET_EXPORT_URL)
@@ -646,15 +646,17 @@ function fetchData(isTabSwitch = false, isForceRefresh = false) {
         setSyncState('success', `Offline (${syncTime})`);
       } else {
         setSyncState('error', 'Sync Failed');
-        dom.noResults.classList.remove('hidden');
-        dom.noResults.innerHTML = `
-          <div class="no-results-card">
-            <svg class="no-results-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <h4>Network Error</h4>
-            <p>Could not connect to the database. Check your internet connection and try again.</p>
-            <button class="btn-reset" onclick="location.reload()" style="margin-top: 1rem;">Retry Connection</button>
-          </div>
-        `;
+        if (dom.noResults) {
+          dom.noResults.classList.remove('hidden');
+          dom.noResults.innerHTML = `
+            <div class="no-results-card">
+              <svg class="no-results-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <h4>Network Error</h4>
+              <p>Could not connect to the database. Check your internet connection and try again.</p>
+              <button class="btn-reset" onclick="location.reload()" style="margin-top: 1rem;">Retry Connection</button>
+            </div>
+          `;
+        }
       }
     });
 }
