@@ -1,5 +1,5 @@
 import { showToast } from './Toast.js';
-import { postForm } from './Utils.js';
+import { postForm, encryptCacheData, decryptCacheData } from './Utils.js';
 import { getFormApiEndpoint, FORM_SUBMISSION_RESET_TIMEOUT } from './Config.js';
 
 export class FormApp {
@@ -231,17 +231,22 @@ export class FormApp {
       this.inputs.forEach(input => {
         data[input.name] = input.value;
       });
-      localStorage.setItem('job_app_draft', JSON.stringify(data));
+      const encrypted = encryptCacheData(JSON.stringify(data));
+      localStorage.setItem('job_app_draft', encrypted);
     }, 500);
   }
 
   loadDraft() {
     try {
-      const draft = localStorage.getItem('job_app_draft');
-      if (draft) {
-        const data = JSON.parse(draft);
+      const raw = localStorage.getItem('job_app_draft');
+      if (raw) {
+        let draftStr = decryptCacheData(raw);
+        if (!draftStr || !draftStr.startsWith('{')) {
+          draftStr = raw;
+        }
+        const data = JSON.parse(draftStr);
         this.inputs.forEach(input => {
-          if (data[input.name]) {
+          if (data[input.name] !== undefined) {
             input.value = data[input.name];
           }
         });

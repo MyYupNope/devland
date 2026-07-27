@@ -1,4 +1,4 @@
-import { escapeHtml } from './Utils.js';
+import { escapeHtml, sanitizeHtml } from './Utils.js';
 
 /**
  * Simple Markdown-to-HTML parser that supports headers, bold, italics, lists, and tables.
@@ -138,7 +138,7 @@ export function parseMarkdown(text) {
     result.push('</ul>');
   }
   
-  const parsedHtml = result.join('\n');
+  const parsedHtml = sanitizeHtml(result.join('\n'));
   markdownCache.set(text, parsedHtml);
   return parsedHtml;
 }

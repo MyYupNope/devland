@@ -11,7 +11,10 @@ import {
   postForm,
   getLastComment,
   parseCommentLine,
-  parseCacheTimestamp
+  parseCacheTimestamp,
+  encryptCacheData,
+  decryptCacheData,
+  sanitizeUrl
 } from './Utils.js';
 import {
   getSheetExportUrl,
@@ -545,12 +548,12 @@ function fetchData(isTabSwitch = false, isForceRefresh = false) {
       if (cachedObj && typeof cachedObj === 'object' && cachedObj.csv && cachedObj.timestamp) {
         lastSyncTimeMs = parseCacheTimestamp(cachedObj.timestamp);
         if (Date.now() - cachedObj.timestamp < CACHE_TTL_MS) {
-          cachedCsvText = cachedObj.csv;
+          cachedCsvText = cachedObj.encrypted ? decryptCacheData(cachedObj.csv) : cachedObj.csv;
         } else {
           console.log('[OpportunityTracker] Cache expired');
         }
       } else if (typeof cachedVal === 'string' && !cachedVal.startsWith('{')) {
-        cachedCsvText = cachedVal;
+        cachedCsvText = decryptCacheData(cachedVal);
       }
     } catch (e) {
       if (typeof cachedVal === 'string' && !cachedVal.startsWith('{')) {
@@ -670,7 +673,8 @@ function setSyncState(status, message) {
 function writeCacheIdle(csvText) {
   const saveAction = () => {
     try {
-      const newCache = { csv: csvText, timestamp: Date.now() };
+      const encryptedCsv = encryptCacheData(csvText);
+      const newCache = { csv: encryptedCsv, encrypted: true, timestamp: Date.now() };
       localStorage.setItem(CACHE_KEY_CSV(), JSON.stringify(newCache));
     } catch (e) {
       console.warn('[OpportunityTracker] Failed to write cache to localStorage:', e);
@@ -1475,11 +1479,7 @@ function updateFollowUpLink() {
   if (!dom.drawerFollowUp || !dom.drawerFollowUpLink) return;
   const val = dom.drawerFollowUp.value.trim();
   if (val) {
-    let url = val;
-    if (!val.startsWith('http://') && !val.startsWith('https://')) {
-      url = 'https://' + val;
-    }
-    dom.drawerFollowUpLink.href = url;
+    dom.drawerFollowUpLink.href = sanitizeUrl(val);
     dom.drawerFollowUpLink.style.display = 'inline-flex';
   } else {
     dom.drawerFollowUpLink.style.display = 'none';
@@ -1491,11 +1491,7 @@ function updateHiringTeamLink() {
   const val = dom.drawerHiringTeam.value.trim();
   const isNotDefined = val.toLowerCase() === 'not defined';
   if (val && !isNotDefined) {
-    let url = val;
-    if (!val.startsWith('http://') && !val.startsWith('https://')) {
-      url = 'https://' + val;
-    }
-    dom.drawerHiringTeamLink.href = url;
+    dom.drawerHiringTeamLink.href = sanitizeUrl(val);
     dom.drawerHiringTeamLink.style.display = 'inline-flex';
   } else {
     dom.drawerHiringTeamLink.style.display = 'none';
@@ -1697,14 +1693,14 @@ function openDetailsDrawer(app) {
   const jobUrl = (app['Job URL'] || '').trim();
   if (dom.drawerlinkJobUrl) dom.drawerlinkJobUrl.value = jobUrl;
   if (dom.linkJobUrlAnchor) {
-    if (jobUrl) { dom.linkJobUrlAnchor.href = jobUrl; dom.linkJobUrlAnchor.style.display = ''; }
+    if (jobUrl) { dom.linkJobUrlAnchor.href = sanitizeUrl(jobUrl); dom.linkJobUrlAnchor.style.display = ''; }
     else        { dom.linkJobUrlAnchor.style.display = 'none'; }
   }
 
   const companyFolder = (app['Company_Folder'] || '').trim();
   if (dom.linkCompanyFolder) {
     if (companyFolder) {
-      dom.linkCompanyFolder.href = companyFolder;
+      dom.linkCompanyFolder.href = sanitizeUrl(companyFolder);
       dom.linkCompanyFolder.style.display = '';
     } else {
       dom.linkCompanyFolder.style.display = 'none';

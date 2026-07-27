@@ -4,6 +4,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Security Meta Tags (S-05 & S-10) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: https:; connect-src 'self' https://docs.google.com https://*.tail74eef3.ts.net https://cdn.jsdelivr.net; frame-ancestors 'none';">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="Permissions-Policy" content="geolocation=(), camera=(), microphone=(), payment=()">
+  <script>if (window.top !== window.self) { window.top.location.href = window.self.location.href; }</script>
+
   <meta name="description"
     content="OpportunityTracker — Premium dashboard to track, filter, and manage job applications with real-time Google Sheets sync.">
   <title>OpportunityTracker | Job Application Dashboard</title>
@@ -31,7 +38,7 @@
   <!-- Favicon -->
   <link rel="icon" href="assets/favicon.png" type="image/png">
   <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous" defer></script>
   <!-- Inline theme detection script to prevent flashing -->
   <script>
     (function() {
@@ -1004,8 +1011,8 @@
             <div class="info-row-block cell-1x2" id="sectionFollowUp">
               <span class="info-label">Follow-up</span>
               <div class="input-with-icon">
-                <input type="text" class="form-control" id="drawerFollowUp" name="drawerFollowUp" placeholder="No follow-up set">
-                <a href="#" target="_blank" id="drawerFollowUpLink" class="input-icon-btn" style="display: none;" title="Open follow-up URL">
+                <input type="text" class="form-control" id="drawerFollowUp" name="drawerFollowUp" placeholder="No follow-up set" maxlength="500">
+                <a href="#" target="_blank" rel="noopener noreferrer" id="drawerFollowUpLink" class="input-icon-btn" style="display: none;" title="Open follow-up URL">
                   <svg aria-hidden="true" width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
                     <polyline points="15 3 21 3 21 9"/>
@@ -1017,8 +1024,8 @@
             <div class="info-row-block cell-1x3" id="sectionHiringTeam">
               <span class="info-label">Hiring Team</span>
               <div class="input-with-icon">
-                <input type="text" class="form-control" id="drawerHiringTeam" name="drawerHiringTeam" placeholder="No hiring team set">
-                <a href="#" target="_blank" id="drawerHiringTeamLink" class="input-icon-btn" style="display: none;" title="Open hiring team URL">
+                <input type="text" class="form-control" id="drawerHiringTeam" name="drawerHiringTeam" placeholder="No hiring team set" maxlength="250">
+                <a href="#" target="_blank" rel="noopener noreferrer" id="drawerHiringTeamLink" class="input-icon-btn" style="display: none;" title="Open hiring team URL">
                   <svg aria-hidden="true" width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
                     <polyline points="15 3 21 3 21 9"/>
@@ -1045,7 +1052,7 @@
               <div class="description-header">
                 <span class="info-label">Comments</span>
               </div>
-              <textarea class="form-control textarea-comments" id="drawerCommentsTextarea" name="drawerCommentsInput" placeholder="Add comments here..."></textarea>
+              <textarea class="form-control textarea-comments" id="drawerCommentsTextarea" name="drawerCommentsInput" placeholder="Add comments here..." maxlength="4000"></textarea>
             </div>
           </div>
         </div>
@@ -1056,7 +1063,7 @@
             <div class="info-row-block">
               <div class="description-header">
                 <span class="info-label">Job Description</span>
-                <a href="#" target="_blank" class="inline-link-btn" id="linkJobUrlAnchor">
+                <a href="#" target="_blank" rel="noopener noreferrer" class="inline-link-btn" id="linkJobUrlAnchor">
                   <svg aria-hidden="true" width="16" height="16"><use href="#icon-external-link"/></svg>
                   Job URL
                 </a>
@@ -1066,7 +1073,7 @@
             <div class="info-row-block">
               <div class="description-header">
                 <span class="info-label">Company Description</span>
-                <a href="#" target="_blank" class="inline-link-btn secondary" id="linkCompanyFolder">
+                <a href="#" target="_blank" rel="noopener noreferrer" class="inline-link-btn secondary" id="linkCompanyFolder">
                   <svg aria-hidden="true" width="16" height="16"><use href="#icon-folder"/></svg>
                   Drive Folder
                 </a>

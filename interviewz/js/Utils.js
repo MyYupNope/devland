@@ -4,6 +4,59 @@ import { FORM_TIMEOUT_MS } from './Config.js';
  * Utility functions for OpportunityTracker
  */
 
+const CACHE_SECRET_KEY = 'Interviewz_SecureCache_v1';
+
+/**
+ * Lightweight XOR + Base64 encryption for sensitive localStorage data
+ */
+export function encryptCacheData(dataStr) {
+  if (!dataStr) return '';
+  try {
+    const key = CACHE_SECRET_KEY;
+    let result = '';
+    for (let i = 0; i < dataStr.length; i++) {
+      result += String.fromCharCode(dataStr.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    }
+    return btoa(unescape(encodeURIComponent(result)));
+  } catch (e) {
+    return dataStr;
+  }
+}
+
+/**
+ * Decrypts data stored by encryptCacheData
+ */
+export function decryptCacheData(encodedStr) {
+  if (!encodedStr) return '';
+  try {
+    const raw = decodeURIComponent(escape(atob(encodedStr)));
+    const key = CACHE_SECRET_KEY;
+    let result = '';
+    for (let i = 0; i < raw.length; i++) {
+      result += String.fromCharCode(raw.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    }
+    return result;
+  } catch (e) {
+    return encodedStr;
+  }
+}
+
+/**
+ * Safely sanitizes external URLs to prevent malicious protocols (javascript:, data:, etc.)
+ */
+export function sanitizeUrl(urlStr) {
+  if (!urlStr) return '#';
+  const trimmed = String(urlStr).trim();
+  const lower = trimmed.toLowerCase();
+  if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) {
+    return '#';
+  }
+  if (!lower.startsWith('http://') && !lower.startsWith('https://') && !lower.startsWith('#')) {
+    return 'https://' + trimmed;
+  }
+  return trimmed;
+}
+
 /**
  * Escapes HTML to prevent XSS injection
  */
@@ -15,6 +68,64 @@ export function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+/**
+ * Strict DOM-based HTML Sanitizer.
+ * Sanitizes arbitrary HTML strings allowing only safe formatting tags and safe attributes.
+ */
+export function sanitizeHtml(dirtyHtml) {
+  if (!dirtyHtml) return '';
+  const ALLOWED_TAGS = new Set([
+    'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'P', 'UL', 'OL', 'LI',
+    'STRONG', 'EM', 'B', 'I', 'CODE', 'PRE', 'BLOCKQUOTE', 'BR', 'HR',
+    'TABLE', 'THEAD', 'TBODY', 'TR', 'TH', 'TD', 'SPAN', 'A'
+  ]);
+  const ALLOWED_ATTRS = new Set(['class', 'id', 'style', 'target', 'rel', 'href']);
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<body>${dirtyHtml}</body>`, 'text/html');
+
+    const cleanNode = (node) => {
+      const children = Array.from(node.childNodes);
+      children.forEach(child => {
+        if (child.nodeType === Node.ELEMENT_NODE) {
+          const tagName = child.nodeName.toUpperCase();
+          if (!ALLOWED_TAGS.has(tagName)) {
+            const textNode = doc.createTextNode(child.textContent);
+            node.replaceChild(textNode, child);
+            return;
+          }
+
+          const attrs = Array.from(child.attributes);
+          attrs.forEach(attr => {
+            const attrName = attr.name.toLowerCase();
+            if (!ALLOWED_ATTRS.has(attrName) || attrName.startsWith('on')) {
+              child.removeAttribute(attr.name);
+            } else if (attrName === 'href') {
+              const val = attr.value.trim().toLowerCase();
+              if (val.startsWith('javascript:') || val.startsWith('data:') || val.startsWith('vbscript:')) {
+                child.removeAttribute('href');
+              }
+            }
+          });
+
+          if (tagName === 'A') {
+            child.setAttribute('target', '_blank');
+            child.setAttribute('rel', 'noopener noreferrer');
+          }
+
+          cleanNode(child);
+        }
+      });
+    };
+
+    cleanNode(doc.body);
+    return doc.body.innerHTML;
+  } catch (e) {
+    return escapeHtml(dirtyHtml);
+  }
 }
 
 /**
@@ -50,20 +161,108 @@ export function formatDisplayDate(dateStr) {
 }
 
 /**
+ * Generates or retrieves a persistent per-session CSRF token
+ */
+export function getCsrfToken() {
+  const key = 'app_csrf_token';
+  let token = null;
+  try {
+    token = sessionStorage.getItem(key);
+  } catch (e) {
+    // sessionStorage unavailable
+  }
+  if (!token) {
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      const bytes = new Uint8Array(32);
+      crypto.getRandomValues(bytes);
+      token = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+    } else {
+      token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    }
+    try {
+      sessionStorage.setItem(key, token);
+    } catch (e) {
+      // sessionStorage unavailable
+    }
+  }
+  return token;
+}
+
+/**
+ * Validates request origin against allowed application origins
+ */
+export function isRequestOriginValid() {
+  if (typeof window === 'undefined' || !window.location) return true;
+  const origin = window.location.origin;
+  return (
+    origin.includes('localhost') ||
+    origin.includes('127.0.0.1') ||
+    origin.includes('myyupnope.github.io') ||
+    origin.startsWith('file://')
+  );
+}
+
+/**
  * Shared form submission utility.
- * Handles AbortController timeout, fetch, JSON result check, and error routing
+ * Handles AbortController timeout, anti-CSRF token injection, fetch, JSON result check, and error routing
  */
 export async function postForm(url, formData, { setLoading = () => {}, onSuccess = () => {}, onError = () => {} } = {}) {
   setLoading(true);
+
+  // 1. Origin Guard
+  if (!isRequestOriginValid()) {
+    const err = new Error('Submission blocked: Invalid request origin.');
+    console.error('[postForm] Security check failed: unauthorized origin', typeof window !== 'undefined' ? window.location.origin : '');
+    onError(err);
+    setLoading(false);
+    return;
+  }
+
+  // 2. Anti-CSRF Token & Timestamp Payload Injection
+  const csrfToken = getCsrfToken();
+  const timestamp = Date.now().toString();
+
+  if (formData instanceof FormData) {
+    if (!formData.has('_csrf')) formData.append('_csrf', csrfToken);
+    if (!formData.has('_ts')) formData.append('_ts', timestamp);
+  }
+
   const controller = new AbortController();
-  const timeoutId  = setTimeout(() => controller.abort(), FORM_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), FORM_TIMEOUT_MS);
+
   try {
-    const response = await fetch(url, { method: 'POST', body: formData, signal: controller.signal });
+    let response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-Token': csrfToken,
+          'X-Submission-Timestamp': timestamp
+        },
+        signal: controller.signal
+      });
+    } catch (corsErr) {
+      if (corsErr.name !== 'AbortError') {
+        console.warn('[postForm] Custom header preflight bypassed, retrying with payload CSRF:', corsErr.message);
+        response = await fetch(url, {
+          method: 'POST',
+          body: formData,
+          signal: controller.signal
+        });
+      } else {
+        throw corsErr;
+      }
+    }
+
     clearTimeout(timeoutId);
+
     if (!response.ok) {
       const errText = await response.text();
       throw new Error(`Server returned ${response.status}: ${errText}`);
     }
+
     const text = await response.text();
     let result = { ok: true };
     if (text.trim()) {
@@ -82,10 +281,28 @@ export async function postForm(url, formData, { setLoading = () => {}, onSuccess
   } catch (err) {
     clearTimeout(timeoutId);
     console.error('[postForm] error:', err);
-    onError(err);
+    const safeErr = new Error(sanitizeErrorMessage(err));
+    safeErr.name = err ? err.name : 'Error';
+    onError(safeErr);
   } finally {
     setLoading(false);
   }
+}
+
+/**
+ * Sanitizes error messages to prevent exposing verbose stack traces or internal server paths
+ */
+export function sanitizeErrorMessage(err) {
+  if (!err) return 'An unexpected error occurred. Please try again.';
+  const raw = typeof err === 'string' ? err : (err.message || String(err));
+  if (raw.includes('AbortError') || raw.includes('timed out')) {
+    return 'Request timed out. Please check your connection and try again.';
+  }
+  if (raw.includes('Failed to fetch') || raw.includes('NetworkError')) {
+    return 'Network error: Unable to reach server. Please try again later.';
+  }
+  const clean = raw.replace(/at\s+.*:\d+:\d+/g, '').replace(/https?:\/\/[^\s]+/g, '[URL]').trim();
+  return clean.length > 150 ? clean.substring(0, 150) + '...' : clean;
 }
 
 /**
