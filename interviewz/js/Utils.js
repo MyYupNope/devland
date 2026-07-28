@@ -70,6 +70,8 @@ export function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
+const _domParser = typeof DOMParser !== 'undefined' ? new DOMParser() : null;
+
 /**
  * Strict DOM-based HTML Sanitizer.
  * Sanitizes arbitrary HTML strings allowing only safe formatting tags and safe attributes.
@@ -84,7 +86,7 @@ export function sanitizeHtml(dirtyHtml) {
   const ALLOWED_ATTRS = new Set(['class', 'id', 'style', 'target', 'rel', 'href']);
 
   try {
-    const parser = new DOMParser();
+    const parser = _domParser || new DOMParser();
     const doc = parser.parseFromString(`<body>${dirtyHtml}</body>`, 'text/html');
 
     const cleanNode = (node) => {
