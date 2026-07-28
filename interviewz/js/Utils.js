@@ -165,7 +165,7 @@ export function formatDisplayDate(dateStr) {
 /**
  * Generates or retrieves a persistent per-session CSRF token
  */
-export function getCsrfToken() {
+function getCsrfToken() {
   const key = 'app_csrf_token';
   let token = null;
   try {
@@ -193,7 +193,7 @@ export function getCsrfToken() {
 /**
  * Validates request origin against allowed application origins
  */
-export function isRequestOriginValid() {
+function isRequestOriginValid() {
   if (typeof window === 'undefined' || !window.location) return true;
   const origin = window.location.origin;
   return (
@@ -294,7 +294,7 @@ export async function postForm(url, formData, { setLoading = () => {}, onSuccess
 /**
  * Sanitizes error messages to prevent exposing verbose stack traces or internal server paths
  */
-export function sanitizeErrorMessage(err) {
+function sanitizeErrorMessage(err) {
   if (!err) return 'An unexpected error occurred. Please try again.';
   const raw = typeof err === 'string' ? err : (err.message || String(err));
   if (raw.includes('AbortError') || raw.includes('timed out')) {

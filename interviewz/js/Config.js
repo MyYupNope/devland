@@ -21,7 +21,7 @@ function _decode(b64) {
 /**
  * Returns optional API proxy base URL from window.APP_CONFIG if defined.
  */
-export function getApiBaseUrl() {
+function getApiBaseUrl() {
   if (typeof window !== 'undefined' && window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) {
     return window.APP_CONFIG.API_BASE_URL;
   }

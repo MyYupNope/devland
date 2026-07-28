@@ -232,7 +232,6 @@ function initDomCache() {
   dom.statsSection = document.querySelector('.stats-section');
   dom.analyticsSection = document.querySelector('.analytics-section');
   dom.newApplicationSection = document.querySelector('.new-application-section');
-  dom.resumeSection = document.querySelector('.resume-section');
   dom.globalDashboardRangeContainer = document.getElementById('globalDashboardRangeContainer');
   dom.kanbanViewSection = document.getElementById('kanbanViewSection');
   dom.kanbanBoard = document.getElementById('kanbanBoard');
@@ -254,11 +253,9 @@ function initDomCache() {
   dom.btnSubmitInterviewNotes = document.getElementById('btnSubmitInterviewNotes');
   dom.btnResetInterviewNotes = document.getElementById('btnResetInterviewNotes');
   dom.btnSubmitOverviewUpdates = document.getElementById('btnSubmitOverviewUpdates');
-  dom.themeToggleBtn = document.getElementById('themeToggleBtn');
   dom.fabThemeToggle = document.getElementById('fabThemeToggle');
   dom.dashboardRangeToggle = document.getElementById('dashboardRangeToggle');
   dom.statCardThisMonth = document.getElementById('statCardThisMonth');
-  dom.globalDashboardRangeContainer = document.getElementById('globalDashboardRangeContainer');
 }
 
 // Global drop-down components
@@ -354,9 +351,6 @@ function setupEventListeners() {
     }
   };
 
-  if (dom.themeToggleBtn) {
-    dom.themeToggleBtn.addEventListener('click', toggleTheme);
-  }
   if (dom.fabThemeToggle) {
     dom.fabThemeToggle.addEventListener('click', toggleTheme);
   }
@@ -866,7 +860,6 @@ function calculateStatistics(apps = state.rawApplications) {
   const uniqueCompanies = new Set();
   const uniqueJobs = new Set();
   let activeAppsCount = 0;
-  let interviewCount = 0;
   let conversionCount = 0;
   let rejectedCount = 0;
   let totalSuitability = 0;
@@ -898,7 +891,6 @@ function calculateStatistics(apps = state.rawApplications) {
     }
 
     if (status.includes('interview')) {
-      interviewCount++;
       conversionCount++;
     } else if (status === 'offered' || status === 'ready' || status === 'accepted') {
       conversionCount++;
@@ -1184,7 +1176,6 @@ function renderKanbanBoard() {
     columnApps[colKey].forEach(({ app, idx }) => {
       const company = (app['Company Name'] || '').trim();
       const title = (app['Job Title'] || '').trim();
-      const status = (app['Application Status'] || '').trim();
       const dateStr = (app['Create Date'] || '').trim();
       const suitabilityScore = (app['Job_Suitability'] || '').trim();
       const scoreNum = parseInt(suitabilityScore, 10);
@@ -1828,7 +1819,6 @@ function initTabNavigation() {
       hideEl(dom.statsSection);
       hideEl(dom.analyticsSection);
       hideEl(dom.newApplicationSection);
-      hideEl(dom.resumeSection);
       hideEl(dom.globalDashboardRangeContainer);
 
       // Start landing particle network
@@ -1847,7 +1837,6 @@ function initTabNavigation() {
       hideEl(dom.statsSection);
       hideEl(dom.analyticsSection);
       hideEl(dom.newApplicationSection);
-      hideEl(dom.resumeSection);
       hideEl(dom.globalDashboardRangeContainer);
     } else if (targetTab === 'dashboard') {
       hideEl(dom.landingTabContent);
@@ -1858,7 +1847,6 @@ function initTabNavigation() {
       showEl(dom.statsSection);
       showEl(dom.analyticsSection);
       hideEl(dom.newApplicationSection);
-      hideEl(dom.resumeSection);
       showEl(dom.globalDashboardRangeContainer);
 
       if (state.rawApplications.length > 0) {
@@ -1880,7 +1868,6 @@ function initTabNavigation() {
       hideEl(dom.statsSection);
       hideEl(dom.analyticsSection);
       showEl(dom.newApplicationSection);
-      hideEl(dom.resumeSection);
       hideEl(dom.globalDashboardRangeContainer);
 
       if (!window._formApp) {

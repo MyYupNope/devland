@@ -159,7 +159,7 @@ export class FacetedSelect {
       const isDefault = option.textContent.startsWith('All ');
       const text = option.textContent.toLowerCase();
       const matches = isDefault || text.includes(filterText);
-      return { option, matches, isDefault };
+      return { option, matches };
     });
     
     let matchesCount = 0;

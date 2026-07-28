@@ -15,7 +15,7 @@ let cachedThemeClass = '';
 /**
  * Resolves CSS design tokens in a single layout read with theme caching.
  */
-export function getDesignTokens() {
+function getDesignTokens() {
   const currentThemeClass = document.documentElement.className;
   if (cachedTokens && cachedThemeClass === currentThemeClass) {
     return cachedTokens;
@@ -35,7 +35,7 @@ export function getDesignTokens() {
   return cachedTokens;
 }
 
-export function initCumulativeSubmissionsChart(applications, tokens) {
+function initCumulativeSubmissionsChart(applications, tokens) {
   const canvasEl = document.getElementById('cumulativeSubmissionsChart');
   if (!canvasEl) return;
   const ctx = canvasEl.getContext('2d');
@@ -136,7 +136,7 @@ export function initCumulativeSubmissionsChart(applications, tokens) {
   }
 }
 
-export function initStatusSplitChart(applications, tokens) {
+function initStatusSplitChart(applications, tokens) {
   const canvasEl = document.getElementById('statusSplitChart');
   if (!canvasEl) return;
   const ctx = canvasEl.getContext('2d');
@@ -221,7 +221,7 @@ export function initStatusSplitChart(applications, tokens) {
   }
 }
 
-export function initSuitabilityBarChart(applications, tokens) {
+function initSuitabilityBarChart(applications, tokens) {
   const canvasEl = document.getElementById('suitabilityBarChart');
   if (!canvasEl) return;
   const ctx = canvasEl.getContext('2d');
@@ -262,7 +262,7 @@ export function initSuitabilityBarChart(applications, tokens) {
   }
 }
 
-export function initTopCompaniesChart(applications, tokens) {
+function initTopCompaniesChart(applications, tokens) {
   const canvasEl = document.getElementById('topCompaniesChart');
   if (!canvasEl) return;
   const ctx = canvasEl.getContext('2d');
