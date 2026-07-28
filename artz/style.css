@@ -277,6 +277,9 @@ select option {
         padding: 14px;
         gap: 12px;
         top: 10px;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        background: rgba(10, 10, 20, 0.85);
     }
     
     .control-row {

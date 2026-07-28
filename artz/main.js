@@ -227,16 +227,21 @@ const state = {
     currentFont: 'Outfit',
     activePreset: null,  // Tracks which preset chip is currently selected
 
-    // Unique explosion properties dynamically set by presets
+    // Dynamic per-explosion properties
     expansionDuration: CONFIG.presets.DEFAULT.expansionDuration,
     contractionDuration: CONFIG.presets.DEFAULT.contractionDuration,
     explosionMaxDistMultiplier: CONFIG.presets.DEFAULT.explosionMaxDistMultiplier,
+    activeExpansionDuration: null,
+    activeContractionDuration: null,
+    activeMaxDist: null,
     soundPitch: CONFIG.presets.DEFAULT.soundPitch,
     soundDuration: CONFIG.presets.DEFAULT.soundDuration,
     soundType: CONFIG.presets.DEFAULT.soundType,
 
     get totalExplosionDuration() {
-        return this.expansionDuration + this.contractionDuration;
+        const exp = this.activeExpansionDuration || this.expansionDuration;
+        const con = this.activeContractionDuration || this.contractionDuration;
+        return exp + con;
     }
 };
 
@@ -341,34 +346,37 @@ function playExplosionSound() {
         const gain = audioCtx.createGain();
         const filter = audioCtx.createBiquadFilter();
 
+        const pitchJitter = state.soundPitch * (0.85 + Math.random() * 0.3);
+        const durJitter = state.soundDuration * (0.85 + Math.random() * 0.3);
+
         osc.type = state.soundType;
-        osc.frequency.setValueAtTime(state.soundPitch, now);
-        osc.frequency.exponentialRampToValueAtTime(30, now + state.soundDuration * 0.8);
+        osc.frequency.setValueAtTime(pitchJitter, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + durJitter * 0.8);
 
         // Adjust lowpass frequency sweeps depending on wave type (sawtooth gets higher sweeps)
         const lowpassFreq = state.soundType === 'sawtooth' ? 1200 : 700;
         filter.type = 'lowpass';
         filter.frequency.setValueAtTime(lowpassFreq, now);
-        filter.frequency.exponentialRampToValueAtTime(80, now + state.soundDuration * 0.9);
+        filter.frequency.exponentialRampToValueAtTime(80, now + durJitter * 0.9);
 
         // Scale gain slightly lower for harsh sawtooth presets
         const soundGain = state.soundType === 'sawtooth' ? 0.22 : 0.4;
         gain.gain.setValueAtTime(soundGain, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + state.soundDuration);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + durJitter);
 
         osc.connect(filter);
         filter.connect(gain);
         gain.connect(audioCtx.destination);
 
         osc.start(now);
-        osc.stop(now + state.soundDuration);
+        osc.stop(now + durJitter);
 
         // Crackle / high-frequency burst
         const osc2 = audioCtx.createOscillator();
         const gain2 = audioCtx.createGain();
 
         osc2.type = 'triangle';
-        osc2.frequency.setValueAtTime(state.soundPitch * 2, now);
+        osc2.frequency.setValueAtTime(pitchJitter * 2, now);
         osc2.frequency.exponentialRampToValueAtTime(90, now + 0.35);
 
         gain2.gain.setValueAtTime(0.12, now);
@@ -386,11 +394,39 @@ function playExplosionSound() {
 }
 
 // ─────────────────────────────────────────────
-// Text Rasterization
+// Font Loading Optimization
 // ─────────────────────────────────────────────
+const loadedFonts = new Set(['Outfit']);
+
+async function ensureFontLoaded(fontFamily) {
+    if (loadedFonts.has(fontFamily)) return;
+    const fontUrls = {
+        'Fira Code': 'https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap',
+        'Pacifico': 'https://fonts.googleapis.com/css2?family=Pacifico&display=swap',
+        'Playfair Display': 'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap'
+    };
+    if (fontUrls[fontFamily]) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = fontUrls[fontFamily];
+        document.head.appendChild(link);
+        loadedFonts.add(fontFamily);
+    }
+}
+
+// ─────────────────────────────────────────────
+// Text Rasterization (Reusing single offscreen canvas)
+// ─────────────────────────────────────────────
+let offscreenCanvas = null;
+let offscreenCtx = null;
+
 function sampleTextPoints(text) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    if (!offscreenCanvas) {
+        offscreenCanvas = document.createElement('canvas');
+        offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
+    }
+    const canvas = offscreenCanvas;
+    const ctx = offscreenCtx;
 
     canvas.width  = CONFIG.canvasWidth;
     canvas.height = CONFIG.canvasHeight;
@@ -443,7 +479,8 @@ async function setupParticles(text, shouldScatter = false) {
     setupRequestId++;
     const currentRequestId = setupRequestId;
 
-    // [4.4] Pre-load custom fonts asynchronously to prevent fallback rendering pops
+    // Pre-load custom fonts asynchronously on demand
+    await ensureFontLoaded(state.currentFont);
     const fontSpec = `bold ${CONFIG.fontSize}px "${state.currentFont}"`;
     if (!document.fonts.check(fontSpec)) {
         try {
@@ -476,7 +513,7 @@ async function setupParticles(text, shouldScatter = false) {
     let count = points.length * density;
     let step = 1;
 
-    // [1.3] Subsample points if overall particle count budget is exceeded
+    // Subsample points if overall particle count budget is exceeded
     const maxParticles = 30000;
     if (count > maxParticles) {
         const targetPoints = Math.floor(maxParticles / density);
@@ -550,7 +587,7 @@ async function setupParticles(text, shouldScatter = false) {
     render.particles = new Points(geo, mat);
     render.scene.add(render.particles);
 
-    // [1.1] Sync initialized positions to the Web Worker
+    // Sync initialized positions to the Web Worker
     if (physicsWorker) {
         physicsWorker.postMessage({
             type: 'init',
@@ -582,10 +619,83 @@ function updateMouse(clientX, clientY) {
 }
 
 // ─────────────────────────────────────────────
-// Explosion Trigger
+// Explosion Vector & Parameter Randomization
 // ─────────────────────────────────────────────
+function randomizeExplosionVectors() {
+    if (!physics.randomDir || !physics.randomSpeed) return;
+    const count = physics.randomSpeed.length;
+    const { explosionSpeedMin, explosionSpeedRange } = CONFIG;
+
+    // Pick a randomized explosion pattern for this blast (0: Spherical Chaos, 1: Vortex Swirl, 2: Directional Blast, 3: Cluster Burst)
+    const style = Math.floor(Math.random() * 4);
+    const biasX = (Math.random() - 0.5) * 2;
+    const biasY = (Math.random() - 0.5) * 2;
+    const biasZ = (Math.random() - 0.5) * 2;
+    const swirlPower = (Math.random() - 0.5) * 2.5;
+
+    for (let i = 0; i < count; i++) {
+        const ix = i * 3, iy = ix + 1, iz = ix + 2;
+
+        let theta = Math.random() * Math.PI * 2;
+        let phi   = Math.acos((Math.random() * 2) - 1);
+
+        let rx = Math.sin(phi) * Math.cos(theta);
+        let ry = Math.sin(phi) * Math.sin(theta);
+        let rz = Math.cos(phi);
+
+        if (style === 1) {
+            // Vortex Swirl pattern around Z axis
+            const currentAngle = Math.atan2(ry, rx) + swirlPower;
+            const radius = Math.sqrt(rx * rx + ry * ry);
+            rx = Math.cos(currentAngle) * radius;
+            ry = Math.sin(currentAngle) * radius;
+        } else if (style === 2) {
+            // Directional Blast pattern
+            rx = rx * 0.35 + biasX * 0.65;
+            ry = ry * 0.35 + biasY * 0.65;
+            rz = rz * 0.35 + biasZ * 0.65;
+            const len = Math.sqrt(rx * rx + ry * ry + rz * rz) || 1;
+            rx /= len; ry /= len; rz /= len;
+        } else if (style === 3) {
+            // Cluster Burst pattern
+            const cluster = 0.5 + 0.5 * Math.sin(i * 0.08);
+            physics.randomSpeed[i] = (explosionSpeedMin + Math.random() * explosionSpeedRange) * (0.4 + cluster);
+        }
+
+        if (style !== 3) {
+            const speedVar = 0.75 + Math.random() * 0.55;
+            physics.randomSpeed[i] = (explosionSpeedMin + Math.random() * explosionSpeedRange) * speedVar;
+        }
+
+        physics.randomDir[ix] = rx;
+        physics.randomDir[iy] = ry;
+        physics.randomDir[iz] = rz;
+    }
+}
+
 function triggerExplosion() {
     if (physics.explosionStartTime >= 0) return;
+
+    // Re-randomize particle trajectory vectors and speeds per blast
+    randomizeExplosionVectors();
+
+    // Randomize active timing and distance multipliers per blast
+    state.activeMaxDist = state.explosionMaxDistMultiplier * (0.8 + Math.random() * 0.4);
+    state.activeExpansionDuration = state.expansionDuration * (0.85 + Math.random() * 0.3);
+    state.activeContractionDuration = state.contractionDuration * (0.85 + Math.random() * 0.3);
+
+    // Sync updated directions and speeds to physics worker
+    if (physicsWorker) {
+        physicsWorker.postMessage({
+            type: 'init',
+            data: {
+                posHome: physics.posHome,
+                randomDir: physics.randomDir,
+                randomSpeed: physics.randomSpeed
+            }
+        });
+    }
+
     physics.explosionStartTime = render.clock.getElapsedTime();
     playExplosionSound();
     announceToScreenReader(`Explosion triggered for "${state.currentText}"`);
@@ -959,6 +1069,10 @@ function animate() {
     // Explosion calculations & progress interpolation
     let elapsed = -1;
     let progress = 0.0;
+    const activeExpDuration = state.activeExpansionDuration || state.expansionDuration;
+    const activeContrDuration = state.activeContractionDuration || state.contractionDuration;
+    const activeMaxDistMult = state.activeMaxDist || state.explosionMaxDistMultiplier;
+
     if (physics.explosionStartTime > 0) {
         elapsed = time - physics.explosionStartTime;
         if (elapsed > state.totalExplosionDuration) {
@@ -966,16 +1080,19 @@ function animate() {
             elapsed = -1;
         } else {
             // Calculate progress (0.0 -> 1.0 -> 0.0)
-            if (elapsed < state.expansionDuration) {
-                progress = elapsed / state.expansionDuration;
+            if (elapsed < activeExpDuration) {
+                progress = elapsed / activeExpDuration;
             } else {
-                progress = 1.0 - (elapsed - state.expansionDuration) / state.contractionDuration;
+                progress = 1.0 - (elapsed - activeExpDuration) / activeContrDuration;
             }
         }
     }
     uniforms.uExplosionProgress.value = progress;
+    if (render.particles) {
+        render.particles.frustumCulled = (progress === 0.0);
+    }
 
-    // [1.1] Offload dense spring calculation loop to Web Worker (with CPU Fallback)
+    // Offload dense spring calculation loop to Web Worker (with CPU Fallback)
     if (physicsWorker) {
         if (!physics.isWorkerBusy) {
             physics.isWorkerBusy = true;
@@ -989,9 +1106,9 @@ function animate() {
                     isMotionReduced,
                     mouseLocal: { x: ml.x, y: ml.y, z: ml.z },
                     kFrame, dampFrame,
-                    expansionDuration: state.expansionDuration,
-                    contractionDuration: state.contractionDuration,
-                    explosionMaxDistMultiplier: state.explosionMaxDistMultiplier,
+                    expansionDuration: activeExpDuration,
+                    contractionDuration: activeContrDuration,
+                    explosionMaxDistMultiplier: activeMaxDistMult,
                     mouseInfluence,
                     repulsionStr
                 }
@@ -1011,14 +1128,14 @@ function animate() {
             }
 
             if (elapsed > 0.0) {
-                const maxDist = randomSpeed[i] * state.explosionMaxDistMultiplier;
+                const maxDist = randomSpeed[i] * activeMaxDistMult;
                 const rx = randomDir[ix], ry = randomDir[iy], rz = randomDir[iz];
                 let dist;
-                if (elapsed < state.expansionDuration) {
-                    const t = elapsed / state.expansionDuration;
+                if (elapsed < activeExpDuration) {
+                    const t = elapsed / activeExpDuration;
                     dist = maxDist * t * (2.0 - t);
                 } else {
-                    const t = (elapsed - state.expansionDuration) / state.contractionDuration;
+                    const t = (elapsed - activeExpDuration) / activeContrDuration;
                     dist = maxDist * (1.0 - t * t * t);
                 }
                 bx += rx * dist;
