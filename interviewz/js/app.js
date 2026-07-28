@@ -9,8 +9,6 @@ import {
   parseDate,
   formatDisplayDate,
   postForm,
-  getLastComment,
-  parseCommentLine,
   parseCacheTimestamp,
   encryptCacheData,
   decryptCacheData,

@@ -307,28 +307,6 @@ export function sanitizeErrorMessage(err) {
   return clean.length > 150 ? clean.substring(0, 150) + '...' : clean;
 }
 
-/**
- * Extract the last comment line from comments block
- */
-export function getLastComment(commentsStr) {
-  if (!commentsStr) return 'No comments available.';
-  const lines = commentsStr.split('\n')
-    .map(line => line.trim())
-    .filter(line => line !== '');
-  if (lines.length === 0) return 'No comments available.';
-  return lines[lines.length - 1];
-}
-
-/**
- * Parse a comment line with custom [date] prefix into HTML structure
- */
-export function parseCommentLine(line) {
-  const match = line.match(/^\[(.*?)\]\s*(.*)$/);
-  if (match) {
-    return `<span class="comment-date">[${escapeHtml(match[1])}]</span> <span class="comment-text">${escapeHtml(match[2])}</span>`;
-  }
-  return escapeHtml(line);
-}
 
 /**
  * Safely parses any cached timestamp format into epoch milliseconds

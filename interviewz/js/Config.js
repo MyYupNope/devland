@@ -58,12 +58,6 @@ export function getNotesApiEndpoint() {
   return _decode(_EP.n);
 }
 
-// Backward-compatible exports
-export const SHEET_EXPORT_URL = getSheetExportUrl();
-export const FORM_API_ENDPOINT = getFormApiEndpoint();
-export const NOTES_API_ENDPOINT = getNotesApiEndpoint();
-
 export const FORM_TIMEOUT_MS = 300000;
-export const FORM_TOAST_DURATION = 5000;
 export const FORM_SUBMISSION_RESET_TIMEOUT = 10000;
 export const CSV_CACHE_KEY = 'talent_tracker_csv_cache';
