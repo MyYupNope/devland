@@ -22,7 +22,7 @@
   "deploy.js": {
     "mtime": 1785447522.6940053,
     "ast_hash": "d711ca94efc3cc24ffd53ed6bd8362b3",
-    "semantic_hash": ""
+    "semantic_hash": "d711ca94efc3cc24ffd53ed6bd8362b3"
   },
   "interviewz/js/Charts.js": {
     "mtime": 1785204784.0450802,
@@ -72,7 +72,7 @@
   "package.json": {
     "mtime": 1785447524.4510612,
     "ast_hash": "17eae0b161164765529e8edb348919bd",
-    "semantic_hash": ""
+    "semantic_hash": "17eae0b161164765529e8edb348919bd"
   },
   "resume/js/resume.js": {
     "mtime": 1785103196.4036975,

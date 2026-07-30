@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>/ — graphify tree viewer</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f9f9f9;
+      color: #333;
+    }
+    h1 {
+      margin: 20px 0 0 24px;
+      font-size: 2.2rem;
+      font-weight: bold;
+      color: #1e3a56;
+    }
+    .controls {
+      margin: 20px 0 15px 24px;
+    }
+    button {
+      margin-right: 10px;
+      padding: 8px 18px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.2s ease-in-out;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    button:active {
+      background: #004085;
+    }
+    #tree-container {
+      width: calc(100vw - 48px); /* Adjust for body margin/padding */
+      height: 85vh;
+      overflow: auto;
+      border-radius: 8px;
+      background: #fff;
+      margin-left: 24px;
+      margin-right: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      border: 1px solid #ddd;
+    }
+    svg {
+      background: #fff;
+      border-radius: 8px;
+      display: block; /* Important for D3 */
+    }
+    .node circle {
+      stroke-width: 2.5px;
+    }
+    .node text { /* Base style for the <text> container */
+      font: 13px 'Segoe UI', sans-serif;
+      paint-order: stroke fill; /* Ensures text is readable over lines */
+      stroke: #fff; /* White halo */
+      stroke-width: 3px; /* Halo thickness */
+      stroke-linejoin: round;
+      stroke-opacity: 0.85; /* Halo opacity */
+    }
+    .link {
+      fill: none;
+      stroke-opacity: 0.7;
+      stroke-width: 2px;
+    }
+  </style>
+</head>
+<body>
+  <h1>/ — Knowledge Graph</h1>
+  <div class="controls">
+    <button onclick="expandAll()">Expand All</button>
+    <button onclick="collapseAll()">Collapse All</button>
+    <button onclick="resetView()">Reset View</button>
+  </div>
+  <div id="tree-container">
+    <svg id="tree-svg" width="6000" height="8000"></svg>
+  </div>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    const initialJsonData = {"name":"/","total_count":215,"children":[{"name":".agents","total_count":4,"children":[{"name":"AGENTS.md","total_count":2,"children":[{"name":"Local Testing Environment Rule","total_count":1,"children":[]},{"name":"Workspace Custom Rules","total_count":1,"children":[]}]},{"name":"rules","total_count":1,"children":[{"name":"graphify.md","total_count":1,"children":[{"name":"Graphify Knowledge Graph Rule","total_count":1,"children":[]}]}]},{"name":"workflows","total_count":1,"children":[{"name":"graphify.md","total_count":1,"children":[{"name":"Graphify Workflow","total_count":1,"children":[]}]}]}]},{"name":".github","total_count":2,"children":[{"name":"workflows","total_count":2,"children":[{"name":"deploy.yml","total_count":2,"children":[{"name":"Artz Build Step","total_count":1,"children":[]},{"name":"GitHub Pages Deploy Workflow","total_count":1,"children":[]}]}]}]},{"name":"artz","total_count":58,"children":[{"name":"index.html","total_count":1,"children":[{"name":"Kinetic Particle Sculpture App","total_count":1,"children":[]}]},{"name":"main.js","total_count":37,"children":[{"name":"_dir","total_count":1,"children":[]},{"name":"_vec","total_count":1,"children":[]},{"name":"animate()","total_count":1,"children":[]},{"name":"announceToScreenReader()","total_count":1,"children":[]},{"name":"applyActiveOrRandomPreset()","total_count":1,"children":[]},{"name":"applyPresetExplosion()","total_count":1,"children":[]},{"name":"clearActivePresets()","total_count":1,"children":[]},{"name":"CONFIG","total_count":1,"children":[]},{"name":"ensureFontLoaded()","total_count":1,"children":[]},{"name":"init()","total_count":1,"children":[]},{"name":"interaction","total_count":1,"children":[]},{"name":"loadedFonts","total_count":1,"children":[]},{"name":"onPointerDown()","total_count":1,"children":[]},{"name":"onPointerUp()","total_count":1,"children":[]},{"name":"onResize()","total_count":1,"children":[]},{"name":"onTouchEnd()","total_count":1,"children":[]},{"name":"onTouchMove()","total_count":1,"children":[]},{"name":"onTouchStart()","total_count":1,"children":[]},{"name":"physics","total_count":1,"children":[]},{"name":"playExplosionSound()","total_count":1,"children":[]},{"name":"randomizeExplosionVectors()","total_count":1,"children":[]},{"name":"render","total_count":1,"children":[]},{"name":"resetToDefaultExplosion()","total_count":1,"children":[]},{"name":"sampleTextPoints()","total_count":1,"children":[]},{"name":"selectFont()","total_count":1,"children":[]},{"name":"selectTheme()","total_count":1,"children":[]},{"name":"setActivePreset()","total_count":1,"children":[]},{"name":"setupParticles()","total_count":1,"children":[]},{"name":"setupUI()","total_count":1,"children":[]},{"name":"showToast()","total_count":1,"children":[]},{"name":"state","total_count":1,"children":[]},{"name":"triggerExplosion()","total_count":1,"children":[]},{"name":"uniforms","total_count":1,"children":[]},{"name":"updateCharCounter()","total_count":1,"children":[]},{"name":"updateMouse()","total_count":1,"children":[]},{"name":"updateText()","total_count":1,"children":[]},{"name":"updateURLParams()","total_count":1,"children":[]}]},{"name":"package.json","total_count":17,"children":[{"name":"build","total_count":1,"children":[]},{"name":"dependencies","total_count":1,"children":[]},{"name":"deploy","total_count":1,"children":[]},{"name":"dev","total_count":1,"children":[]},{"name":"devDependencies","total_count":1,"children":[]},{"name":"gh-pages","total_count":1,"children":[]},{"name":"gh-pages","total_count":1,"children":[]},{"name":"name","total_count":1,"children":[]},{"name":"preview","total_count":1,"children":[]},{"name":"private","total_count":1,"children":[]},{"name":"scripts","total_count":1,"children":[]},{"name":"three","total_count":1,"children":[]},{"name":"three","total_count":1,"children":[]},{"name":"type","total_count":1,"children":[]},{"name":"version","total_count":1,"children":[]},{"name":"vite","total_count":1,"children":[]},{"name":"vite","total_count":1,"children":[]}]},{"name":"public","total_count":1,"children":[{"name":"favicon.png","total_count":1,"children":[{"name":"Artz Favicon","total_count":1,"children":[]}]}]},{"name":"physics.worker.js","total_count":1,"children":[]},{"name":"vite.config.js","total_count":1,"children":[]}]},{"name":"deploy.js","total_count":5,"children":[{"name":"fs","total_count":1,"children":[]},{"name":"path","total_count":1,"children":[]},{"name":"srcDir","total_count":1,"children":[]},{"name":"tempDir","total_count":1,"children":[]},{"name":"{ execSync }","total_count":1,"children":[]}]},{"name":"interviewz","total_count":111,"children":[{"name":"assets","total_count":7,"children":[{"name":"avatar.png","total_count":1,"children":[{"name":"Interviewz Avatar Image","total_count":1,"children":[]}]},{"name":"favicon.png","total_count":1,"children":[{"name":"Interviewz Favicon","total_count":1,"children":[]}]},{"name":"hero-bg-wide.webp","total_count":1,"children":[{"name":"Interviewz Hero Background Image","total_count":1,"children":[]}]},{"name":"screenshot-applications.webp","total_count":1,"children":[{"name":"Interviewz Applications Screenshot","total_count":1,"children":[]}]},{"name":"screenshot-dashboard.webp","total_count":1,"children":[{"name":"Interviewz Dashboard Screenshot","total_count":1,"children":[]}]},{"name":"screenshot-new-application.webp","total_count":1,"children":[{"name":"Interviewz New Application Screenshot","total_count":1,"children":[]}]},{"name":"screenshot-resume.webp","total_count":1,"children":[{"name":"Interviewz Resume Screenshot","total_count":1,"children":[]}]}]},{"name":"documentation","total_count":1,"children":[{"name":"TalentTracker.pdf","total_count":1,"children":[{"name":"TalentTracker Documentation","total_count":1,"children":[]}]}]},{"name":"index.html","total_count":1,"children":[{"name":"OpportunityTracker Dashboard","total_count":1,"children":[]}]},{"name":"introduction","total_count":3,"children":[{"name":"80e56bef-20a2-41bf-81d3-3be9d07b74c7.jpg","total_count":1,"children":[{"name":"Interviewz Introduction Photo","total_count":1,"children":[]}]},{"name":"RodrigoMatias_CV_2026_EN_Original.md","total_count":1,"children":[{"name":"Rodrigo Matias Original CV (Interviewz)","total_count":1,"children":[]}]},{"name":"WhatsApp Image 2026-06-14 at 12.35.42.jpeg","total_count":1,"children":[{"name":"Interviewz Introduction WhatsApp Image","total_count":1,"children":[]}]}]},{"name":"js","total_count":99,"children":[{"name":"app.js","total_count":43,"children":[{"name":"._animate()","total_count":1,"children":[]},{"name":"._createParticles()","total_count":1,"children":[]},{"name":"._getColorRgb()","total_count":1,"children":[]},{"name":"._onResize()","total_count":1,"children":[]},{"name":".constructor()","total_count":1,"children":[]},{"name":".start()","total_count":1,"children":[]},{"name":".stop()","total_count":1,"children":[]},{"name":"applyFilters()","total_count":1,"children":[]},{"name":"CACHE_KEY_CSV()","total_count":1,"children":[]},{"name":"calculateStatistics()","total_count":1,"children":[]},{"name":"closeDetailsDrawer()","total_count":1,"children":[]},{"name":"copyElementHtml()","total_count":1,"children":[]},{"name":"dom","total_count":1,"children":[]},{"name":"fetchData()","total_count":1,"children":[]},{"name":"getColKeyForStatus()","total_count":1,"children":[]},{"name":"getFilteredDashboardApps()","total_count":1,"children":[]},{"name":"hideEl()","total_count":1,"children":[]},{"name":"initDomCache()","total_count":1,"children":[]},{"name":"initializeApp()","total_count":1,"children":[]},{"name":"initScrollReveal()","total_count":1,"children":[]},{"name":"initTabNavigation()","total_count":1,"children":[]},{"name":"LandingParticles","total_count":1,"children":[]},{"name":"openDetailsDrawer()","total_count":1,"children":[]},{"name":"parseAndInitializeData()","total_count":1,"children":[]},{"name":"parseCSV()","total_count":1,"children":[]},{"name":"renderKanbanBoard()","total_count":1,"children":[]},{"name":"renderSuitabilityEvaluation()","total_count":1,"children":[]},{"name":"selectTab()","total_count":1,"children":[]},{"name":"setInterviewLoadingState()","total_count":1,"children":[]},{"name":"setSyncState()","total_count":1,"children":[]},{"name":"setupEventListeners()","total_count":1,"children":[]},{"name":"setupKanbanDragAndDrop()","total_count":1,"children":[]},{"name":"showEl()","total_count":1,"children":[]},{"name":"sortCollator","total_count":1,"children":[]},{"name":"submitJobInterviewForm()","total_count":1,"children":[]},{"name":"updateApplicationStatusDirect()","total_count":1,"children":[]},{"name":"updateColumnEmptyState()","total_count":1,"children":[]},{"name":"updateColumnHeaderCount()","total_count":1,"children":[]},{"name":"updateFiltersUI()","total_count":1,"children":[]},{"name":"updateFollowUpLink()","total_count":1,"children":[]},{"name":"updateHiringTeamLink()","total_count":1,"children":[]},{"name":"updateSelectColorClass()","total_count":1,"children":[]},{"name":"writeCacheIdle()","total_count":1,"children":[]}]},{"name":"Charts.js","total_count":6,"children":[{"name":"getDesignTokens()","total_count":1,"children":[]},{"name":"initCumulativeSubmissionsChart()","total_count":1,"children":[]},{"name":"initStatusSplitChart()","total_count":1,"children":[]},{"name":"initSuitabilityBarChart()","total_count":1,"children":[]},{"name":"initTopCompaniesChart()","total_count":1,"children":[]},{"name":"renderAllDashboardWidgets()","total_count":1,"children":[]}]},{"name":"Config.js","total_count":9,"children":[{"name":"_decode()","total_count":1,"children":[]},{"name":"_EP","total_count":1,"children":[]},{"name":"CSV_CACHE_KEY","total_count":1,"children":[]},{"name":"FORM_SUBMISSION_RESET_TIMEOUT","total_count":1,"children":[]},{"name":"FORM_TIMEOUT_MS","total_count":1,"children":[]},{"name":"getApiBaseUrl()","total_count":1,"children":[]},{"name":"getFormApiEndpoint()","total_count":1,"children":[]},{"name":"getNotesApiEndpoint()","total_count":1,"children":[]},{"name":"getSheetExportUrl()","total_count":1,"children":[]}]},{"name":"FacetedSelect.js","total_count":11,"children":[{"name":".close()","total_count":1,"children":[]},{"name":".constructor()","total_count":1,"children":[]},{"name":".filterOptions()","total_count":1,"children":[]},{"name":".getSelectableOptions()","total_count":1,"children":[]},{"name":".initEvents()","total_count":1,"children":[]},{"name":".moveFocus()","total_count":1,"children":[]},{"name":".populate()","total_count":1,"children":[]},{"name":".resetFocus()","total_count":1,"children":[]},{"name":".selectFocused()","total_count":1,"children":[]},{"name":".updateKbdFocusUI()","total_count":1,"children":[]},{"name":"FacetedSelect","total_count":1,"children":[]}]},{"name":"FormApp.js","total_count":14,"children":[{"name":".constructor()","total_count":1,"children":[]},{"name":".handleError()","total_count":1,"children":[]},{"name":".handleReset()","total_count":1,"children":[]},{"name":".handleSubmit()","total_count":1,"children":[]},{"name":".handleSuccess()","total_count":1,"children":[]},{"name":".initCharacterCounters()","total_count":1,"children":[]},{"name":".initDoms()","total_count":1,"children":[]},{"name":".initEventListeners()","total_count":1,"children":[]},{"name":".loadDraft()","total_count":1,"children":[]},{"name":".saveDraft()","total_count":1,"children":[]},{"name":".setLoadingState()","total_count":1,"children":[]},{"name":".updateCounter()","total_count":1,"children":[]},{"name":".validateField()","total_count":1,"children":[]},{"name":"FormApp","total_count":1,"children":[]}]},{"name":"Markdown.js","total_count":2,"children":[{"name":"markdownCache","total_count":1,"children":[]},{"name":"parseMarkdown()","total_count":1,"children":[]}]},{"name":"State.js","total_count":1,"children":[{"name":"state","total_count":1,"children":[]}]},{"name":"Toast.js","total_count":1,"children":[{"name":"showToast()","total_count":1,"children":[]}]},{"name":"Utils.js","total_count":12,"children":[{"name":"decryptCacheData()","total_count":1,"children":[]},{"name":"encryptCacheData()","total_count":1,"children":[]},{"name":"escapeHtml()","total_count":1,"children":[]},{"name":"formatDisplayDate()","total_count":1,"children":[]},{"name":"getCsrfToken()","total_count":1,"children":[]},{"name":"isRequestOriginValid()","total_count":1,"children":[]},{"name":"parseCacheTimestamp()","total_count":1,"children":[]},{"name":"parseDate()","total_count":1,"children":[]},{"name":"postForm()","total_count":1,"children":[]},{"name":"sanitizeErrorMessage()","total_count":1,"children":[]},{"name":"sanitizeHtml()","total_count":1,"children":[]},{"name":"sanitizeUrl()","total_count":1,"children":[]}]}]}]},{"name":"package.json","total_count":5,"children":[{"name":"deploy","total_count":1,"children":[]},{"name":"deploy-interviewz","total_count":1,"children":[]},{"name":"name","total_count":1,"children":[]},{"name":"scripts","total_count":1,"children":[]},{"name":"version","total_count":1,"children":[]}]},{"name":"resume","total_count":30,"children":[{"name":"assets","total_count":3,"children":[{"name":"avatar.png","total_count":1,"children":[{"name":"Resume Avatar Image","total_count":1,"children":[]}]},{"name":"favicon.png","total_count":1,"children":[{"name":"Resume Favicon","total_count":1,"children":[]}]},{"name":"RodrigoMatias_CV_2026_EN_Original.md","total_count":1,"children":[{"name":"Rodrigo Matias Original CV (Resume)","total_count":1,"children":[]}]}]},{"name":"index.html","total_count":1,"children":[{"name":"Rodrigo Matias Interactive Resume","total_count":1,"children":[]}]},{"name":"js","total_count":26,"children":[{"name":"resume.js","total_count":26,"children":[{"name":"._animateCanvas()","total_count":1,"children":[]},{"name":"._countUp()","total_count":1,"children":[]},{"name":"._createParticles()","total_count":1,"children":[]},{"name":"._getColorRgb()","total_count":1,"children":[]},{"name":"._initCertItems()","total_count":1,"children":[]},{"name":"._initCursorGlow()","total_count":1,"children":[]},{"name":"._initDomReferences()","total_count":1,"children":[]},{"name":"._initHamburgerMenu()","total_count":1,"children":[]},{"name":"._initHeroCanvas()","total_count":1,"children":[]},{"name":"._initPillarCards()","total_count":1,"children":[]},{"name":"._initScrollObservers()","total_count":1,"children":[]},{"name":"._initSkillsConstellation()","total_count":1,"children":[]},{"name":"._initStickyNav()","total_count":1,"children":[]},{"name":"._initTimeline()","total_count":1,"children":[]},{"name":"._initTypingAnimation()","total_count":1,"children":[]},{"name":"._onResize()","total_count":1,"children":[]},{"name":"._setActiveNavLink()","total_count":1,"children":[]},{"name":"._startMetricCounters()","total_count":1,"children":[]},{"name":"._switchTimelineNode()","total_count":1,"children":[]},{"name":"._typeCycle()","total_count":1,"children":[]},{"name":"._updateAndDrawCanvas()","total_count":1,"children":[]},{"name":".constructor()","total_count":1,"children":[]},{"name":".deactivate()","total_count":1,"children":[]},{"name":".handleNavScroll()","total_count":1,"children":[]},{"name":".onTabActivated()","total_count":1,"children":[]},{"name":"ResumeApp","total_count":1,"children":[]}]}]}]}]};
+
+    function transformData(jsonData) {
+        // Helper function to recursively build the children structure
+        function processNode(node, parentL1StageName) {
+            let displayName = node.name;
+            // Append total_count if it exists and is not already in the name
+            if (node.total_count !== undefined) {
+                if (!/\(Total Count: \d+\)$/.test(displayName)) {
+                    displayName += ` (Total Count: ${node.total_count})`;
+                }
+            }
+
+            const newNode = { name: displayName };
+
+            if (parentL1StageName === "Root") {
+                 newNode.originalStageName = node.name;
+            } else {
+                newNode.originalStageName = parentL1StageName;
+            }
+
+            if (node.children && node.children.length > 0) {
+                const stageNameToPass = (parentL1StageName === "Root") ? node.name : parentL1StageName;
+                newNode.children = node.children.map(child => processNode(child, stageNameToPass));
+            }
+
+            return newNode;
+        }
+
+        let rootDisplayName = jsonData.name;
+        if (jsonData.total_count !== undefined && !/\(Total Count: \d+\)$/.test(rootDisplayName)) {
+            rootDisplayName += ` (Total Count: ${jsonData.total_count})`;
+        }
+
+        return {
+            name: rootDisplayName,
+            originalStageName: "Root",
+            children: (jsonData.children || []).map(child => processNode(child, "Root"))
+        };
+    }
+
+    const treeData = transformData(initialJsonData);
+
+    // Auto-populated phaseColors: every depth-1 child of the root gets
+    // a stable colour from a bigger palette so all top-level dirs are
+    // distinguishable.
+    const PALETTE = [
+      ["#3498DB","#2980B9","#AED6F1"], ["#2ECC71","#27AE60","#A9DFBF"],
+      ["#E74C3C","#C0392B","#F5B7B1"], ["#9B59B6","#8E44AD","#D7BDE2"],
+      ["#F39C12","#D68910","#FAD7A0"], ["#1ABC9C","#117864","#A2D9CE"],
+      ["#34495E","#1B2631","#ABB2B9"], ["#E67E22","#BA4A00","#F5CBA7"],
+      ["#16A085","#0E6655","#A2D9CE"], ["#D35400","#A04000","#EDBB99"],
+      ["#7F8C8D","#566573","#D5DBDB"], ["#C0392B","#7B241C","#F5B7B1"],
+      ["#2E86C1","#1B4F72","#A9CCE3"], ["#28B463","#196F3D","#A9DFBF"],
+      ["#AF7AC5","#6C3483","#D2B4DE"],
+    ];
+    const phaseColors = { "Root": { fill: "#4A4A4A", stroke: "#333333", collapsedFill: "#6C757D" },
+                          "Default": { fill: "#BDC3C7", stroke: "#95A5A6", collapsedFill: "#ECF0F1" } };
+    (initialJsonData.children || []).forEach((c, i) => {
+      const pal = PALETTE[i % PALETTE.length];
+      phaseColors[c.name] = { fill: pal[0], stroke: pal[1], collapsedFill: pal[2] };
+    });
+
+    const levelSpecificPalettes = {
+      0: { fill: "#4A4A4A", stroke: "#333333", collapsedFill: "#6C757D" },
+      2: { fill: "#6ab04c", stroke: "#508a38", collapsedFill: "#a3d391" },
+      3: { fill: "#f0932b", stroke: "#d0730f", collapsedFill: "#f6c07e" },
+      4: { fill: "#be2edd", stroke: "#a01cb3", collapsedFill: "#e08bf2" },
+      5: { fill: "#00a8ff", stroke: "#007ac1", collapsedFill: "#74d2ff" },
+      6: { fill: "#e55039", stroke: "#c23620", collapsedFill: "#f09a8d" },
+      default: { fill: "#747d8c", stroke: "#57606f", collapsedFill: "#a4b0be" }
+    };
+
+    const svgElement = d3.select("#tree-svg");
+    const initialSvgWidth = +svgElement.attr("width");
+    const initialSvgHeight = +svgElement.attr("height");
+    const margin = { top: 40, right: 120, bottom: 80, left: 450 };
+    let width = initialSvgWidth - margin.left - margin.right;
+    let height = initialSvgHeight - margin.top - margin.bottom;
+    const duration = 500;
+    let nodeCounter = 0;
+    const g = svgElement.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+    const treemap = d3.tree().nodeSize([40, 0]);
+    let rootNode = d3.hierarchy(treeData, d => d.children);
+    rootNode.x0 = 0;
+    rootNode.y0 = 0;
+
+    if (rootNode.children) {
+      rootNode.children.forEach(d_child => {
+        if (d_child.children) { collapseBranch(d_child); }
+      });
+    }
+    updateTree(rootNode);
+
+    function collapseBranch(d) { if (d.children) { d._children = d.children; d._children.forEach(collapseBranch); d.children = null; } }
+    function expandBranch(d) { if (d._children) { d.children = d._children; d._children = null; } if (d.children) { d.children.forEach(expandBranch); } }
+    window.expandAll = () => { expandBranch(rootNode); updateTree(rootNode); };
+    window.collapseAll = () => { if (rootNode.children) { rootNode.children.forEach(collapseBranch); } updateTree(rootNode); };
+    window.resetView = () => { if (rootNode.children) { rootNode.children.forEach(d_child => { if (d_child.children || d_child._children) { collapseBranch(d_child); } }); } if (rootNode._children && !rootNode.children) { rootNode.children = rootNode._children; rootNode._children = null; } updateTree(rootNode); };
+
+    function updateTree(source) {
+      const treeLayoutData = treemap(rootNode);
+      let nodes = treeLayoutData.descendants();
+      let links = treeLayoutData.descendants().slice(1);
+
+      let minX = 0;
+      let maxX = 0;
+      if (nodes.length > 0) {
+        minX = d3.min(nodes, d => d.x);
+        maxX = d3.max(nodes, d => d.x);
+      }
+
+      let neededHeight = Math.max(initialSvgHeight, maxX - minX + margin.top + margin.bottom + 100);
+      svgElement.transition().duration(duration / 2).attr("height", neededHeight);
+      g.transition().duration(duration / 2).attr("transform", `translate(${margin.left},${margin.top - minX + 40})`);
+
+      nodes.forEach(d => { d.y = d.depth * 400; }); // Adjust horizontal separation if needed
+
+      const node = g.selectAll('g.node').data(nodes, d => d.id || (d.id = ++nodeCounter));
+      const nodeEnter = node.enter().append('g')
+        .attr('class', d => "node" + (d.children || d._children ? " node--internal" : " node--leaf") + (d._children ? " _children" : ""))
+        .attr('transform', d => `translate(${source.y0},${source.x0})`)
+        .on('click', (event, d) => { if (d.children) { d._children = d.children; d.children = null; } else if (d._children) { d.children = d._children; d._children = null; } updateTree(d); })
+        .style('cursor', d => (d.children || d._children) ? 'pointer' : 'default');
+
+      nodeEnter.append('circle').attr('r', 1e-6);
+
+      nodeEnter.append('text')
+        .attr('dy', '.35em')
+        .attr('x', d => d.children || d._children ? -14 : 14)
+        .attr('text-anchor', d => d.children || d._children ? 'end' : 'start')
+        .style("fill-opacity", 1e-6)
+        .call(wrapText, 380);
+
+      const nodeUpdate = nodeEnter.merge(node);
+      nodeUpdate.transition().duration(duration)
+        .attr('transform', d => `translate(${d.y},${d.x})`)
+        .attr('class', d => "node" + (d.children ? " node--internal" : " node--leaf") + (d._children ? " node--internal _children" : ""));
+
+      nodeUpdate.select('circle').attr('r', 8.5)
+        .style('fill', d => {
+            let palette;
+            if (d.depth === 0) {
+                palette = levelSpecificPalettes[0];
+            } else if (d.depth === 1) {
+                palette = phaseColors[d.data.originalStageName] || phaseColors.Default;
+            } else {
+                palette = levelSpecificPalettes[d.depth] || levelSpecificPalettes.default;
+            }
+            if (d._children) return palette.collapsedFill;
+            if (d.children) return palette.fill;
+            return "#fff";
+        })
+        .style('stroke', d => {
+            let palette;
+            if (d.depth === 0) {
+                palette = levelSpecificPalettes[0];
+            } else if (d.depth === 1) {
+                palette = phaseColors[d.data.originalStageName] || phaseColors.Default;
+            } else {
+                palette = levelSpecificPalettes[d.depth] || levelSpecificPalettes.default;
+            }
+            return palette.stroke;
+        });
+      nodeUpdate.select('text').style("fill-opacity", 1).call(wrapText, 380);
+
+      const nodeExit = node.exit().transition().duration(duration).attr('transform', d => `translate(${source.y},${source.x})`).remove();
+      nodeExit.select('circle').attr('r', 1e-6);
+      nodeExit.select('text').style('fill-opacity', 1e-6);
+
+      const link = g.selectAll('path.link').data(links, d => d.id);
+      const linkEnter = link.enter().insert('path', "g").attr('class', 'link').attr('d', d => { const o = { x: source.x0, y: source.y0 }; return diagonal(o, o); });
+
+      linkEnter.merge(link).transition().duration(duration).attr('d', d => diagonal(d, d.parent))
+        .style('stroke', d => {
+            const sourceNode = d.parent;
+            if (!sourceNode) return phaseColors.Default.stroke;
+            const l1AncestorName = sourceNode.data.originalStageName;
+            const colorPalette = phaseColors[l1AncestorName] || phaseColors.Default;
+            return colorPalette.stroke;
+        });
+      link.exit().transition().duration(duration).attr('d', d => { const o = { x: source.x, y: source.y }; return diagonal(o, o); }).remove();
+      nodes.forEach(d => { d.x0 = d.x; d.y0 = d.y; });
+    }
+
+    function diagonal(s, d) { return `M ${s.y} ${s.x} C ${(s.y + d.y) / 2} ${s.x}, ${(s.y + d.y) / 2} ${d.x}, ${d.y} ${d.x}`; }
+
+    function wrapText(textElements, maxWidth) {
+        const textPartColors = {
+            name: '#343a40',
+            count: '#0056b3'
+        };
+        const countRegex = /(\s\(Total Count: \d+\))$/;
+
+        textElements.each(function () {
+            const textD3 = d3.select(this);
+            const originalNodeText = textD3.datum().data.name;
+            const x = parseFloat(textD3.attr("x") || 0);
+            const initialDy = textD3.attr("dy");
+            const textAnchor = textD3.attr("text-anchor");
+            const lineHeight = 1.1;
+
+            textD3.text(null);
+
+            let namePart = originalNodeText;
+            let countPartText = "";
+
+            const countMatch = originalNodeText.match(countRegex);
+            if (countMatch && originalNodeText.endsWith(countMatch[0])) {
+                namePart = originalNodeText.substring(0, originalNodeText.length - countMatch[0].length).trim();
+                countPartText = countMatch[0].trim();
+            }
+
+            const tokens = [];
+            namePart.split(/\s+/).filter(Boolean).forEach(word => {
+                tokens.push({ text: word, type: 'name' });
+            });
+            if (countPartText) {
+                tokens.push({ text: countPartText, type: 'count' });
+            }
+
+            if (tokens.length === 0 && originalNodeText) {
+                tokens.push({ text: originalNodeText, type: 'name' });
+            }
+
+            let currentTspan = textD3.append("tspan").attr("x", x).attr("dy", initialDy);
+            if (textAnchor === "end") currentTspan.attr("text-anchor", "end");
+
+            let lineTokens = [];
+
+            for (let i = 0; i < tokens.length; i++) {
+                const tokenObj = tokens[i];
+
+                lineTokens.push(tokenObj);
+                currentTspan.text(lineTokens.map(t => t.text).join(" "));
+
+                if (currentTspan.node().getComputedTextLength() > maxWidth && lineTokens.length > 1) {
+                    lineTokens.pop();
+
+                    currentTspan.text(null);
+                    lineTokens.forEach((prevToken, idx) => {
+                        currentTspan.append("tspan")
+                            .text((idx > 0 ? " " : "") + prevToken.text)
+                            .style("fill", textPartColors[prevToken.type] || textPartColors.name)
+                            .style("font-weight", prevToken.type === 'count' ? "bold" : "normal");
+                    });
+
+                    lineTokens = [tokenObj];
+                    currentTspan = textD3.append("tspan").attr("x", x).attr("dy", lineHeight + "em");
+                    if (textAnchor === "end") currentTspan.attr("text-anchor", "end");
+                }
+            }
+
+            currentTspan.text(null);
+            lineTokens.forEach((token, idx) => {
+                currentTspan.append("tspan")
+                    .text((idx > 0 ? " " : "") + token.text)
+                    .style("fill", textPartColors[token.type] || textPartColors.name)
+                    .style("font-weight", token.type === 'count' ? "bold" : "normal");
+            });
+
+            if (textD3.selectAll("tspan > tspan").empty() && textD3.select("tspan").text().length === 0 && originalNodeText) {
+                let t = textD3.select("tspan");
+                let displayText = originalNodeText;
+                t.text(displayText).style("fill", textPartColors.name);
+                if (t.node() && t.node().getComputedTextLength() > maxWidth && displayText.length > 20) {
+                    let estimatedChars = Math.floor(maxWidth / (t.node().getComputedTextLength()/displayText.length) );
+                    displayText = displayText.substring(0, Math.max(0, estimatedChars - 3)) + "...";
+                    t.text(displayText);
+                }
+            }
+        });
+    }
+  </script>
+</body>
+</html>

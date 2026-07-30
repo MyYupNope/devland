@@ -1,18 +1,13 @@
-# Graph Report - devland  (2026-07-30)
+# Graph Report - .  (2026-07-30)
 
 ## Corpus Check
-- 21 files · ~56,389 words
+- 38 files · ~56,389 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
 - 229 nodes · 456 edges · 21 communities (11 shown, 10 thin omitted)
 - Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 16 edges (avg confidence: 0.64)
 - Token cost: 0 input · 0 output
-
-## Graph Freshness
-- Built from commit: `d68b6e1a`
-- Run `git rev-parse HEAD` and compare to check if the graph is stale.
-- Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - app.js
