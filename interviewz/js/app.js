@@ -1778,8 +1778,10 @@ function initScrollReveal() {
 
 function initTabNavigation() {
   function switchTab(targetTab) {
-    // Check if we need to auto-refresh data (delegated to fetchData(true) for TTL validation)
-    if (targetTab === 'home' || targetTab === 'dashboard') {
+    // When selecting Applications menu option ('home'), force refresh database
+    if (targetTab === 'home') {
+      fetchData(false, true);
+    } else if (targetTab === 'dashboard') {
       fetchData(true);
     }
 
