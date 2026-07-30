@@ -41,16 +41,17 @@ try {
   }
 
   // 4. Commit and Push
+  console.log('3. Staging and checking changes...');
+  execSync('git add -A', { cwd: tempDir, stdio: 'inherit' });
   const status = execSync('git status --porcelain', { cwd: tempDir }).toString().trim();
   if (status) {
-    console.log('3. Committing changes...');
-    execSync('git add -A', { cwd: tempDir, stdio: 'inherit' });
+    console.log('Committing changes...');
     execSync(`git commit -m "${commitMessage.replace(/"/g, '\\"')}"`, { cwd: tempDir, stdio: 'inherit' });
 
     console.log('4. Pushing to GitHub...');
     execSync('git push origin master', { cwd: tempDir, stdio: 'inherit' });
   } else {
-    console.log('No changes detected in repo. Skipping commit and push.');
+    console.log('No changes detected in target repo. Skipping commit and push.');
   }
 
   // 5. Clean up
