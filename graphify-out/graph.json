@@ -11,6 +11,7 @@
       "_origin": "ast",
       "id": "artz_main",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "main.js"
     },
     {
@@ -21,6 +22,7 @@
       "_origin": "ast",
       "id": "artz_main_config",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "config"
     },
     {
@@ -31,6 +33,7 @@
       "_origin": "ast",
       "id": "artz_main_state",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "state"
     },
     {
@@ -41,6 +44,7 @@
       "_origin": "ast",
       "id": "artz_main_render",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "render"
     },
     {
@@ -51,6 +55,7 @@
       "_origin": "ast",
       "id": "artz_main_physics",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "physics"
     },
     {
@@ -61,6 +66,7 @@
       "_origin": "ast",
       "id": "artz_main_interaction",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "interaction"
     },
     {
@@ -71,6 +77,7 @@
       "_origin": "ast",
       "id": "artz_main_uniforms",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "uniforms"
     },
     {
@@ -81,6 +88,7 @@
       "_origin": "ast",
       "id": "artz_main_showtoast",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "showtoast()"
     },
     {
@@ -91,6 +99,7 @@
       "_origin": "ast",
       "id": "artz_main_announcetoscreenreader",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "announcetoscreenreader()"
     },
     {
@@ -101,6 +110,7 @@
       "_origin": "ast",
       "id": "artz_main_playexplosionsound",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "playexplosionsound()"
     },
     {
@@ -111,6 +121,7 @@
       "_origin": "ast",
       "id": "artz_main_loadedfonts",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "loadedfonts"
     },
     {
@@ -121,6 +132,7 @@
       "_origin": "ast",
       "id": "artz_main_ensurefontloaded",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "ensurefontloaded()"
     },
     {
@@ -131,6 +143,7 @@
       "_origin": "ast",
       "id": "artz_main_sampletextpoints",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "sampletextpoints()"
     },
     {
@@ -141,6 +154,7 @@
       "_origin": "ast",
       "id": "artz_main_setupparticles",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "setupparticles()"
     },
     {
@@ -151,6 +165,7 @@
       "_origin": "ast",
       "id": "artz_main_vec",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "_vec"
     },
     {
@@ -161,6 +176,7 @@
       "_origin": "ast",
       "id": "artz_main_dir",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "_dir"
     },
     {
@@ -171,6 +187,7 @@
       "_origin": "ast",
       "id": "artz_main_updatemouse",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "updatemouse()"
     },
     {
@@ -181,6 +198,7 @@
       "_origin": "ast",
       "id": "artz_main_randomizeexplosionvectors",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "randomizeexplosionvectors()"
     },
     {
@@ -191,6 +209,7 @@
       "_origin": "ast",
       "id": "artz_main_triggerexplosion",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "triggerexplosion()"
     },
     {
@@ -201,6 +220,7 @@
       "_origin": "ast",
       "id": "artz_main_updateurlparams",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "updateurlparams()"
     },
     {
@@ -211,6 +231,7 @@
       "_origin": "ast",
       "id": "artz_main_resettodefaultexplosion",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "resettodefaultexplosion()"
     },
     {
@@ -221,6 +242,7 @@
       "_origin": "ast",
       "id": "artz_main_applyactiveorrandompreset",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "applyactiveorrandompreset()"
     },
     {
@@ -231,6 +253,7 @@
       "_origin": "ast",
       "id": "artz_main_selecttheme",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "selecttheme()"
     },
     {
@@ -241,6 +264,7 @@
       "_origin": "ast",
       "id": "artz_main_selectfont",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "selectfont()"
     },
     {
@@ -251,6 +275,7 @@
       "_origin": "ast",
       "id": "artz_main_updatetext",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "updatetext()"
     },
     {
@@ -261,6 +286,7 @@
       "_origin": "ast",
       "id": "artz_main_updatecharcounter",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "updatecharcounter()"
     },
     {
@@ -271,6 +297,7 @@
       "_origin": "ast",
       "id": "artz_main_applypresetexplosion",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "applypresetexplosion()"
     },
     {
@@ -281,6 +308,7 @@
       "_origin": "ast",
       "id": "artz_main_onpointerdown",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "onpointerdown()"
     },
     {
@@ -291,6 +319,7 @@
       "_origin": "ast",
       "id": "artz_main_ontouchstart",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "ontouchstart()"
     },
     {
@@ -301,6 +330,7 @@
       "_origin": "ast",
       "id": "artz_main_ontouchmove",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "ontouchmove()"
     },
     {
@@ -311,6 +341,7 @@
       "_origin": "ast",
       "id": "artz_main_onpointerup",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "onpointerup()"
     },
     {
@@ -321,6 +352,7 @@
       "_origin": "ast",
       "id": "artz_main_ontouchend",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "ontouchend()"
     },
     {
@@ -331,6 +363,7 @@
       "_origin": "ast",
       "id": "artz_main_onresize",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "onresize()"
     },
     {
@@ -341,6 +374,7 @@
       "_origin": "ast",
       "id": "artz_main_setactivepreset",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "setactivepreset()"
     },
     {
@@ -351,6 +385,7 @@
       "_origin": "ast",
       "id": "artz_main_clearactivepresets",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "clearactivepresets()"
     },
     {
@@ -361,6 +396,7 @@
       "_origin": "ast",
       "id": "artz_main_setupui",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "setupui()"
     },
     {
@@ -371,6 +407,7 @@
       "_origin": "ast",
       "id": "artz_main_animate",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "animate()"
     },
     {
@@ -381,6 +418,7 @@
       "_origin": "ast",
       "id": "artz_main_init",
       "community": 1,
+      "community_name": "main.js",
       "norm_label": "init()"
     },
     {
@@ -391,6 +429,7 @@
       "_origin": "ast",
       "id": "artz_package",
       "community": 4,
+      "community_name": "artz/package.json",
       "norm_label": "artz/package.json"
     },
     {
@@ -401,6 +440,7 @@
       "_origin": "ast",
       "id": "artz_package_name",
       "community": 4,
+      "community_name": "artz/package.json",
       "norm_label": "name"
     },
     {
@@ -411,6 +451,7 @@
       "_origin": "ast",
       "id": "artz_package_private",
       "community": 4,
+      "community_name": "artz/package.json",
       "norm_label": "private"
     },
     {
@@ -421,6 +462,7 @@
       "_origin": "ast",
       "id": "artz_package_version",
       "community": 4,
+      "community_name": "artz/package.json",
       "norm_label": "version"
     },
     {
@@ -431,6 +473,7 @@
       "_origin": "ast",
       "id": "artz_package_type",
       "community": 4,
+      "community_name": "artz/package.json",
       "norm_label": "type"
     },
     {
@@ -441,6 +484,7 @@
       "_origin": "ast",
       "id": "artz_package_scripts",
       "community": 4,
+      "community_name": "artz/package.json",
       "norm_label": "scripts"
     },
     {
@@ -451,6 +495,7 @@
       "_origin": "ast",
       "id": "artz_package_scripts_dev",
       "community": 4,
+      "community_name": "artz/package.json",
       "norm_label": "dev"
     },
     {
@@ -461,6 +506,7 @@
       "_origin": "ast",
       "id": "artz_package_scripts_build",
       "community": 4,
+      "community_name": "artz/package.json",
       "norm_label": "build"
     },
     {
@@ -471,6 +517,7 @@
       "_origin": "ast",
       "id": "artz_package_scripts_preview",
       "community": 4,
+      "community_name": "artz/package.json",
       "norm_label": "preview"
     },
     {
@@ -481,6 +528,7 @@
       "_origin": "ast",
       "id": "artz_package_scripts_deploy",
       "community": 4,
+      "community_name": "artz/package.json",
       "norm_label": "deploy"
     },
     {
@@ -491,6 +539,7 @@
       "_origin": "ast",
       "id": "artz_package_devdependencies",
       "community": 4,
+      "community_name": "artz/package.json",
       "norm_label": "devdependencies"
     },
     {
@@ -501,6 +550,7 @@
       "_origin": "ast",
       "id": "artz_package_devdependencies_gh_pages",
       "community": 4,
+      "community_name": "artz/package.json",
       "norm_label": "gh-pages"
     },
     {
@@ -511,6 +561,7 @@
       "_origin": "ast",
       "id": "gh_pages",
       "community": 4,
+      "community_name": "artz/package.json",
       "norm_label": "gh-pages"
     },
     {
@@ -521,6 +572,7 @@
       "_origin": "ast",
       "id": "artz_package_devdependencies_vite",
       "community": 4,
+      "community_name": "artz/package.json",
       "norm_label": "vite"
     },
     {
@@ -531,6 +583,7 @@
       "_origin": "ast",
       "id": "vite",
       "community": 4,
+      "community_name": "artz/package.json",
       "norm_label": "vite"
     },
     {
@@ -541,6 +594,7 @@
       "_origin": "ast",
       "id": "artz_package_dependencies",
       "community": 4,
+      "community_name": "artz/package.json",
       "norm_label": "dependencies"
     },
     {
@@ -551,6 +605,7 @@
       "_origin": "ast",
       "id": "artz_package_dependencies_three",
       "community": 4,
+      "community_name": "artz/package.json",
       "norm_label": "three"
     },
     {
@@ -561,6 +616,7 @@
       "_origin": "ast",
       "id": "three",
       "community": 4,
+      "community_name": "artz/package.json",
       "norm_label": "three"
     },
     {
@@ -571,6 +627,7 @@
       "_origin": "ast",
       "id": "artz_physics_worker",
       "community": 16,
+      "community_name": "physics.worker.js",
       "norm_label": "physics.worker.js"
     },
     {
@@ -581,6 +638,7 @@
       "_origin": "ast",
       "id": "artz_vite_config",
       "community": 17,
+      "community_name": "vite.config.js",
       "norm_label": "vite.config.js"
     },
     {
@@ -591,6 +649,7 @@
       "_origin": "ast",
       "id": "deploy",
       "community": 10,
+      "community_name": "deploy.js",
       "norm_label": "deploy.js"
     },
     {
@@ -601,6 +660,7 @@
       "_origin": "ast",
       "id": "deploy_execsync",
       "community": 10,
+      "community_name": "deploy.js",
       "norm_label": "{ execsync }"
     },
     {
@@ -611,6 +671,7 @@
       "_origin": "ast",
       "id": "deploy_fs",
       "community": 10,
+      "community_name": "deploy.js",
       "norm_label": "fs"
     },
     {
@@ -621,6 +682,7 @@
       "_origin": "ast",
       "id": "deploy_path",
       "community": 10,
+      "community_name": "deploy.js",
       "norm_label": "path"
     },
     {
@@ -631,6 +693,7 @@
       "_origin": "ast",
       "id": "deploy_tempdir",
       "community": 10,
+      "community_name": "deploy.js",
       "norm_label": "tempdir"
     },
     {
@@ -641,6 +704,7 @@
       "_origin": "ast",
       "id": "deploy_srcdir",
       "community": 10,
+      "community_name": "deploy.js",
       "norm_label": "srcdir"
     },
     {
@@ -651,6 +715,7 @@
       "_origin": "ast",
       "id": "interviewz_js_charts",
       "community": 8,
+      "community_name": "Charts.js",
       "norm_label": "charts.js"
     },
     {
@@ -661,6 +726,7 @@
       "_origin": "ast",
       "id": "interviewz_js_charts_getdesigntokens",
       "community": 8,
+      "community_name": "Charts.js",
       "norm_label": "getdesigntokens()"
     },
     {
@@ -671,6 +737,7 @@
       "_origin": "ast",
       "id": "interviewz_js_charts_initcumulativesubmissionschart",
       "community": 8,
+      "community_name": "Charts.js",
       "norm_label": "initcumulativesubmissionschart()"
     },
     {
@@ -681,6 +748,7 @@
       "_origin": "ast",
       "id": "interviewz_js_charts_initstatussplitchart",
       "community": 8,
+      "community_name": "Charts.js",
       "norm_label": "initstatussplitchart()"
     },
     {
@@ -691,6 +759,7 @@
       "_origin": "ast",
       "id": "interviewz_js_charts_initsuitabilitybarchart",
       "community": 8,
+      "community_name": "Charts.js",
       "norm_label": "initsuitabilitybarchart()"
     },
     {
@@ -701,6 +770,7 @@
       "_origin": "ast",
       "id": "interviewz_js_charts_inittopcompanieschart",
       "community": 8,
+      "community_name": "Charts.js",
       "norm_label": "inittopcompanieschart()"
     },
     {
@@ -711,6 +781,7 @@
       "_origin": "ast",
       "id": "interviewz_js_charts_renderalldashboardwidgets",
       "community": 8,
+      "community_name": "Charts.js",
       "norm_label": "renderalldashboardwidgets()"
     },
     {
@@ -721,6 +792,7 @@
       "_origin": "ast",
       "id": "interviewz_js_config",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "config.js"
     },
     {
@@ -731,6 +803,7 @@
       "_origin": "ast",
       "id": "interviewz_js_config_ep",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "_ep"
     },
     {
@@ -741,6 +814,7 @@
       "_origin": "ast",
       "id": "interviewz_js_config_decode",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "_decode()"
     },
     {
@@ -751,6 +825,7 @@
       "_origin": "ast",
       "id": "interviewz_js_config_getapibaseurl",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "getapibaseurl()"
     },
     {
@@ -761,6 +836,7 @@
       "_origin": "ast",
       "id": "interviewz_js_config_getsheetexporturl",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "getsheetexporturl()"
     },
     {
@@ -771,6 +847,7 @@
       "_origin": "ast",
       "id": "interviewz_js_config_getformapiendpoint",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "getformapiendpoint()"
     },
     {
@@ -781,6 +858,7 @@
       "_origin": "ast",
       "id": "interviewz_js_config_getnotesapiendpoint",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "getnotesapiendpoint()"
     },
     {
@@ -791,6 +869,7 @@
       "_origin": "ast",
       "id": "interviewz_js_config_form_timeout_ms",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "form_timeout_ms"
     },
     {
@@ -801,6 +880,7 @@
       "_origin": "ast",
       "id": "interviewz_js_config_form_submission_reset_timeout",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "form_submission_reset_timeout"
     },
     {
@@ -811,6 +891,7 @@
       "_origin": "ast",
       "id": "interviewz_js_config_csv_cache_key",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "csv_cache_key"
     },
     {
@@ -821,6 +902,7 @@
       "_origin": "ast",
       "id": "interviewz_js_facetedselect",
       "community": 7,
+      "community_name": "FacetedSelect",
       "norm_label": "facetedselect.js"
     },
     {
@@ -831,6 +913,7 @@
       "_origin": "ast",
       "id": "interviewz_js_facetedselect_facetedselect",
       "community": 7,
+      "community_name": "FacetedSelect",
       "norm_label": "facetedselect"
     },
     {
@@ -841,6 +924,7 @@
       "_origin": "ast",
       "id": "interviewz_js_facetedselect_facetedselect_constructor",
       "community": 7,
+      "community_name": "FacetedSelect",
       "norm_label": ".constructor()"
     },
     {
@@ -851,6 +935,7 @@
       "_origin": "ast",
       "id": "interviewz_js_facetedselect_facetedselect_initevents",
       "community": 7,
+      "community_name": "FacetedSelect",
       "norm_label": ".initevents()"
     },
     {
@@ -861,6 +946,7 @@
       "_origin": "ast",
       "id": "interviewz_js_facetedselect_facetedselect_close",
       "community": 7,
+      "community_name": "FacetedSelect",
       "norm_label": ".close()"
     },
     {
@@ -871,6 +957,7 @@
       "_origin": "ast",
       "id": "interviewz_js_facetedselect_facetedselect_resetfocus",
       "community": 7,
+      "community_name": "FacetedSelect",
       "norm_label": ".resetfocus()"
     },
     {
@@ -881,6 +968,7 @@
       "_origin": "ast",
       "id": "interviewz_js_facetedselect_facetedselect_updatekbdfocusui",
       "community": 7,
+      "community_name": "FacetedSelect",
       "norm_label": ".updatekbdfocusui()"
     },
     {
@@ -891,6 +979,7 @@
       "_origin": "ast",
       "id": "interviewz_js_facetedselect_facetedselect_getselectableoptions",
       "community": 7,
+      "community_name": "FacetedSelect",
       "norm_label": ".getselectableoptions()"
     },
     {
@@ -901,6 +990,7 @@
       "_origin": "ast",
       "id": "interviewz_js_facetedselect_facetedselect_movefocus",
       "community": 7,
+      "community_name": "FacetedSelect",
       "norm_label": ".movefocus()"
     },
     {
@@ -911,6 +1001,7 @@
       "_origin": "ast",
       "id": "interviewz_js_facetedselect_facetedselect_selectfocused",
       "community": 7,
+      "community_name": "FacetedSelect",
       "norm_label": ".selectfocused()"
     },
     {
@@ -921,6 +1012,7 @@
       "_origin": "ast",
       "id": "interviewz_js_facetedselect_facetedselect_filteroptions",
       "community": 7,
+      "community_name": "FacetedSelect",
       "norm_label": ".filteroptions()"
     },
     {
@@ -931,6 +1023,7 @@
       "_origin": "ast",
       "id": "interviewz_js_facetedselect_facetedselect_populate",
       "community": 7,
+      "community_name": "FacetedSelect",
       "norm_label": ".populate()"
     },
     {
@@ -941,6 +1034,7 @@
       "_origin": "ast",
       "id": "interviewz_js_formapp",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "formapp.js"
     },
     {
@@ -951,6 +1045,7 @@
       "_origin": "ast",
       "id": "interviewz_js_formapp_formapp",
       "community": 5,
+      "community_name": "FormApp",
       "norm_label": "formapp"
     },
     {
@@ -961,6 +1056,7 @@
       "_origin": "ast",
       "id": "interviewz_js_formapp_formapp_constructor",
       "community": 5,
+      "community_name": "FormApp",
       "norm_label": ".constructor()"
     },
     {
@@ -971,6 +1067,7 @@
       "_origin": "ast",
       "id": "interviewz_js_formapp_formapp_initdoms",
       "community": 5,
+      "community_name": "FormApp",
       "norm_label": ".initdoms()"
     },
     {
@@ -981,6 +1078,7 @@
       "_origin": "ast",
       "id": "interviewz_js_formapp_formapp_initeventlisteners",
       "community": 5,
+      "community_name": "FormApp",
       "norm_label": ".initeventlisteners()"
     },
     {
@@ -991,6 +1089,7 @@
       "_origin": "ast",
       "id": "interviewz_js_formapp_formapp_validatefield",
       "community": 5,
+      "community_name": "FormApp",
       "norm_label": ".validatefield()"
     },
     {
@@ -1001,6 +1100,7 @@
       "_origin": "ast",
       "id": "interviewz_js_formapp_formapp_handlesubmit",
       "community": 5,
+      "community_name": "FormApp",
       "norm_label": ".handlesubmit()"
     },
     {
@@ -1011,6 +1111,7 @@
       "_origin": "ast",
       "id": "interviewz_js_formapp_formapp_setloadingstate",
       "community": 5,
+      "community_name": "FormApp",
       "norm_label": ".setloadingstate()"
     },
     {
@@ -1021,6 +1122,7 @@
       "_origin": "ast",
       "id": "interviewz_js_formapp_formapp_handlesuccess",
       "community": 5,
+      "community_name": "FormApp",
       "norm_label": ".handlesuccess()"
     },
     {
@@ -1031,6 +1133,7 @@
       "_origin": "ast",
       "id": "interviewz_js_formapp_formapp_handleerror",
       "community": 5,
+      "community_name": "FormApp",
       "norm_label": ".handleerror()"
     },
     {
@@ -1041,6 +1144,7 @@
       "_origin": "ast",
       "id": "interviewz_js_formapp_formapp_handlereset",
       "community": 5,
+      "community_name": "FormApp",
       "norm_label": ".handlereset()"
     },
     {
@@ -1051,6 +1155,7 @@
       "_origin": "ast",
       "id": "interviewz_js_formapp_formapp_savedraft",
       "community": 5,
+      "community_name": "FormApp",
       "norm_label": ".savedraft()"
     },
     {
@@ -1061,6 +1166,7 @@
       "_origin": "ast",
       "id": "interviewz_js_formapp_formapp_loaddraft",
       "community": 5,
+      "community_name": "FormApp",
       "norm_label": ".loaddraft()"
     },
     {
@@ -1071,6 +1177,7 @@
       "_origin": "ast",
       "id": "interviewz_js_formapp_formapp_initcharactercounters",
       "community": 5,
+      "community_name": "FormApp",
       "norm_label": ".initcharactercounters()"
     },
     {
@@ -1081,6 +1188,7 @@
       "_origin": "ast",
       "id": "interviewz_js_formapp_formapp_updatecounter",
       "community": 5,
+      "community_name": "FormApp",
       "norm_label": ".updatecounter()"
     },
     {
@@ -1091,6 +1199,7 @@
       "_origin": "ast",
       "id": "interviewz_js_markdown",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "markdown.js"
     },
     {
@@ -1101,6 +1210,7 @@
       "_origin": "ast",
       "id": "interviewz_js_markdown_markdowncache",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "markdowncache"
     },
     {
@@ -1111,6 +1221,7 @@
       "_origin": "ast",
       "id": "interviewz_js_markdown_parsemarkdown",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "parsemarkdown()"
     },
     {
@@ -1121,6 +1232,7 @@
       "_origin": "ast",
       "id": "interviewz_js_state",
       "community": 8,
+      "community_name": "Charts.js",
       "norm_label": "state.js"
     },
     {
@@ -1131,6 +1243,7 @@
       "_origin": "ast",
       "id": "interviewz_js_state_state",
       "community": 8,
+      "community_name": "Charts.js",
       "norm_label": "state"
     },
     {
@@ -1141,6 +1254,7 @@
       "_origin": "ast",
       "id": "interviewz_js_toast",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "toast.js"
     },
     {
@@ -1151,6 +1265,7 @@
       "_origin": "ast",
       "id": "interviewz_js_toast_showtoast",
       "community": 5,
+      "community_name": "FormApp",
       "norm_label": "showtoast()"
     },
     {
@@ -1161,6 +1276,7 @@
       "_origin": "ast",
       "id": "interviewz_js_utils",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "utils.js"
     },
     {
@@ -1170,7 +1286,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "interviewz_js_utils_encryptcachedata",
-      "community": 3,
+      "community": 0,
+      "community_name": "app.js",
       "norm_label": "encryptcachedata()"
     },
     {
@@ -1180,7 +1297,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "interviewz_js_utils_decryptcachedata",
-      "community": 3,
+      "community": 0,
+      "community_name": "app.js",
       "norm_label": "decryptcachedata()"
     },
     {
@@ -1191,6 +1309,7 @@
       "_origin": "ast",
       "id": "interviewz_js_utils_sanitizeurl",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "sanitizeurl()"
     },
     {
@@ -1201,6 +1320,7 @@
       "_origin": "ast",
       "id": "interviewz_js_utils_escapehtml",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "escapehtml()"
     },
     {
@@ -1211,6 +1331,7 @@
       "_origin": "ast",
       "id": "interviewz_js_utils_sanitizehtml",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "sanitizehtml()"
     },
     {
@@ -1221,6 +1342,7 @@
       "_origin": "ast",
       "id": "interviewz_js_utils_parsedate",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "parsedate()"
     },
     {
@@ -1231,6 +1353,7 @@
       "_origin": "ast",
       "id": "interviewz_js_utils_formatdisplaydate",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "formatdisplaydate()"
     },
     {
@@ -1241,6 +1364,7 @@
       "_origin": "ast",
       "id": "interviewz_js_utils_getcsrftoken",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "getcsrftoken()"
     },
     {
@@ -1251,6 +1375,7 @@
       "_origin": "ast",
       "id": "interviewz_js_utils_isrequestoriginvalid",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "isrequestoriginvalid()"
     },
     {
@@ -1261,6 +1386,7 @@
       "_origin": "ast",
       "id": "interviewz_js_utils_postform",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "postform()"
     },
     {
@@ -1271,6 +1397,7 @@
       "_origin": "ast",
       "id": "interviewz_js_utils_sanitizeerrormessage",
       "community": 3,
+      "community_name": "Utils.js",
       "norm_label": "sanitizeerrormessage()"
     },
     {
@@ -1281,6 +1408,7 @@
       "_origin": "ast",
       "id": "interviewz_js_utils_parsecachetimestamp",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "parsecachetimestamp()"
     },
     {
@@ -1291,6 +1419,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "app.js"
     },
     {
@@ -1301,6 +1430,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_sortcollator",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "sortcollator"
     },
     {
@@ -1311,6 +1441,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_landingparticles",
       "community": 9,
+      "community_name": "LandingParticles",
       "norm_label": "landingparticles"
     },
     {
@@ -1321,6 +1452,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_landingparticles_constructor",
       "community": 9,
+      "community_name": "LandingParticles",
       "norm_label": ".constructor()"
     },
     {
@@ -1331,6 +1463,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_landingparticles_start",
       "community": 9,
+      "community_name": "LandingParticles",
       "norm_label": ".start()"
     },
     {
@@ -1341,6 +1474,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_landingparticles_stop",
       "community": 9,
+      "community_name": "LandingParticles",
       "norm_label": ".stop()"
     },
     {
@@ -1351,6 +1485,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_landingparticles_createparticles",
       "community": 9,
+      "community_name": "LandingParticles",
       "norm_label": "._createparticles()"
     },
     {
@@ -1361,6 +1496,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_landingparticles_onresize",
       "community": 9,
+      "community_name": "LandingParticles",
       "norm_label": "._onresize()"
     },
     {
@@ -1371,6 +1507,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_landingparticles_getcolorrgb",
       "community": 9,
+      "community_name": "LandingParticles",
       "norm_label": "._getcolorrgb()"
     },
     {
@@ -1381,6 +1518,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_landingparticles_animate",
       "community": 9,
+      "community_name": "LandingParticles",
       "norm_label": "._animate()"
     },
     {
@@ -1391,6 +1529,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_dom",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "dom"
     },
     {
@@ -1401,6 +1540,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_initdomcache",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "initdomcache()"
     },
     {
@@ -1411,6 +1551,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_initializeapp",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "initializeapp()"
     },
     {
@@ -1421,6 +1562,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_copyelementhtml",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "copyelementhtml()"
     },
     {
@@ -1431,6 +1573,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_setupeventlisteners",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "setupeventlisteners()"
     },
     {
@@ -1441,6 +1584,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_fetchdata",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "fetchdata()"
     },
     {
@@ -1451,6 +1595,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_cache_key_csv",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "cache_key_csv()"
     },
     {
@@ -1461,6 +1606,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_setsyncstate",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "setsyncstate()"
     },
     {
@@ -1471,6 +1617,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_writecacheidle",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "writecacheidle()"
     },
     {
@@ -1481,6 +1628,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_parsecsv",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "parsecsv()"
     },
     {
@@ -1491,6 +1639,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_parseandinitializedata",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "parseandinitializedata()"
     },
     {
@@ -1501,6 +1650,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_getfiltereddashboardapps",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "getfiltereddashboardapps()"
     },
     {
@@ -1511,6 +1661,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_calculatestatistics",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "calculatestatistics()"
     },
     {
@@ -1521,6 +1672,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_updatefiltersui",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "updatefiltersui()"
     },
     {
@@ -1531,6 +1683,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_applyfilters",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "applyfilters()"
     },
     {
@@ -1541,6 +1694,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_renderkanbanboard",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "renderkanbanboard()"
     },
     {
@@ -1551,6 +1705,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_getcolkeyforstatus",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "getcolkeyforstatus()"
     },
     {
@@ -1561,6 +1716,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_updatecolumnemptystate",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "updatecolumnemptystate()"
     },
     {
@@ -1571,6 +1727,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_updatecolumnheadercount",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "updatecolumnheadercount()"
     },
     {
@@ -1581,6 +1738,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_setupkanbandraganddrop",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "setupkanbandraganddrop()"
     },
     {
@@ -1591,6 +1749,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_updateapplicationstatusdirect",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "updateapplicationstatusdirect()"
     },
     {
@@ -1601,6 +1760,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_selecttab",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "selecttab()"
     },
     {
@@ -1611,6 +1771,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_updateselectcolorclass",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "updateselectcolorclass()"
     },
     {
@@ -1621,6 +1782,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_updatefollowuplink",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "updatefollowuplink()"
     },
     {
@@ -1631,6 +1793,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_updatehiringteamlink",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "updatehiringteamlink()"
     },
     {
@@ -1641,6 +1804,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_rendersuitabilityevaluation",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "rendersuitabilityevaluation()"
     },
     {
@@ -1651,6 +1815,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_opendetailsdrawer",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "opendetailsdrawer()"
     },
     {
@@ -1661,6 +1826,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_closedetailsdrawer",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "closedetailsdrawer()"
     },
     {
@@ -1671,6 +1837,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_showel",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "showel()"
     },
     {
@@ -1681,6 +1848,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_hideel",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "hideel()"
     },
     {
@@ -1691,6 +1859,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_initscrollreveal",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "initscrollreveal()"
     },
     {
@@ -1701,6 +1870,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_inittabnavigation",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "inittabnavigation()"
     },
     {
@@ -1711,6 +1881,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_setinterviewloadingstate",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "setinterviewloadingstate()"
     },
     {
@@ -1721,6 +1892,7 @@
       "_origin": "ast",
       "id": "interviewz_js_app_submitjobinterviewform",
       "community": 0,
+      "community_name": "app.js",
       "norm_label": "submitjobinterviewform()"
     },
     {
@@ -1731,6 +1903,7 @@
       "_origin": "ast",
       "id": "package",
       "community": 11,
+      "community_name": "package.json",
       "norm_label": "package.json"
     },
     {
@@ -1741,6 +1914,7 @@
       "_origin": "ast",
       "id": "package_name",
       "community": 11,
+      "community_name": "package.json",
       "norm_label": "name"
     },
     {
@@ -1751,6 +1925,7 @@
       "_origin": "ast",
       "id": "package_version",
       "community": 11,
+      "community_name": "package.json",
       "norm_label": "version"
     },
     {
@@ -1761,16 +1936,29 @@
       "_origin": "ast",
       "id": "package_scripts",
       "community": 11,
+      "community_name": "package.json",
       "norm_label": "scripts"
+    },
+    {
+      "label": "deploy",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "package_scripts_deploy",
+      "community": 11,
+      "community_name": "package.json",
+      "norm_label": "deploy"
     },
     {
       "label": "deploy-interviewz",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L5",
+      "source_location": "L6",
       "_origin": "ast",
       "id": "package_scripts_deploy_interviewz",
       "community": 11,
+      "community_name": "package.json",
       "norm_label": "deploy-interviewz"
     },
     {
@@ -1781,6 +1969,7 @@
       "_origin": "ast",
       "id": "resume_js_resume",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "resume.js"
     },
     {
@@ -1791,6 +1980,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "resumeapp"
     },
     {
@@ -1801,6 +1991,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_constructor",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": ".constructor()"
     },
     {
@@ -1811,6 +2002,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_ontabactivated",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": ".ontabactivated()"
     },
     {
@@ -1821,6 +2013,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_deactivate",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": ".deactivate()"
     },
     {
@@ -1831,6 +2024,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_initdomreferences",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "._initdomreferences()"
     },
     {
@@ -1841,6 +2035,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_initherocanvas",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "._initherocanvas()"
     },
     {
@@ -1851,6 +2046,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_createparticles",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "._createparticles()"
     },
     {
@@ -1861,6 +2057,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_onresize",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "._onresize()"
     },
     {
@@ -1871,6 +2068,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_getcolorrgb",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "._getcolorrgb()"
     },
     {
@@ -1881,6 +2079,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_animatecanvas",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "._animatecanvas()"
     },
     {
@@ -1891,6 +2090,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_updateanddrawcanvas",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "._updateanddrawcanvas()"
     },
     {
@@ -1901,6 +2101,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_inittypinganimation",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "._inittypinganimation()"
     },
     {
@@ -1911,6 +2112,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_typecycle",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "._typecycle()"
     },
     {
@@ -1921,6 +2123,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_initscrollobservers",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "._initscrollobservers()"
     },
     {
@@ -1931,6 +2134,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_startmetriccounters",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "._startmetriccounters()"
     },
     {
@@ -1941,6 +2145,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_countup",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "._countup()"
     },
     {
@@ -1951,6 +2156,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_initpillarcards",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "._initpillarcards()"
     },
     {
@@ -1961,6 +2167,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_inittimeline",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "._inittimeline()"
     },
     {
@@ -1971,6 +2178,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_switchtimelinenode",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "._switchtimelinenode()"
     },
     {
@@ -1981,6 +2189,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_initskillsconstellation",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "._initskillsconstellation()"
     },
     {
@@ -1991,6 +2200,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_initcursorglow",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "._initcursorglow()"
     },
     {
@@ -2001,6 +2211,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_initstickynav",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "._initstickynav()"
     },
     {
@@ -2011,6 +2222,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_handlenavscroll",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": ".handlenavscroll()"
     },
     {
@@ -2021,6 +2233,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_setactivenavlink",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "._setactivenavlink()"
     },
     {
@@ -2031,6 +2244,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_initcertitems",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "._initcertitems()"
     },
     {
@@ -2041,6 +2255,7 @@
       "_origin": "ast",
       "id": "resume_js_resume_resumeapp_inithamburgermenu",
       "community": 2,
+      "community_name": "ResumeApp",
       "norm_label": "._inithamburgermenu()"
     },
     {
@@ -2052,9 +2267,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "agents_agents_custom_rules",
       "community": 14,
-      "norm_label": "workspace custom rules"
+      "norm_label": "workspace custom rules",
+      "id": "agents_agents_custom_rules",
+      "community_name": "Workspace Custom Rules"
     },
     {
       "label": "Local Testing Environment Rule",
@@ -2065,9 +2281,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "agents_agents_testing_rule",
       "community": 15,
-      "norm_label": "local testing environment rule"
+      "norm_label": "local testing environment rule",
+      "id": "agents_agents_testing_rule",
+      "community_name": "Local Testing Environment Rule"
     },
     {
       "label": "Graphify Knowledge Graph Rule",
@@ -2078,9 +2295,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "agents_rules_graphify_knowledge_graph",
       "community": 13,
-      "norm_label": "graphify knowledge graph rule"
+      "norm_label": "graphify knowledge graph rule",
+      "id": "agents_rules_graphify_knowledge_graph",
+      "community_name": "Graphify Knowledge Graph Rule"
     },
     {
       "label": "Graphify Workflow",
@@ -2091,9 +2309,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "agents_workflows_graphify_workflow",
       "community": 13,
-      "norm_label": "graphify workflow"
+      "norm_label": "graphify workflow",
+      "id": "agents_workflows_graphify_workflow",
+      "community_name": "Graphify Knowledge Graph Rule"
     },
     {
       "label": "GitHub Pages Deploy Workflow",
@@ -2104,9 +2323,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "github_workflows_deploy_pages_workflow",
       "community": 12,
-      "norm_label": "github pages deploy workflow"
+      "norm_label": "github pages deploy workflow",
+      "id": "github_workflows_deploy_pages_workflow",
+      "community_name": "Kinetic Particle Sculpture App"
     },
     {
       "label": "Artz Build Step",
@@ -2117,9 +2337,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "github_workflows_deploy_artz_build",
       "community": 12,
-      "norm_label": "artz build step"
+      "norm_label": "artz build step",
+      "id": "github_workflows_deploy_artz_build",
+      "community_name": "Kinetic Particle Sculpture App"
     },
     {
       "label": "Kinetic Particle Sculpture App",
@@ -2130,9 +2351,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "artz_index_kinetic_sculpture",
       "community": 12,
-      "norm_label": "kinetic particle sculpture app"
+      "norm_label": "kinetic particle sculpture app",
+      "id": "artz_index_kinetic_sculpture",
+      "community_name": "Kinetic Particle Sculpture App"
     },
     {
       "label": "OpportunityTracker Dashboard",
@@ -2143,9 +2365,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "interviewz_index_opportunity_tracker",
       "community": 6,
-      "norm_label": "opportunitytracker dashboard"
+      "norm_label": "opportunitytracker dashboard",
+      "id": "interviewz_index_opportunity_tracker",
+      "community_name": "OpportunityTracker Dashboard"
     },
     {
       "label": "Rodrigo Matias Original CV (Interviewz)",
@@ -2156,9 +2379,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "interviewz_introduction_rodrigomatias_cv_2026_en_original_cv",
       "community": 6,
-      "norm_label": "rodrigo matias original cv (interviewz)"
+      "norm_label": "rodrigo matias original cv (interviewz)",
+      "id": "interviewz_introduction_rodrigomatias_cv_2026_en_original_cv",
+      "community_name": "OpportunityTracker Dashboard"
     },
     {
       "label": "Rodrigo Matias Original CV (Resume)",
@@ -2169,9 +2393,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "resume_assets_rodrigomatias_cv_2026_en_original_cv",
       "community": 6,
-      "norm_label": "rodrigo matias original cv (resume)"
+      "norm_label": "rodrigo matias original cv (resume)",
+      "id": "resume_assets_rodrigomatias_cv_2026_en_original_cv",
+      "community_name": "OpportunityTracker Dashboard"
     },
     {
       "label": "Rodrigo Matias Interactive Resume",
@@ -2182,9 +2407,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "resume_index_interactive_resume",
       "community": 6,
-      "norm_label": "rodrigo matias interactive resume"
+      "norm_label": "rodrigo matias interactive resume",
+      "id": "resume_index_interactive_resume",
+      "community_name": "OpportunityTracker Dashboard"
     },
     {
       "label": "TalentTracker Documentation",
@@ -2195,9 +2421,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "interviewz_documentation_talenttracker_doc",
       "community": 6,
-      "norm_label": "talenttracker documentation"
+      "norm_label": "talenttracker documentation",
+      "id": "interviewz_documentation_talenttracker_doc",
+      "community_name": "OpportunityTracker Dashboard"
     },
     {
       "label": "Artz Favicon",
@@ -2208,9 +2435,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "artz_public_favicon_icon",
       "community": 12,
-      "norm_label": "artz favicon"
+      "norm_label": "artz favicon",
+      "id": "artz_public_favicon_icon",
+      "community_name": "Kinetic Particle Sculpture App"
     },
     {
       "label": "Interviewz Avatar Image",
@@ -2221,9 +2449,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "interviewz_assets_avatar_img",
       "community": 6,
-      "norm_label": "interviewz avatar image"
+      "norm_label": "interviewz avatar image",
+      "id": "interviewz_assets_avatar_img",
+      "community_name": "OpportunityTracker Dashboard"
     },
     {
       "label": "Interviewz Favicon",
@@ -2234,9 +2463,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "interviewz_assets_favicon_icon",
       "community": 6,
-      "norm_label": "interviewz favicon"
+      "norm_label": "interviewz favicon",
+      "id": "interviewz_assets_favicon_icon",
+      "community_name": "OpportunityTracker Dashboard"
     },
     {
       "label": "Interviewz Hero Background Image",
@@ -2247,9 +2477,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "interviewz_assets_hero_bg_wide_img",
       "community": 18,
-      "norm_label": "interviewz hero background image"
+      "norm_label": "interviewz hero background image",
+      "id": "interviewz_assets_hero_bg_wide_img",
+      "community_name": "Interviewz Hero Background Image"
     },
     {
       "label": "Interviewz Applications Screenshot",
@@ -2260,9 +2491,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "interviewz_assets_screenshot_applications_img",
       "community": 6,
-      "norm_label": "interviewz applications screenshot"
+      "norm_label": "interviewz applications screenshot",
+      "id": "interviewz_assets_screenshot_applications_img",
+      "community_name": "OpportunityTracker Dashboard"
     },
     {
       "label": "Interviewz Dashboard Screenshot",
@@ -2273,9 +2505,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "interviewz_assets_screenshot_dashboard_img",
       "community": 6,
-      "norm_label": "interviewz dashboard screenshot"
+      "norm_label": "interviewz dashboard screenshot",
+      "id": "interviewz_assets_screenshot_dashboard_img",
+      "community_name": "OpportunityTracker Dashboard"
     },
     {
       "label": "Interviewz New Application Screenshot",
@@ -2286,9 +2519,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "interviewz_assets_screenshot_new_application_img",
       "community": 6,
-      "norm_label": "interviewz new application screenshot"
+      "norm_label": "interviewz new application screenshot",
+      "id": "interviewz_assets_screenshot_new_application_img",
+      "community_name": "OpportunityTracker Dashboard"
     },
     {
       "label": "Interviewz Resume Screenshot",
@@ -2299,9 +2533,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "interviewz_assets_screenshot_resume_img",
       "community": 6,
-      "norm_label": "interviewz resume screenshot"
+      "norm_label": "interviewz resume screenshot",
+      "id": "interviewz_assets_screenshot_resume_img",
+      "community_name": "OpportunityTracker Dashboard"
     },
     {
       "label": "Interviewz Introduction Photo",
@@ -2312,9 +2547,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "interviewz_introduction_80e56bef_20a2_41bf_81d3_3be9d07b74c7_photo",
       "community": 19,
-      "norm_label": "interviewz introduction photo"
+      "norm_label": "interviewz introduction photo",
+      "id": "interviewz_introduction_80e56bef_20a2_41bf_81d3_3be9d07b74c7_photo",
+      "community_name": "Interviewz Introduction Photo"
     },
     {
       "label": "Interviewz Introduction WhatsApp Image",
@@ -2325,9 +2561,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "interviewz_introduction_whatsapp_image_2026_06_14_at_12_35_42_img",
       "community": 20,
-      "norm_label": "interviewz introduction whatsapp image"
+      "norm_label": "interviewz introduction whatsapp image",
+      "id": "interviewz_introduction_whatsapp_image_2026_06_14_at_12_35_42_img",
+      "community_name": "Interviewz Introduction WhatsApp Image"
     },
     {
       "label": "Resume Avatar Image",
@@ -2338,9 +2575,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "resume_assets_avatar_img",
       "community": 6,
-      "norm_label": "resume avatar image"
+      "norm_label": "resume avatar image",
+      "id": "resume_assets_avatar_img",
+      "community_name": "OpportunityTracker Dashboard"
     },
     {
       "label": "Resume Favicon",
@@ -2351,9 +2589,10 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "id": "resume_assets_favicon_icon",
       "community": 6,
-      "norm_label": "resume favicon"
+      "norm_label": "resume favicon",
+      "id": "resume_assets_favicon_icon",
+      "community_name": "OpportunityTracker Dashboard"
     }
   ],
   "links": [
@@ -6852,6 +7091,17 @@
       "weight": 1.0,
       "_origin": "ast",
       "source": "package_scripts",
+      "target": "package_scripts_deploy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L6",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "package_scripts",
       "target": "package_scripts_deploy_interviewz",
       "confidence_score": 1.0
     },
@@ -7601,5 +7851,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "a182c74d913e141cbe395ec31e4094440a0a587a"
+  "built_at_commit": "d68b6e1a53cfda51543321c1e832f75f221091d2"
 }

@@ -6,7 +6,7 @@ const targetRepo = 'https://github.com/MyYupNope/MyYupNope.github.io.git';
 const tempDir = path.join(__dirname, 'temp-deploy-github-io');
 const srcDir = path.join(__dirname, 'interviewz');
 
-const commitMessage = process.argv.slice(2).join(' ') || 'Update interviewz and resume projects';
+const commitMessage = process.argv.slice(2).join(' ') || 'Update interviewz, resume, and artz projects';
 
 try {
   // 1. Clean up temp folder if it exists
@@ -38,6 +38,22 @@ try {
     }
     fs.mkdirSync(resumeDestDir, { recursive: true });
     fs.cpSync(resumeSrcDir, resumeDestDir, { recursive: true });
+  }
+
+  // 3c. Build and copy artz files
+  const artzDir = path.join(__dirname, 'artz');
+  if (fs.existsSync(artzDir)) {
+    console.log('   Building and copying artz files...');
+    execSync('npm run build', { cwd: artzDir, stdio: 'inherit' });
+    const artzDistDir = path.join(artzDir, 'dist');
+    const artzDestDir = path.join(tempDir, 'artz');
+    if (fs.existsSync(artzDistDir)) {
+      if (fs.existsSync(artzDestDir)) {
+        fs.rmSync(artzDestDir, { recursive: true, force: true });
+      }
+      fs.mkdirSync(artzDestDir, { recursive: true });
+      fs.cpSync(artzDistDir, artzDestDir, { recursive: true });
+    }
   }
 
   // 4. Commit and Push

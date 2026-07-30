@@ -1,34 +1,39 @@
-# Graph Report - .  (2026-07-30)
+# Graph Report - devland  (2026-07-30)
 
 ## Corpus Check
-- 38 files · ~56,313 words
+- 21 files · ~56,389 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 228 nodes · 455 edges · 21 communities (11 shown, 10 thin omitted)
+- 229 nodes · 456 edges · 21 communities (11 shown, 10 thin omitted)
 - Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 16 edges (avg confidence: 0.64)
 - Token cost: 0 input · 0 output
 
+## Graph Freshness
+- Built from commit: `d68b6e1a`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
+
 ## Community Hubs (Navigation)
-- Interviewz Application Logic & Filters
-- Artz Particle Animation & Controls
-- Resume Interactive Canvas & Animations
-- Interviewz Form & API Configuration
-- Artz Dependencies & Build Tools
-- Interviewz Form Application Handler
-- Interviewz UI Screenshots & Media Assets
-- Interviewz Faceted Select Component
-- Interviewz Analytics & Charts Dashboard
-- Interviewz Landing Background Particles
-- Root Multi-App Deployment Script
-- Interviewz Package & Deployment Config
-- Artz Application & GitHub Actions Workflow
-- Graphify Knowledge Graph Configuration
-- Workspace Rules & Conventions
-- Local Testing Environment Configuration
-- Interviewz Hero Background Media
-- Interviewz Profile Image
-- Interviewz Contact Image Asset
+- app.js
+- main.js
+- ResumeApp
+- Utils.js
+- artz/package.json
+- FormApp
+- OpportunityTracker Dashboard
+- FacetedSelect
+- Charts.js
+- LandingParticles
+- deploy.js
+- package.json
+- Kinetic Particle Sculpture App
+- Graphify Knowledge Graph Rule
+- Workspace Custom Rules
+- Local Testing Environment Rule
+- Interviewz Hero Background Image
+- Interviewz Introduction Photo
+- Interviewz Introduction WhatsApp Image
 
 ## God Nodes (most connected - your core abstractions)
 1. `ResumeApp` - 26 edges
@@ -59,61 +64,61 @@
 
 ## Communities (21 total, 10 thin omitted)
 
-### Community 0 - "Interviewz Application Logic & Filters"
-Cohesion: 0.12
-Nodes (37): calculateStatistics(), renderSuitabilityEvaluation(), getColKeyForStatus(), updateColumnEmptyState(), initDomCache(), updateHiringTeamLink(), closeDetailsDrawer(), fetchData() (+29 more)
-
-### Community 1 - "Artz Particle Animation & Controls"
-Cohesion: 0.12
-Nodes (37): onTouchMove(), render, uniforms, _dir, selectTheme(), showToast(), triggerExplosion(), CONFIG (+29 more)
-
-### Community 3 - "Interviewz Form & API Configuration"
-Cohesion: 0.17
-Nodes (19): getNotesApiEndpoint(), decryptCacheData(), escapeHtml(), postForm(), getCsrfToken(), sanitizeHtml(), FORM_TIMEOUT_MS, CSV_CACHE_KEY (+11 more)
-
-### Community 4 - "Artz Dependencies & Build Tools"
+### Community 0 - "app.js"
 Cohesion: 0.11
-Nodes (17): preview, private, devDependencies, name, gh-pages, vite, three, scripts (+9 more)
+Nodes (39): applyFilters(), CACHE_KEY_CSV(), calculateStatistics(), closeDetailsDrawer(), copyElementHtml(), dom, fetchData(), getColKeyForStatus() (+31 more)
 
-### Community 6 - "Interviewz UI Screenshots & Media Assets"
+### Community 1 - "main.js"
+Cohesion: 0.12
+Nodes (37): animate(), announceToScreenReader(), applyActiveOrRandomPreset(), applyPresetExplosion(), clearActivePresets(), CONFIG, _dir, ensureFontLoaded() (+29 more)
+
+### Community 3 - "Utils.js"
+Cohesion: 0.18
+Nodes (17): CSV_CACHE_KEY, _decode(), _EP, FORM_SUBMISSION_RESET_TIMEOUT, FORM_TIMEOUT_MS, getApiBaseUrl(), getFormApiEndpoint(), getNotesApiEndpoint() (+9 more)
+
+### Community 4 - "artz/package.json"
+Cohesion: 0.11
+Nodes (17): dependencies, three, devDependencies, gh-pages, vite, name, private, scripts (+9 more)
+
+### Community 6 - "OpportunityTracker Dashboard"
 Cohesion: 0.17
-Nodes (13): Interviewz Dashboard Screenshot, Interviewz New Application Screenshot, TalentTracker Documentation, Interviewz Resume Screenshot, Rodrigo Matias Original CV (Resume), Rodrigo Matias Original CV (Interviewz), OpportunityTracker Dashboard, Resume Favicon (+5 more)
+Nodes (13): Interviewz Avatar Image, Interviewz Favicon, Interviewz Applications Screenshot, Interviewz Dashboard Screenshot, Interviewz New Application Screenshot, Interviewz Resume Screenshot, TalentTracker Documentation, OpportunityTracker Dashboard (+5 more)
 
-### Community 8 - "Interviewz Analytics & Charts Dashboard"
+### Community 8 - "Charts.js"
 Cohesion: 0.39
-Nodes (7): initCumulativeSubmissionsChart(), initTopCompaniesChart(), initSuitabilityBarChart(), state, initStatusSplitChart(), renderAllDashboardWidgets(), getDesignTokens()
+Nodes (7): getDesignTokens(), initCumulativeSubmissionsChart(), initStatusSplitChart(), initSuitabilityBarChart(), initTopCompaniesChart(), renderAllDashboardWidgets(), state
 
-### Community 10 - "Root Multi-App Deployment Script"
+### Community 10 - "deploy.js"
 Cohesion: 0.33
-Nodes (5): tempDir, fs, srcDir, path, { execSync }
+Nodes (5): { execSync }, fs, path, srcDir, tempDir
 
-### Community 11 - "Interviewz Package & Deployment Config"
-Cohesion: 0.40
-Nodes (4): scripts, version, name, deploy-interviewz
+### Community 11 - "package.json"
+Cohesion: 0.33
+Nodes (5): name, scripts, deploy, deploy-interviewz, version
 
-### Community 12 - "Artz Application & GitHub Actions Workflow"
+### Community 12 - "Kinetic Particle Sculpture App"
 Cohesion: 0.50
-Nodes (4): Kinetic Particle Sculpture App, Artz Favicon, GitHub Pages Deploy Workflow, Artz Build Step
+Nodes (4): Kinetic Particle Sculpture App, Artz Favicon, Artz Build Step, GitHub Pages Deploy Workflow
 
 ## Knowledge Gaps
-- **46 isolated node(s):** `CONFIG`, `state`, `physics`, `interaction`, `uniforms` (+41 more)
+- **47 isolated node(s):** `CONFIG`, `state`, `physics`, `interaction`, `uniforms` (+42 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **10 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `FacetedSelect` connect `Interviewz Faceted Select Component` to `Interviewz Application Logic & Filters`?**
-  _High betweenness centrality (0.039) - this node is a cross-community bridge._
-- **Why does `FormApp` connect `Interviewz Form Application Handler` to `Interviewz Application Logic & Filters`, `Interviewz Form & API Configuration`?**
+- **Why does `FacetedSelect` connect `FacetedSelect` to `app.js`?**
+  _High betweenness centrality (0.038) - this node is a cross-community bridge._
+- **Why does `FormApp` connect `FormApp` to `app.js`, `Utils.js`?**
   _High betweenness centrality (0.033) - this node is a cross-community bridge._
-- **Why does `LandingParticles` connect `Interviewz Landing Background Particles` to `Interviewz Application Logic & Filters`?**
+- **Why does `LandingParticles` connect `LandingParticles` to `app.js`?**
   _High betweenness centrality (0.028) - this node is a cross-community bridge._
 - **Are the 6 inferred relationships involving `init()` (e.g. with `onPointerDown()` and `onPointerUp()`) actually correct?**
   _`init()` has 6 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 3 inferred relationships involving `setupEventListeners()` (e.g. with `closeDetailsDrawer()` and `updateFollowUpLink()`) actually correct?**
   _`setupEventListeners()` has 3 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `CONFIG`, `state`, `physics` to the rest of the system?**
-  _46 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Interviewz Application Logic & Filters` be split into smaller, more focused modules?**
-  _Cohesion score 0.12051282051282051 - nodes in this community are weakly interconnected._
+  _47 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `app.js` be split into smaller, more focused modules?**
+  _Cohesion score 0.11382113821138211 - nodes in this community are weakly interconnected._
