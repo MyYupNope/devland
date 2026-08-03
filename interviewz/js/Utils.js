@@ -208,7 +208,7 @@ function isRequestOriginValid() {
  * Shared form submission utility.
  * Handles AbortController timeout, anti-CSRF token injection, fetch, JSON result check, and error routing
  */
-export async function postForm(url, formData, { setLoading = () => {}, onSuccess = () => {}, onError = () => {} } = {}) {
+export async function postForm(url, formData, { setLoading = () => {}, onSuccess = () => {}, onError = () => {}, timeoutMs = FORM_TIMEOUT_MS } = {}) {
   setLoading(true);
 
   // 1. Origin Guard
@@ -230,7 +230,7 @@ export async function postForm(url, formData, { setLoading = () => {}, onSuccess
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), FORM_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     let response;

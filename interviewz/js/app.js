@@ -1392,20 +1392,36 @@ async function updateApplicationStatusDirect(app, newStatus, targetContainer, ca
 
     if (isCrossColumn && cardEl && sourceContainer) {
       sourceContainer.appendChild(cardEl);
+      const cards = Array.from(sourceContainer.querySelectorAll('.kanban-card'));
+      cards.sort((a, b) => {
+        const idxA = parseInt(a.getAttribute('data-index'), 10);
+        const idxB = parseInt(b.getAttribute('data-index'), 10);
+        const appA = (state.rawApplications || []).find(x => x.originalIndex === idxA);
+        const appB = (state.rawApplications || []).find(x => x.originalIndex === idxB);
+        const dateA = appA ? parseDate(appA['Create Date']) : null;
+        const dateB = appB ? parseDate(appB['Create Date']) : null;
+        if (dateA && dateB) return dateB - dateA;
+        if (dateA) return -1;
+        if (dateB) return 1;
+        return 0;
+      });
+      cards.forEach(c => sourceContainer.appendChild(c));
       updateColumnEmptyState(sourceContainer);
       if (targetContainer) updateColumnEmptyState(targetContainer);
       updateColumnHeaderCount(oldColKey, 1);
       updateColumnHeaderCount(newColKey, -1);
     }
 
-    const errMsg = err && err.name === 'AbortError'
-      ? 'Submission error: Request timed out after 90 seconds.'
-      : 'Submission error: ' + (err && err.message ? err.message : 'Failed to update status');
+    const isTimeout = err && (err.name === 'AbortError' || (err.message && err.message.toLowerCase().includes('timed out')));
+    const errMsg = isTimeout
+      ? 'Status change timed out after 1 minute. Reverting card to original status.'
+      : 'Submission error: ' + (err && err.message ? err.message : 'Failed to update status') + '. Reverting card to original status.';
     showToast(errMsg, 'error');
   };
 
   try {
     await postForm(getNotesApiEndpoint(), formData, {
+      timeoutMs: 60000,
       setLoading: () => {},
       onSuccess: () => {
         // 3. Success Confirmation: Card stays in target column with zero re-renders
