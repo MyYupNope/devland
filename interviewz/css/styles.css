@@ -2309,66 +2309,58 @@ a.topbar-nav-btn:hover svg {
   grid-column: 1 / -1;
 }
 
-/* Desktop layout for Job Interview */
-@media (min-width: 992px) {
-  .interview-matrix-grid>div {
-    padding: 1rem;
-  }
-
-  /* First column (Company) */
-  #sectionInterviewCompany {
-    border-right: 1px solid var(--color-border);
-    padding-right: 1.5rem;
-    padding-left: 0;
-    border-bottom: 1px solid var(--color-border);
-    padding-bottom: 1.5rem;
-    padding-top: 0;
-  }
-
-  /* Second column (Preparation) */
-  #sectionInterviewPreparation {
-    padding-left: 1.5rem;
-    padding-right: 0;
-    border-bottom: 1px solid var(--color-border);
-    padding-bottom: 1.5rem;
-    padding-top: 0;
-  }
-
-  /* Bottom row full-width (Interview Notes) */
-  #sectionInterviewNotes {
-    padding-top: 1.5rem;
-    padding-bottom: 0;
-    padding-left: 0;
-    padding-right: 0;
-  }
+/* === Preparation Tab Card === */
+.preparation-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
-/* Mobile layout for Job Interview */
-@media (max-width: 991px) {
-  .interview-matrix-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .interview-matrix-grid>div {
-    padding: 1.25rem 0;
-  }
-
-  .interview-matrix-grid>div:not(:last-child) {
-    border-bottom: 1px solid var(--color-border);
-  }
-
-  .interview-matrix-grid>div:first-child {
-    padding-top: 0;
-  }
-
-  .interview-matrix-grid>div:last-child {
-    padding-bottom: 0;
-  }
+.prep-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.5rem 0;
 }
 
-#drawerInterviewCompany,
-#drawerInterviewPreparation {
-  max-height: 280px;
+.prep-section:first-child {
+  padding-top: 0;
+}
+
+.prep-section:last-child {
+  padding-bottom: 0;
+}
+
+.prep-divider {
+  height: 1px;
+  background: var(--color-border);
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.prep-no-data {
+  font-size: 0.88rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+  margin: 0;
+  padding: 0.5rem 0;
+}
+
+.prep-suitability-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+#sectionD_Preparation #drawerInterviewCompany,
+#sectionD_Preparation #drawerInterviewPreparation {
+  max-height: none;
+  overflow: visible;
+}
+
+/* Notes tab: textarea fills available height */
+#sectionE_Notes .textarea-notes {
+  min-height: 300px;
 }
 
 .info-row {
@@ -2793,6 +2785,53 @@ a.topbar-nav-btn:hover svg {
 .text-block.markdown-content .md-table tr:hover {
   background-color: rgba(26, 115, 232, 0.03);
   /* Subtle blue tint on hover */
+}
+
+/* Copy-mode: compact styles inlined by the browser for Word-compatible paste */
+.copy-mode .md-table {
+  width: auto !important;
+  max-width: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  font-size: 10pt !important;
+  table-layout: auto !important;
+}
+
+.copy-mode .md-table th,
+.copy-mode .md-table td {
+  padding: 2pt 6pt !important;
+  font-size: 10pt !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+}
+
+.copy-mode .md-table th {
+  font-size: 10pt !important;
+  font-weight: 600 !important;
+}
+
+.copy-mode .suit-eval-grid {
+  font-size: 10pt !important;
+}
+
+.copy-mode .suit-eval-section {
+  padding: 4pt !important;
+}
+
+.copy-mode .prep-divider {
+  display: none !important;
+}
+
+.copy-mode .prep-no-data {
+  display: none !important;
+}
+
+.copy-mode .suitability-score-circle-wrapper {
+  display: none !important;
+}
+
+.copy-mode .btn-copy-html {
+  display: none !important;
 }
 
 /* ==========================================================================

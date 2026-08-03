@@ -985,18 +985,18 @@
           </svg>
           Job Details
         </button>
-        <button type="button" class="drawer-tab" id="tabSuitability" role="tab" aria-selected="false" aria-controls="sectionD_Suitability">
+        <button type="button" class="drawer-tab disabled" id="tabPreparation" role="tab" aria-selected="false" aria-controls="sectionD_Preparation" disabled="true">
           <svg aria-hidden="true" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="8" r="7" />
-            <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
           </svg>
-          Suitability
+          Preparation
         </button>
-        <button type="button" class="drawer-tab" id="tabInterview" role="tab" aria-selected="false" aria-controls="sectionE_JobInterview">
+        <button type="button" class="drawer-tab disabled" id="tabNotes" role="tab" aria-selected="false" aria-controls="sectionE_Notes" disabled="true">
           <svg aria-hidden="true" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
-          Interview
+          Notes
         </button>
       </div>
 
@@ -1083,57 +1083,70 @@
           </div>
         </div>
 
-        <!-- Section D: Job vs CV Suitability -->
-        <div class="drawer-tab-pane" id="sectionD_Suitability" role="tabpanel" aria-labelledby="tabSuitability">
-          <div class="info-group">
-            <div class="info-row-block" id="drawerSuitabilityScoreContainer">
-              <span class="info-label">Job Suitability Score</span>
-              <div class="suitability-score-circle-wrapper">
-                <div class="suitability-score-circle" id="suitabilityScoreCircle">
-                  <svg class="score-circle-svg" viewBox="0 0 100 100">
-                    <!-- Background track -->
-                    <circle class="score-circle-bg" cx="50" cy="50" r="40" />
-                    <!-- Active fill segment -->
-                    <circle class="score-circle-fill" id="scoreCircleFill" cx="50" cy="50" r="40" />
-                  </svg>
-                  <div class="score-circle-text">
-                    <span class="score-circle-value" id="drawerSuitabilityScore">-</span>
-                    <span class="score-circle-max">/ 5</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="info-row-block" id="sectionSuitabilityEval">
-              <span class="info-label">Job Suitability Evaluation</span>
-              <div class="suitability-box" id="drawerSuitabilityEval">-</div>
-            </div>
-          </div>
-        </div>
+        <!-- Section D: Preparation (Company Introduction + Job Suitability + Interview Preparation) -->
+        <div class="drawer-tab-pane" id="sectionD_Preparation" role="tabpanel" aria-labelledby="tabPreparation">
+          <div class="info-group preparation-card">
 
-        <!-- Section E: Job Interview -->
-        <div class="drawer-tab-pane" id="sectionE_JobInterview" role="tabpanel" aria-labelledby="tabInterview">
-          <div class="info-group interview-matrix-grid">
-            <div class="info-row-block" id="sectionInterviewCompany">
+            <!-- A) Company Introduction -->
+            <div class="prep-section" id="sectionPrepCompany">
               <div class="description-header">
-                <span class="info-label">Interview Company</span>
-                <button type="button" class="btn-copy-html" id="btnCopyInterviewCompany" title="Copy HTML">
+                <span class="info-label">Company Introduction</span>
+                <button type="button" class="btn-copy-html" id="btnCopyPreparation" title="Copy all Preparation content">
                   <svg class="icon-copy" width="14" height="14"><use href="#icon-copy"/></svg>
                   <svg class="icon-check" width="14" height="14" style="display: none;"><use href="#icon-check"/></svg>
                 </button>
               </div>
               <div class="text-block markdown-content" id="drawerInterviewCompany">-</div>
+              <p class="prep-no-data" id="prepNoDataCompany" style="display:none;">No data available for this section.</p>
             </div>
-            <div class="info-row-block" id="sectionInterviewPreparation">
-              <div class="description-header">
-                <span class="info-label">Interview Preparation</span>
-                <button type="button" class="btn-copy-html" id="btnCopyInterviewPreparation" title="Copy HTML">
-                  <svg class="icon-copy" width="14" height="14"><use href="#icon-copy"/></svg>
-                  <svg class="icon-check" width="14" height="14" style="display: none;"><use href="#icon-check"/></svg>
-                </button>
+
+            <div class="prep-divider"></div>
+
+            <!-- B) Job Suitability: Score + Evaluation -->
+            <div class="prep-section" id="sectionPrepSuitability">
+              <span class="info-label">Job Suitability</span>
+              <div class="prep-suitability-inner">
+                <!-- Score (top) -->
+                <div id="drawerSuitabilityScoreContainer">
+                  <div class="suitability-score-circle-wrapper">
+                    <div class="suitability-score-circle" id="suitabilityScoreCircle">
+                      <svg class="score-circle-svg" viewBox="0 0 100 100">
+                        <!-- Background track -->
+                        <circle class="score-circle-bg" cx="50" cy="50" r="40" />
+                        <!-- Active fill segment -->
+                        <circle class="score-circle-fill" id="scoreCircleFill" cx="50" cy="50" r="40" />
+                      </svg>
+                      <div class="score-circle-text">
+                        <span class="score-circle-value" id="drawerSuitabilityScore">-</span>
+                        <span class="score-circle-max">/ 5</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- Evaluation (bottom) -->
+                <div id="sectionSuitabilityEval">
+                  <div class="suitability-box" id="drawerSuitabilityEval">-</div>
+                </div>
               </div>
-              <div class="text-block markdown-content" id="drawerInterviewPreparation">-</div>
+              <p class="prep-no-data" id="prepNoDataSuitability" style="display:none;">No data available for this section.</p>
             </div>
-            <div class="info-row-block interview-notes-full" id="sectionInterviewNotes">
+
+            <div class="prep-divider"></div>
+
+            <!-- C) Interview Preparation -->
+            <div class="prep-section" id="sectionPrepInterview">
+              <span class="info-label">Interview Preparation</span>
+              <div class="text-block markdown-content" id="drawerInterviewPreparation">-</div>
+              <p class="prep-no-data" id="prepNoDataInterview" style="display:none;">No data available for this section.</p>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Section E: Notes -->
+        <div class="drawer-tab-pane" id="sectionE_Notes" role="tabpanel" aria-labelledby="tabNotes">
+          <div class="info-group">
+            <div class="info-row-block" id="sectionInterviewNotes">
               <div class="description-header">
                 <span class="info-label">Interview Notes</span>
                 <div class="action-buttons-group">

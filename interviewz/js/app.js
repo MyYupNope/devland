@@ -242,12 +242,9 @@ function initDomCache() {
   dom.topbarBrandLink = document.getElementById('topbarBrandLink');
   dom.landingTabContent = document.getElementById('landingTabContent');
 
-  dom.tabSuitability = document.getElementById('tabSuitability');
-  dom.scoreCircleFill = document.getElementById('scoreCircleFill');
-  dom.suitabilityScoreCircle = document.getElementById('suitabilityScoreCircle');
-  dom.tabInterview = document.getElementById('tabInterview');
-  dom.btnCopyInterviewCompany = document.getElementById('btnCopyInterviewCompany');
-  dom.btnCopyInterviewPreparation = document.getElementById('btnCopyInterviewPreparation');
+  dom.tabPreparation = document.getElementById('tabPreparation');
+  dom.tabNotes = document.getElementById('tabNotes');
+  dom.btnCopyPreparation = document.getElementById('btnCopyPreparation');
   dom.drawerInterviewNotes = document.getElementById('drawerInterviewNotes');
   dom.jobInterviewForm = document.getElementById('jobinterview');
   dom.btnSubmitInterviewNotes = document.getElementById('btnSubmitInterviewNotes');
@@ -285,19 +282,100 @@ if (document.readyState === 'loading') {
  */
 function copyElementHtml(button, targetElement) {
   if (!targetElement) return;
-  const html = targetElement.innerHTML;
-  const plainText = targetElement.innerText || targetElement.textContent || '';
-  
-  const htmlBlob = new Blob([html], { type: 'text/html' });
-  const textBlob = new Blob([plainText], { type: 'text/plain' });
-  
-  const clipboardItem = new ClipboardItem({
-    'text/html': htmlBlob,
-    'text/plain': textBlob
+
+  // Clone the element so we can manipulate it without affecting the live DOM
+  const clone = targetElement.cloneNode(true);
+
+  // --- Remove elements that shouldn't appear in Word paste ---
+  clone.querySelectorAll(
+    '.prep-divider, .prep-no-data, .btn-copy-html, .score-circle-svg, .info-label'
+  ).forEach(el => el.remove());
+
+  // Remove any element hidden via inline style
+  clone.querySelectorAll('*').forEach(el => {
+    const d = el.style.display;
+    if (d === 'none') el.remove();
   });
-  
-  navigator.clipboard.write([clipboardItem]).then(() => {
-    // Show success feedback
+
+  // --- Compact tables for Word ---
+  clone.querySelectorAll('.md-table, table').forEach(table => {
+    table.style.cssText = 'width:auto; border-collapse:collapse; font-size:10pt; border:1px solid #999; margin:4pt 0;';
+  });
+
+  clone.querySelectorAll('th, td').forEach(cell => {
+    cell.style.cssText = 'padding:1pt 4pt; font-size:10pt; border:1px solid #bbb; vertical-align:top;';
+  });
+
+  clone.querySelectorAll('th').forEach(th => {
+    th.style.fontWeight = '600';
+    th.style.backgroundColor = '#f0f0f0';
+  });
+
+  // --- Fix score circle: show score as bold text, remove SVG ---
+  clone.querySelectorAll('.suitability-score-circle-wrapper').forEach(wrapper => {
+    const scoreVal = wrapper.querySelector('.score-circle-value');
+    const scoreMax = wrapper.querySelector('.score-circle-max');
+    const text = (scoreVal ? scoreVal.textContent : '?') + ' ' + (scoreMax ? scoreMax.textContent : '/ 5');
+    const p = document.createElement('p');
+    p.style.cssText = 'font-size:16pt; font-weight:bold; margin:4pt 0;';
+    p.textContent = 'Score: ' + text.trim();
+    wrapper.replaceWith(p);
+  });
+
+  // --- Fix suitability evaluation grid for Word ---
+  clone.querySelectorAll('.suit-eval-grid').forEach(grid => {
+    grid.style.cssText = 'font-size:10pt; margin:4pt 0;';
+  });
+  clone.querySelectorAll('.suit-eval-section').forEach(section => {
+    section.style.cssText = 'padding:4pt 0; margin:2pt 0; border-bottom:1px solid #ddd;';
+  });
+  clone.querySelectorAll('.suit-eval-heading').forEach(heading => {
+    heading.style.cssText = 'font-weight:600; font-size:10pt; margin-bottom:2pt;';
+  });
+  clone.querySelectorAll('.suit-eval-text').forEach(txt => {
+    txt.style.cssText = 'font-size:10pt; margin:2pt 0;';
+  });
+  clone.querySelectorAll('.suit-eval-list').forEach(list => {
+    list.style.cssText = 'font-size:10pt; margin:2pt 0; padding-left:16pt;';
+  });
+
+  // --- Add section headings ---
+  const sections = [
+    { id: 'sectionPrepCompany', title: '*** Company Introduction ***' },
+    { id: 'sectionPrepSuitability', title: '*** Job suitability ***' },
+    { id: 'sectionPrepInterview', title: '*** Interview Preparation ***' }
+  ];
+  sections.forEach(({ id, title }) => {
+    const sec = clone.querySelector('#' + id);
+    if (sec) {
+      const h = document.createElement('p');
+      h.style.cssText = 'font-size:12pt; font-weight:bold; color:#111; margin:10pt 0 4pt 0;';
+      h.innerHTML = `<b>${title}</b>`;
+      sec.prepend(h);
+    }
+  });
+
+  // --- Append clone off-screen, select, copy, remove ---
+  clone.style.cssText = 'position:fixed; left:-9999px; top:0; opacity:0; pointer-events:none;';
+  document.body.appendChild(clone);
+
+  const selection = window.getSelection();
+  const range = document.createRange();
+  selection.removeAllRanges();
+  range.selectNodeContents(clone);
+  selection.addRange(range);
+
+  let copied = false;
+  try {
+    copied = document.execCommand('copy');
+  } catch (e) {
+    console.warn('[copyElementHtml] execCommand failed:', e);
+  }
+  selection.removeAllRanges();
+  document.body.removeChild(clone);
+
+  // --- UI feedback ---
+  const showFeedback = () => {
     const iconCopy = button.querySelector('.icon-copy');
     const iconCheck = button.querySelector('.icon-check');
     if (iconCopy && iconCheck) {
@@ -308,11 +386,25 @@ function copyElementHtml(button, targetElement) {
         iconCheck.style.display = 'none';
       }, 2000);
     }
-    showToast('Notes copied to clipboard as Rich Text.', 'success');
-  }).catch(err => {
-    console.error('Failed to copy html: ', err);
-    showToast('Failed to copy text. Please try manually selecting and copying.', 'error');
-  });
+    showToast('Content copied to clipboard with formatting.', 'success');
+  };
+
+  if (copied) {
+    showFeedback();
+  } else {
+    // Fallback: ClipboardItem with the cleaned HTML
+    const html = clone.innerHTML;
+    const plainText = targetElement.innerText || targetElement.textContent || '';
+    const htmlBlob = new Blob([html], { type: 'text/html' });
+    const textBlob = new Blob([plainText], { type: 'text/plain' });
+    navigator.clipboard.write([new ClipboardItem({
+      'text/html': htmlBlob,
+      'text/plain': textBlob
+    })]).then(showFeedback).catch(err => {
+      console.error('Failed to copy:', err);
+      showToast('Failed to copy. Please try manually selecting and copying.', 'error');
+    });
+  }
 }
 
 function setupEventListeners() {
@@ -506,19 +598,11 @@ function setupEventListeners() {
   // Initialize Kanban drag and drop event handlers ONCE
   setupKanbanDragAndDrop();
 
-  // Copy HTML buttons in Job Interview accordion
-  const btnCopyCompany = document.getElementById('btnCopyInterviewCompany');
-  if (btnCopyCompany) {
-    btnCopyCompany.addEventListener('click', () => {
-      const target = document.getElementById('drawerInterviewCompany');
-      copyElementHtml(btnCopyCompany, target);
-    });
-  }
-
-  const btnCopyPrep = document.getElementById('btnCopyInterviewPreparation');
+  // Copy all Preparation content button
+  const btnCopyPrep = document.getElementById('btnCopyPreparation');
   if (btnCopyPrep) {
     btnCopyPrep.addEventListener('click', () => {
-      const target = document.getElementById('drawerInterviewPreparation');
+      const target = document.querySelector('.preparation-card');
       copyElementHtml(btnCopyPrep, target);
     });
   }
@@ -1469,7 +1553,7 @@ function selectTab(tabId) {
 
   const btnSubmitNotes = document.getElementById('btnSubmitInterviewNotes');
   if (btnSubmitNotes) {
-    btnSubmitNotes.style.display = (tabId === 'tabInterview') ? '' : 'none';
+    btnSubmitNotes.style.display = (tabId === 'tabNotes') ? '' : 'none';
   }
 }
 
@@ -1632,54 +1716,98 @@ function openDetailsDrawer(app) {
     updateFollowUpLink();
   }
   
+  // Preparation tab: merge suitability + interview company/prep into one tab
   const score = (app['Job_Suitability'] || '').trim();
   const evaluation = (app['Job_Suitability_Evaluation'] || '').trim();
-  
-  const hasSuitability = !!(score || evaluation);
-  if (hasSuitability) {
-    if (dom.tabSuitability) {
-      dom.tabSuitability.classList.remove('disabled');
-      dom.tabSuitability.removeAttribute('disabled');
+  const interviewCompany = (app['Interview_Company'] || '').trim();
+  const interviewPrep = (app['Interview_Preparation'] || '').trim();
+
+  const hasPreparation = !!(score || evaluation || interviewCompany || interviewPrep);
+
+  if (hasPreparation) {
+    if (dom.tabPreparation) {
+      dom.tabPreparation.classList.remove('disabled');
+      dom.tabPreparation.removeAttribute('disabled');
     }
-    
-    if (score) {
-      dom.drawerSuitabilityScore.textContent = score;
-      const scoreNum = parseInt(score, 10);
-      const scoreClass = !isNaN(scoreNum) && scoreNum >= 1 && scoreNum <= 5 ? `score-${scoreNum}` : '';
-      
-      if (dom.suitabilityScoreCircle) {
-        dom.suitabilityScoreCircle.className = `suitability-score-circle ${scoreClass}`;
-      }
-      
-      if (dom.scoreCircleFill) {
-        const scorePercent = !isNaN(scoreNum) && scoreNum >= 1 && scoreNum <= 5 ? scoreNum / 5 : 0;
-        dom.scoreCircleFill.style.strokeDashoffset = 251.2 * (1 - scorePercent);
-      }
-      
-      dom.drawerSuitabilityScoreContainer.style.display = '';
+    if (dom.btnCopyPreparation) dom.btnCopyPreparation.style.display = '';
+
+    // --- A) Company Introduction ---
+    const companyEl = document.getElementById('drawerInterviewCompany');
+    const companyNoData = document.getElementById('prepNoDataCompany');
+    if (interviewCompany) {
+      if (companyEl) companyEl.innerHTML = parseMarkdown(interviewCompany);
+      if (companyEl) companyEl.style.display = '';
+      if (companyNoData) companyNoData.style.display = 'none';
     } else {
-      dom.drawerSuitabilityScoreContainer.style.display = 'none';
-      if (dom.scoreCircleFill) dom.scoreCircleFill.style.strokeDashoffset = 251.2;
-      if (dom.suitabilityScoreCircle) dom.suitabilityScoreCircle.className = 'suitability-score-circle';
+      if (companyEl) companyEl.style.display = 'none';
+      if (companyNoData) companyNoData.style.display = '';
     }
 
-    if (evaluation) {
-      dom.drawerSuitabilityEval.innerHTML = renderSuitabilityEvaluation(evaluation);
-      dom.sectionSuitabilityEval.classList.remove('hidden');
+    // --- B) Job Suitability: Score + Evaluation ---
+    const suitabilityNoData = document.getElementById('prepNoDataSuitability');
+    const scoreCircleFill = document.getElementById('scoreCircleFill');
+    const suitabilityScoreCircle = document.getElementById('suitabilityScoreCircle');
+
+    if (score || evaluation) {
+      if (suitabilityNoData) suitabilityNoData.style.display = 'none';
+
+      if (score) {
+        if (dom.drawerSuitabilityScore) dom.drawerSuitabilityScore.textContent = score;
+        const scoreNum = parseInt(score, 10);
+        const scoreClass = !isNaN(scoreNum) && scoreNum >= 1 && scoreNum <= 5 ? `score-${scoreNum}` : '';
+        if (suitabilityScoreCircle) suitabilityScoreCircle.className = `suitability-score-circle ${scoreClass}`;
+        if (scoreCircleFill) {
+          const scorePercent = !isNaN(scoreNum) && scoreNum >= 1 && scoreNum <= 5 ? scoreNum / 5 : 0;
+          scoreCircleFill.style.strokeDashoffset = 251.2 * (1 - scorePercent);
+        }
+        if (dom.drawerSuitabilityScoreContainer) dom.drawerSuitabilityScoreContainer.style.display = '';
+      } else {
+        if (dom.drawerSuitabilityScoreContainer) dom.drawerSuitabilityScoreContainer.style.display = 'none';
+        if (scoreCircleFill) scoreCircleFill.style.strokeDashoffset = 251.2;
+        if (suitabilityScoreCircle) suitabilityScoreCircle.className = 'suitability-score-circle';
+      }
+
+      if (evaluation) {
+        if (dom.drawerSuitabilityEval) dom.drawerSuitabilityEval.innerHTML = renderSuitabilityEvaluation(evaluation);
+        if (dom.sectionSuitabilityEval) dom.sectionSuitabilityEval.classList.remove('hidden');
+      } else {
+        if (dom.sectionSuitabilityEval) dom.sectionSuitabilityEval.classList.add('hidden');
+      }
     } else {
-      dom.sectionSuitabilityEval.classList.add('hidden');
+      if (dom.drawerSuitabilityScoreContainer) dom.drawerSuitabilityScoreContainer.style.display = 'none';
+      if (dom.sectionSuitabilityEval) dom.sectionSuitabilityEval.classList.add('hidden');
+      if (scoreCircleFill) scoreCircleFill.style.strokeDashoffset = 251.2;
+      if (suitabilityScoreCircle) suitabilityScoreCircle.className = 'suitability-score-circle';
+      if (suitabilityNoData) suitabilityNoData.style.display = '';
+    }
+
+    // --- C) Interview Preparation ---
+    const prepEl = document.getElementById('drawerInterviewPreparation');
+    const prepNoData = document.getElementById('prepNoDataInterview');
+    if (interviewPrep) {
+      if (prepEl) prepEl.innerHTML = parseMarkdown(interviewPrep);
+      if (prepEl) prepEl.style.display = '';
+      if (prepNoData) prepNoData.style.display = 'none';
+    } else {
+      if (prepEl) prepEl.style.display = 'none';
+      if (prepNoData) prepNoData.style.display = '';
     }
   } else {
-    if (dom.tabSuitability) {
-      dom.tabSuitability.classList.add('disabled');
-      dom.tabSuitability.setAttribute('disabled', 'true');
+    if (dom.tabPreparation) {
+      dom.tabPreparation.classList.add('disabled');
+      dom.tabPreparation.setAttribute('disabled', 'true');
     }
+    if (dom.btnCopyPreparation) dom.btnCopyPreparation.style.display = 'none';
   }
 
-  const comments = (app['Comments'] || '').trim();
-  if (dom.drawerCommentsTextarea) {
-    dom.drawerCommentsTextarea.value = comments;
+  // Notes tab: always available (enabled) for all applications
+  const interviewNotes = (app['Interview_Notes'] || '').trim();
+  if (dom.tabNotes) {
+    dom.tabNotes.classList.remove('disabled');
+    dom.tabNotes.removeAttribute('disabled');
   }
+  if (dom.drawerInterviewNotes) dom.drawerInterviewNotes.value = interviewNotes;
+  setInterviewLoadingState(false);
 
   if (dom.drawerStatusSelect) {
     const options = Array.from(dom.drawerStatusSelect.options);
@@ -1712,30 +1840,9 @@ function openDetailsDrawer(app) {
     }
   }
 
-  const interviewCompany = (app['Interview_Company'] || '').trim();
-  const interviewPrep = (app['Interview_Preparation'] || '').trim();
-
-  const hasInterview = !!(interviewCompany || interviewPrep);
-  if (hasInterview) {
-    if (dom.tabInterview) {
-      dom.tabInterview.classList.remove('disabled');
-      dom.tabInterview.removeAttribute('disabled');
-    }
-
-    dom.drawerInterviewCompany.innerHTML = interviewCompany ? parseMarkdown(interviewCompany) : '-';
-    if (dom.btnCopyInterviewCompany) dom.btnCopyInterviewCompany.style.display = interviewCompany ? '' : 'none';
-
-    dom.drawerInterviewPreparation.innerHTML = interviewPrep ? parseMarkdown(interviewPrep) : '-';
-    if (dom.btnCopyInterviewPreparation) dom.btnCopyInterviewPreparation.style.display = interviewPrep ? '' : 'none';
-
-    if (dom.drawerInterviewNotes) dom.drawerInterviewNotes.value = (app['Interview_Notes'] || '').trim();
-
-    setInterviewLoadingState(false);
-  } else {
-    if (dom.tabInterview) {
-      dom.tabInterview.classList.add('disabled');
-      dom.tabInterview.setAttribute('disabled', 'true');
-    }
+  const comments = (app['Comments'] || '').trim();
+  if (dom.drawerCommentsTextarea) {
+    dom.drawerCommentsTextarea.value = comments;
   }
 
   selectTab('tabOverview');
