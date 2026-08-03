@@ -32,24 +32,26 @@ export function parseMarkdown(text) {
   // Bold: **text**
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   
-  // Italics: *text*
+  // Italics: *text* (but not already-consumed bold markers)
   html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
   
-  // Split into trimmed, non-empty lines
-  const lines = html.split('\n')
-    .map(line => line.trim())
-    .filter(line => line !== '');
-  let inList = false;
+  // Split into lines, keep empty-line info but filter blank lines
+  const rawLines = html.split('\n');
+  const lines = rawLines.filter(line => line.trim() !== '');
+
   let result = [];
+  let listStack = []; // stack of indent levels for nested lists
   
   function isSeparatorRow(line) {
-    if (!line.startsWith('|') || !line.endsWith('|') || line.length <= 2) return false;
-    const inner = line.slice(1, -1);
+    const trimmed = line.trim();
+    if (!trimmed.startsWith('|') || !trimmed.endsWith('|') || trimmed.length <= 2) return false;
+    const inner = trimmed.slice(1, -1);
     return /^[:\-\s\|]+$/.test(inner) && inner.includes('-');
   }
   
   function parseTableCells(line) {
-    return line.slice(1, -1).split('|').map(cell => cell.trim());
+    const trimmed = line.trim();
+    return trimmed.slice(1, -1).split('|').map(cell => cell.trim());
   }
   
   function parseAlignments(line) {
@@ -83,27 +85,41 @@ export function parseMarkdown(text) {
     tableHtml += '</tbody></table>';
     return tableHtml;
   }
+
+  function closeListsToDepth(targetDepth) {
+    while (listStack.length > targetDepth) {
+      result.push('</li></ul>');
+      listStack.pop();
+    }
+  }
+
+  function closeAllLists() {
+    closeListsToDepth(0);
+  }
+
+  // Detect list line: returns { indent, content } or null
+  function parseListLine(line) {
+    const match = line.match(/^(\s*)([-*])\s+(.*)/);
+    if (!match) return null;
+    return { indent: match[1].length, content: match[3].trim() };
+  }
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+    const trimmedLine = line.trim();
     
     // Check if it's a table
-    if (line.startsWith('|') && line.endsWith('|')) {
+    if (trimmedLine.startsWith('|') && trimmedLine.endsWith('|')) {
       if (i + 1 < lines.length && isSeparatorRow(lines[i + 1])) {
-        if (inList) {
-          result.push('</ul>');
-          inList = false;
-        }
+        closeAllLists();
         
         const headers = parseTableCells(line);
         const alignments = parseAlignments(lines[i + 1]);
         const rows = [];
         
         let j = i + 2;
-        while (j < lines.length && lines[j].startsWith('|') && lines[j].endsWith('|')) {
-          if (isSeparatorRow(lines[j])) {
-            break;
-          }
+        while (j < lines.length && lines[j].trim().startsWith('|') && lines[j].trim().endsWith('|')) {
+          if (isSeparatorRow(lines[j])) break;
           rows.push(parseTableCells(lines[j]));
           j++;
         }
@@ -114,29 +130,45 @@ export function parseMarkdown(text) {
       }
     }
     
-    if (line.startsWith('- ') || line.startsWith('* ')) {
-      if (!inList) {
+    const listItem = parseListLine(line);
+    if (listItem) {
+      if (listStack.length === 0) {
+        // Start first list
         result.push('<ul>');
-        inList = true;
-      }
-      const content = line.substring(2).trim();
-      result.push(`<li>${content}</li>`);
-    } else {
-      if (inList) {
-        result.push('</ul>');
-        inList = false;
-      }
-      if (line.startsWith('<h') || line.startsWith('<table')) {
-        result.push(line);
+        listStack.push(listItem.indent);
+        result.push(`<li>${listItem.content}`);
       } else {
-        result.push(`<p>${line}</p>`);
+        const currentIndent = listStack[listStack.length - 1];
+        if (listItem.indent > currentIndent) {
+          // Deeper: open nested list (don't close previous <li>)
+          result.push('<ul>');
+          listStack.push(listItem.indent);
+          result.push(`<li>${listItem.content}`);
+        } else if (listItem.indent < currentIndent) {
+          // Shallower: close nested lists back to matching depth
+          while (listStack.length > 1 && listStack[listStack.length - 1] > listItem.indent) {
+            result.push('</li></ul>');
+            listStack.pop();
+          }
+          result.push('</li>');
+          result.push(`<li>${listItem.content}`);
+        } else {
+          // Same level
+          result.push('</li>');
+          result.push(`<li>${listItem.content}`);
+        }
+      }
+    } else {
+      closeAllLists();
+      if (trimmedLine.startsWith('<h') || trimmedLine.startsWith('<table')) {
+        result.push(trimmedLine);
+      } else {
+        result.push(`<p>${trimmedLine}</p>`);
       }
     }
   }
   
-  if (inList) {
-    result.push('</ul>');
-  }
+  closeAllLists();
   
   const parsedHtml = sanitizeHtml(result.join('\n'));
   markdownCache.set(text, parsedHtml);

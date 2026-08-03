@@ -1984,6 +1984,63 @@ a.topbar-nav-btn:hover svg {
 .suit-eval-feedback .suit-eval-heading { color: #6a1b9a; }
 .suit-eval-icon--feedback { fill: #7b1fa2; }
 
+/* ---- Dark-mode overrides for suitability evaluation grid ---- */
+.theme-dark .suitability-box {
+  background: #1e1e1e;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.theme-dark .suit-eval-section {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.theme-dark .suit-eval-verdict {
+  background: rgba(100, 165, 255, 0.15);
+  border-left-color: #6ab0ff;
+}
+
+.theme-dark .suit-eval-strengths {
+  background: rgba(72, 199, 110, 0.15);
+  border-left-color: #48c76e;
+}
+
+.theme-dark .suit-eval-concerns {
+  background: rgba(255, 167, 38, 0.15);
+  border-left-color: #ffa726;
+}
+
+.theme-dark .suit-eval-feedback {
+  background: rgba(186, 104, 255, 0.15);
+  border-left-color: #ba68ff;
+}
+
+/* Heading text — bright enough to read on dark cards */
+.theme-dark .suit-eval-verdict .suit-eval-heading   { color: #82b5ff; }
+.theme-dark .suit-eval-strengths .suit-eval-heading  { color: #66e085; }
+.theme-dark .suit-eval-concerns .suit-eval-heading   { color: #ffb74d; }
+.theme-dark .suit-eval-feedback .suit-eval-heading   { color: #ce93d8; }
+
+/* Heading icons */
+.theme-dark .suit-eval-icon--verdict  { fill: #82b5ff; }
+.theme-dark .suit-eval-icon--strength { fill: #66e085; }
+.theme-dark .suit-eval-icon--concern  { fill: #ffb74d; }
+.theme-dark .suit-eval-icon--feedback { fill: #ce93d8; }
+
+/* List item icons */
+.theme-dark .suit-eval-li-icon--strength { fill: #66e085; }
+.theme-dark .suit-eval-li-icon--concern  { fill: #ffb74d; }
+.theme-dark .suit-eval-li-icon--feedback { fill: #ce93d8; }
+
+/* Body text — ensure readable on dark card backgrounds */
+.theme-dark .suit-eval-text,
+.theme-dark .suit-eval-list li {
+  color: #e0e0e0;
+}
+
+/* Hover glow */
+.theme-dark .suit-eval-section:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
 
 /* Details Info Groupings (Cards inside Darker Grey Drawer) */
 .info-group {
@@ -2732,6 +2789,35 @@ a.topbar-nav-btn:hover svg {
   padding: 0;
   color: var(--color-text-secondary);
   list-style-position: outside;
+}
+
+/* Nested list differentiation */
+.text-block.markdown-content ul {
+  list-style-type: disc;
+}
+
+.text-block.markdown-content ul ul {
+  list-style-type: circle;
+  margin: 0.2rem 0 0.2rem 1.25rem;
+  padding-left: 0.75rem;
+}
+
+.text-block.markdown-content ul ul ul {
+  list-style-type: square;
+}
+
+.text-block.markdown-content ul ul ul ul {
+  list-style-type: '– ';
+}
+
+/* Slightly subtler text for deeper nesting */
+.text-block.markdown-content ul ul li {
+  font-size: 0.93em;
+}
+
+.text-block.markdown-content ul ul ul li {
+  font-size: 0.90em;
+  opacity: 0.92;
 }
 
 .text-block.markdown-content strong {
