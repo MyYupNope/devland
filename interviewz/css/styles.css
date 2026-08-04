@@ -4340,6 +4340,40 @@ a.topbar-nav-btn:hover svg {
   transform: none;
 }
 
+/* Drawer Theme Toggle Button Styles */
+.btn-drawer-theme-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-drawer-theme-toggle .drawer-theme-icon-sun,
+.btn-drawer-theme-toggle .drawer-theme-icon-moon {
+  position: absolute;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.btn-drawer-theme-toggle .drawer-theme-icon-sun {
+  opacity: 1;
+  transform: rotate(0) scale(1);
+}
+
+.btn-drawer-theme-toggle .drawer-theme-icon-moon {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.5);
+}
+
+.theme-dark .btn-drawer-theme-toggle .drawer-theme-icon-sun {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.5);
+}
+
+.theme-dark .btn-drawer-theme-toggle .drawer-theme-icon-moon {
+  opacity: 1;
+  transform: rotate(0) scale(1);
+}
+
 /* Mobile responsive styling for topbar sync */
 @media (max-width: 768px) {
   .topbar-sync .sync-status {

@@ -202,6 +202,7 @@ function initDomCache() {
   dom.drawerOverlay = document.getElementById('drawerOverlay');
   dom.detailsDrawer = document.getElementById('detailsDrawer');
   dom.btnCloseDrawer = document.getElementById('btnCloseDrawer');
+  dom.btnDrawerThemeToggle = document.getElementById('btnDrawerThemeToggle');
   dom.drawerJobTitleDisplay = document.getElementById('drawerJobTitleDisplay');
   dom.drawerCompanyNameDisplay = document.getElementById('drawerCompanyNameDisplay');
   dom.drawerJobTitle = document.getElementById('drawerJobTitle');
@@ -445,6 +446,10 @@ function setupEventListeners() {
 
   if (dom.fabThemeToggle) {
     dom.fabThemeToggle.addEventListener('click', toggleTheme);
+  }
+
+  if (dom.btnDrawerThemeToggle) {
+    dom.btnDrawerThemeToggle.addEventListener('click', toggleTheme);
   }
 
   // Dashboard Range Switch Toggle Button
