@@ -6,12 +6,64 @@ let randomDir = null;
 let randomSpeed = null;
 
 self.onmessage = function (e) {
-    const { type, data } = e.data;
+    const { type, data, seq } = e.data;
 
     if (type === 'init') {
         posHome = data.posHome;
         randomDir = data.randomDir;
         randomSpeed = data.randomSpeed;
+        return;
+    }
+
+    if (type === 'randomize') {
+        // Randomize explosion trajectory vectors/speeds off the main thread, so the
+        // per-blast 30k-particle trig loop never causes a main-thread hitch.
+        const { explosionSpeedMin, explosionSpeedRange } = data;
+        if (!randomDir || !randomSpeed) return;
+        const count = randomSpeed.length;
+
+        // 0: Spherical Chaos, 1: Vortex Swirl, 2: Directional Blast, 3: Cluster Burst
+        const style = Math.floor(Math.random() * 4);
+        const biasX = (Math.random() - 0.5) * 2;
+        const biasY = (Math.random() - 0.5) * 2;
+        const biasZ = (Math.random() - 0.5) * 2;
+        const swirlPower = (Math.random() - 0.5) * 2.5;
+
+        for (let i = 0; i < count; i++) {
+            const ix = i * 3, iy = ix + 1, iz = ix + 2;
+
+            let theta = Math.random() * Math.PI * 2;
+            let phi   = Math.acos((Math.random() * 2) - 1);
+
+            let rx = Math.sin(phi) * Math.cos(theta);
+            let ry = Math.sin(phi) * Math.sin(theta);
+            let rz = Math.cos(phi);
+
+            if (style === 1) {
+                const currentAngle = Math.atan2(ry, rx) + swirlPower;
+                const radius = Math.sqrt(rx * rx + ry * ry);
+                rx = Math.cos(currentAngle) * radius;
+                ry = Math.sin(currentAngle) * radius;
+            } else if (style === 2) {
+                rx = rx * 0.35 + biasX * 0.65;
+                ry = ry * 0.35 + biasY * 0.65;
+                rz = rz * 0.35 + biasZ * 0.65;
+                const len = Math.sqrt(rx * rx + ry * ry + rz * rz) || 1;
+                rx /= len; ry /= len; rz /= len;
+            } else if (style === 3) {
+                const cluster = 0.5 + 0.5 * Math.sin(i * 0.08);
+                randomSpeed[i] = (explosionSpeedMin + Math.random() * explosionSpeedRange) * (0.4 + cluster);
+            }
+
+            if (style !== 3) {
+                const speedVar = 0.75 + Math.random() * 0.55;
+                randomSpeed[i] = (explosionSpeedMin + Math.random() * explosionSpeedRange) * speedVar;
+            }
+
+            randomDir[ix] = rx;
+            randomDir[iy] = ry;
+            randomDir[iz] = rz;
+        }
         return;
     }
 
@@ -37,7 +89,7 @@ self.onmessage = function (e) {
 
         if (!posHome) {
             // Safe fallback if update is sent before init completes
-            self.postMessage({ type: 'update', posLive, springDisp, springVel });
+            self.postMessage({ type: 'update', seq, posLive, springDisp, springVel }, [posLive.buffer, springDisp.buffer, springVel.buffer]);
             return;
         }
 
@@ -112,6 +164,7 @@ self.onmessage = function (e) {
         // Return updated buffers to the main thread (zero-copy transfer)
         self.postMessage({
             type: 'update',
+            seq,
             posLive,
             springDisp,
             springVel

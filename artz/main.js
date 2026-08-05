@@ -8,6 +8,7 @@ import {
     BufferAttribute,
     ShaderMaterial,
     AdditiveBlending,
+    DynamicDrawUsage,
     Vector3,
     Vector2,
     Matrix4,
@@ -212,7 +213,12 @@ const fragmentShader = `
 varying vec3 vColor;
 
 void main() {
-    gl_FragColor = vec4(vColor, 0.9);
+    // Soft circular falloff so points look smooth without MSAA (antialias: false).
+    vec2 cxy = 2.0 * gl_PointCoord - 1.0;
+    float r = dot(cxy, cxy);
+    if (r > 1.0) discard;
+    float alpha = 0.9 * (1.0 - smoothstep(0.0, 1.0, r));
+    gl_FragColor = vec4(vColor, alpha);
 }
 `;
 
@@ -262,13 +268,15 @@ const render = {
 // Physics state
 const physics = {
     posHome: null,      // Rest positions
-    posLive: null,      // Live geometry buffer
+    posLive: null,      // Resident geometry buffer (never transferred)
     springDisp: null,   // Spring displacement
     springVel: null,    // Spring velocity
     randomDir: null,    // Explosion direction per particle
     randomSpeed: null,  // Explosion speed per particle
+    slots: [],          // Double-buffered working sets transferred to the worker
+    sendQueue: [],      // FIFO of slots currently in flight at the worker
+    seq: 0,             // Monotonic token echoed by the worker to pair replies
     explosionStartTime: -1,
-    isWorkerBusy: false,
 };
 
 // Interaction / UI state
@@ -287,6 +295,7 @@ const interaction = {
     isDragging: false,
     prevMouseX: 0,
     prevMouseY: 0,
+    pendingPointer: null, // Coalesced latest pointer coords, consumed once per frame
 };
 
 // Shader uniforms
@@ -330,6 +339,19 @@ function announceToScreenReader(message) {
 // Audio Synthesis (Web Audio API)
 // ─────────────────────────────────────────────
 let audioCtx = null;
+// Cached broadband noise buffer shared by every explosion's body/crackle layers.
+let noiseBuffer = null;
+function createNoiseBuffer(ctx) {
+    if (noiseBuffer) return noiseBuffer;
+    const length = ctx.sampleRate * 2;
+    noiseBuffer = ctx.createBuffer(1, length, ctx.sampleRate);
+    const data = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < length; i++) {
+        data[i] = Math.random() * 2 - 1;
+    }
+    return noiseBuffer;
+}
+
 function playExplosionSound() {
     try {
         if (!audioCtx) {
@@ -339,54 +361,108 @@ function playExplosionSound() {
             audioCtx.resume();
         }
 
-        const now = audioCtx.currentTime;
+        const now  = audioCtx.currentTime;
+        const dur  = state.soundDuration * (0.85 + Math.random() * 0.3);
+        const pitch = state.soundPitch * (0.85 + Math.random() * 0.3);
+        const type = state.soundType;
 
-        // Base explosion bass boom
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        const filter = audioCtx.createBiquadFilter();
+        // Sawtooth presets behave as bigger/harsher booms; sine as deep & clean.
+        const heavy = type === 'sawtooth';
 
-        const pitchJitter = state.soundPitch * (0.85 + Math.random() * 0.3);
-        const durJitter = state.soundDuration * (0.85 + Math.random() * 0.3);
+        // Master stage: everything funnels through one gain with a short attack so
+        // the blast starts punchy but never clicks, and decays to a clean stop.
+        const master = audioCtx.createGain();
+        master.gain.setValueAtTime(0.0001, now);
+        master.gain.exponentialRampToValueAtTime(0.9, now + 0.014);
+        master.gain.setValueAtTime(0.9, now + dur * 0.45);
+        master.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+        master.connect(audioCtx.destination);
 
-        osc.type = state.soundType;
-        osc.frequency.setValueAtTime(pitchJitter, now);
-        osc.frequency.exponentialRampToValueAtTime(30, now + durJitter * 0.8);
+        // Low-end hygiene: trim subsonic rumble so the thump stays tight.
+        const lowCut = audioCtx.createBiquadFilter();
+        lowCut.type = 'highpass';
+        lowCut.frequency.value = 20;
+        lowCut.connect(master);
 
-        // Adjust lowpass frequency sweeps depending on wave type (sawtooth gets higher sweeps)
-        const lowpassFreq = state.soundType === 'sawtooth' ? 1200 : 700;
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(lowpassFreq, now);
-        filter.frequency.exponentialRampToValueAtTime(80, now + durJitter * 0.9);
+        const toDisconnect = [master, lowCut];
 
-        // Scale gain slightly lower for harsh sawtooth presets
-        const soundGain = state.soundType === 'sawtooth' ? 0.22 : 0.4;
-        gain.gain.setValueAtTime(soundGain, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + durJitter);
+        // ── 1) Sub thump: the low "boom" that gives the blast weight. ──────────────
+        const subFreq = Math.max(26, pitch * 0.5);
+        const thump = audioCtx.createOscillator();
+        const thumpGain = audioCtx.createGain();
+        thump.type = 'sine';
+        thump.frequency.setValueAtTime(subFreq * 2.4, now);
+        thump.frequency.exponentialRampToValueAtTime(subFreq, now + 0.18);
+        thumpGain.gain.setValueAtTime(0.95, now);
+        thumpGain.gain.exponentialRampToValueAtTime(0.0001, now + Math.min(0.4, dur * 0.55));
+        thump.connect(thumpGain);
+        thumpGain.connect(lowCut);
+        thump.start(now);
+        thump.stop(now + 0.45);
+        toDisconnect.push(thump, thumpGain);
 
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(audioCtx.destination);
+        // ── 2) Body: the broadband rumble = noise through a sweeping lowpass. ─────
+        const body = audioCtx.createBufferSource();
+        body.buffer = createNoiseBuffer(audioCtx);
+        body.loop = true;
+        const bodyFilt = audioCtx.createBiquadFilter();
+        bodyFilt.type = 'lowpass';
+        bodyFilt.frequency.setValueAtTime(heavy ? pitch * 4.5 : pitch * 2.8, now);
+        bodyFilt.frequency.exponentialRampToValueAtTime(Math.max(45, pitch * 0.5), now + dur);
+        bodyFilt.Q.value = 0.8;
+        const bodyGain = audioCtx.createGain();
+        const bodyLevel = heavy ? 0.6 : type === 'sine' ? 0.46 : 0.54;
+        bodyGain.gain.setValueAtTime(0.0001, now);
+        bodyGain.gain.exponentialRampToValueAtTime(bodyLevel, now + 0.025);
+        bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+        body.connect(bodyFilt);
+        bodyFilt.connect(bodyGain);
+        bodyGain.connect(lowCut);
+        body.start(now);
+        body.stop(now + dur + 0.06);
+        toDisconnect.push(body, bodyFilt, bodyGain);
 
-        osc.start(now);
-        osc.stop(now + durJitter);
+        // ── 3) Transient tone: a fast pitch-swept sine that punches the leading edge.
+        const tone = audioCtx.createOscillator();
+        const toneFilter = audioCtx.createBiquadFilter();
+        const toneGain = audioCtx.createGain();
+        tone.type = 'sine';
+        tone.frequency.setValueAtTime(heavy ? pitch * 6 : pitch * 4, now);
+        tone.frequency.exponentialRampToValueAtTime(pitch * 0.9, now + 0.12);
+        toneFilter.type = 'lowpass';
+        toneFilter.frequency.value = heavy ? 3000 : 2200;
+        toneGain.gain.setValueAtTime(0.28, now);
+        toneGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+        tone.connect(toneFilter);
+        toneFilter.connect(toneGain);
+        toneGain.connect(lowCut);
+        tone.start(now);
+        tone.stop(now + 0.2);
+        toDisconnect.push(tone, toneFilter, toneGain);
 
-        // Crackle / high-frequency burst
-        const osc2 = audioCtx.createOscillator();
-        const gain2 = audioCtx.createGain();
+        // ── 4) Crackle: a short high-passed noise burst for the snapping tail. ────
+        const crackle = audioCtx.createBufferSource();
+        crackle.buffer = createNoiseBuffer(audioCtx);
+        crackle.loop = true;
+        const crackFilt = audioCtx.createBiquadFilter();
+        crackFilt.type = 'highpass';
+        crackFilt.frequency.value = heavy ? 2600 : 1800;
+        const crackGain = audioCtx.createGain();
+        crackGain.gain.setValueAtTime(0.15, now);
+        crackGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+        crackle.connect(crackFilt);
+        crackFilt.connect(crackGain);
+        crackGain.connect(master);
+        crackle.start(now);
+        crackle.stop(now + 0.22);
+        toDisconnect.push(crackle, crackFilt, crackGain);
 
-        osc2.type = 'triangle';
-        osc2.frequency.setValueAtTime(pitchJitter * 2, now);
-        osc2.frequency.exponentialRampToValueAtTime(90, now + 0.35);
-
-        gain2.gain.setValueAtTime(0.12, now);
-        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-
-        osc2.connect(gain2);
-        gain2.connect(audioCtx.destination);
-
-        osc2.start(now);
-        osc2.stop(now + 0.4);
+        // Release all nodes once the explosion has fully decayed.
+        setTimeout(() => {
+            for (const node of toDisconnect) {
+                try { node.disconnect(); } catch (_) { /* already ended */ }
+            }
+        }, (dur + 0.15) * 1000);
 
     } catch (err) {
         console.warn('Audio synthesis initialized with error:', err);
@@ -534,13 +610,8 @@ async function setupParticles(text, shouldScatter = false) {
     physics.randomDir  = new Float32Array(finalCount * 3);
     physics.randomSpeed = new Float32Array(finalCount);
 
-    // Worker working set ("W"): these buffers are transferred to the physics worker
-    // every frame. They are kept SEPARATE from the resident geometry buffers above,
-    // because transferring detaches the buffer and would otherwise leave the
-    // geometry's position attribute empty/detached during rendering (=> NaN radius).
-    physics.posLiveW    = new Float32Array(finalCount * 3);
-    physics.springDispW = new Float32Array(finalCount * 3);
-    physics.springVelW  = new Float32Array(finalCount * 3);
+    // Build fresh double-buffered worker working sets below (after resident buffers
+    // are populated), since any prior in-flight slots have been transferred away.
 
     for (let i = 0; i < filteredPoints.length; i++) {
         const p = filteredPoints[i];
@@ -580,13 +651,31 @@ async function setupParticles(text, shouldScatter = false) {
         }
     }
 
-    // Copy the freshly initialized resident buffers into the worker working set.
-    physics.posLiveW.set(physics.posLive);
-    physics.springDispW.set(physics.springDisp);
-    physics.springVelW.set(physics.springVel);
+    // Double-buffered worker working sets ("slots"): these buffers are transferred to
+    // the physics worker. They are kept SEPARATE from the resident geometry buffers
+    // above, because transferring detaches the buffer and would otherwise leave the
+    // geometry's position attribute empty/detached during rendering (=> NaN radius).
+    // Two slots allow the worker to keep computing while the main thread renders the
+    // most recent completed result, so a slow worker no longer freezes the simulation.
+    physics.slots = [];
+    physics.sendQueue = [];
+    for (let s = 0; s < 2; s++) {
+        const slot = {
+            posLive: new Float32Array(finalCount * 3),
+            springDisp: new Float32Array(finalCount * 3),
+            springVel: new Float32Array(finalCount * 3),
+            inFlight: false
+        };
+        slot.posLive.set(physics.posLive);
+        slot.springDisp.set(physics.springDisp);
+        slot.springVel.set(physics.springVel);
+        physics.slots.push(slot);
+    }
 
     const geo = new BufferGeometry();
-    geo.setAttribute('position', new BufferAttribute(physics.posLive, 3));
+    const posAttr = new BufferAttribute(physics.posLive, 3);
+    posAttr.setUsage(DynamicDrawUsage);
+    geo.setAttribute('position', posAttr);
 
     const mat = new ShaderMaterial({
         uniforms,
@@ -610,7 +699,6 @@ async function setupParticles(text, shouldScatter = false) {
                 randomSpeed: physics.randomSpeed
             }
         });
-        physics.isWorkerBusy = false;
     }
 }
 
@@ -689,24 +777,23 @@ function randomizeExplosionVectors() {
 function triggerExplosion() {
     if (physics.explosionStartTime >= 0) return;
 
-    // Re-randomize particle trajectory vectors and speeds per blast
-    randomizeExplosionVectors();
-
     // Randomize active timing and distance multipliers per blast
     state.activeMaxDist = state.explosionMaxDistMultiplier * (0.8 + Math.random() * 0.4);
     state.activeExpansionDuration = state.expansionDuration * (0.85 + Math.random() * 0.3);
     state.activeContractionDuration = state.contractionDuration * (0.85 + Math.random() * 0.3);
 
-    // Sync updated directions and speeds to physics worker
     if (physicsWorker) {
+        // Re-randomize particle trajectory vectors/speeds inside the worker, so the
+        // 30k-particle trig loop never hitches the main thread at blast time.
         physicsWorker.postMessage({
-            type: 'init',
+            type: 'randomize',
             data: {
-                posHome: physics.posHome,
-                randomDir: physics.randomDir,
-                randomSpeed: physics.randomSpeed
+                explosionSpeedMin: CONFIG.explosionSpeedMin,
+                explosionSpeedRange: CONFIG.explosionSpeedRange
             }
         });
+    } else {
+        randomizeExplosionVectors();
     }
 
     physics.explosionStartTime = render.clock.getElapsedTime();
@@ -1051,6 +1138,24 @@ function animate() {
         return;
     }
 
+    // Consume the coalesced pointer (once per frame) — unproject + drag math run here.
+    if (interaction.pendingPointer) {
+        const p = interaction.pendingPointer;
+        updateMouse(p.clientX, p.clientY);
+        if (interaction.isDragging && p.pointerType === 'mouse') {
+            const dx = p.clientX - interaction.prevMouseX;
+            const dy = p.clientY - interaction.prevMouseY;
+            if (render.particles) {
+                render.particles.rotation.y += dx * 0.005;
+                render.particles.rotation.x += dy * 0.005;
+            }
+            interaction.prevMouseX = p.clientX;
+            interaction.prevMouseY = p.clientY;
+            interaction.lastGestureEndTime = performance.now();
+        }
+        interaction.pendingPointer = null;
+    }
+
     // Transform mouse coordinate system to local space
     invMatrix.copy(particles.matrixWorld).invert();
     interaction.mouseLocal.copy(interaction.mouseWorld).applyMatrix4(invMatrix);
@@ -1105,16 +1210,25 @@ function animate() {
         render.particles.frustumCulled = (progress === 0.0);
     }
 
-    // Offload dense spring calculation loop to Web Worker (with CPU Fallback)
+    // Offload dense spring calculation loop to Web Worker (with CPU Fallback).
+    // Double-buffered dispatch: send any free slot (no busy-wait), so a momentarily
+    // slow worker never drops or freezes the simulation — it simply falls a frame
+    // behind while the main thread renders the most recent completed result.
     if (physicsWorker) {
-        if (!physics.isWorkerBusy) {
-            physics.isWorkerBusy = true;
+        let slot = null;
+        for (const s of physics.slots) {
+            if (!s.inFlight) { slot = s; break; }
+        }
+        if (slot) {
+            slot.inFlight = true;
+            slot.seq = physics.seq++;
+            physics.sendQueue.push(slot);
             physicsWorker.postMessage({
                 type: 'update',
                 data: {
-                    posLive: physics.posLiveW,
-                    springDisp: physics.springDispW,
-                    springVel: physics.springVelW,
+                    posLive: slot.posLive,
+                    springDisp: slot.springDisp,
+                    springVel: slot.springVel,
                     count, dt, time, elapsed,
                     isMotionReduced,
                     mouseLocal: { x: ml.x, y: ml.y, z: ml.z },
@@ -1124,8 +1238,9 @@ function animate() {
                     explosionMaxDistMultiplier: activeMaxDistMult,
                     mouseInfluence,
                     repulsionStr
-                }
-            }, [physics.posLiveW.buffer, physics.springDispW.buffer, physics.springVelW.buffer]);
+                },
+                seq: slot.seq
+            }, [slot.posLive.buffer, slot.springDisp.buffer, slot.springVel.buffer]);
         }
     } else {
         // Local CPU Fallback (Main Thread)
@@ -1202,8 +1317,10 @@ async function init() {
     const dpr = Math.min(window.devicePixelRatio, CONFIG.maxPixelRatio);
     
     // [1.4] preserveDrawingBuffer defaulted to false for optimized frame double-buffering
+    // [4] antialias:false — point sprites get their smooth edges from the shader's soft
+    // circular falloff (see fragmentShader), so full-framebuffer MSAA here is wasted cost.
     render.renderer = new WebGLRenderer({
-        antialias: true,
+        antialias: false,
         alpha: false,
         powerPreference: 'high-performance',
         preserveDrawingBuffer: false
@@ -1224,21 +1341,30 @@ async function init() {
             type: 'module'
         });
         physicsWorker.onmessage = function (e) {
-            const { type, posLive, springDisp, springVel } = e.data;
+            const { type, seq, posLive, springDisp, springVel } = e.data;
             if (type === 'update') {
-                // Store the zero-copy returned buffers back into the worker working set.
-                physics.posLiveW = posLive;
-                physics.springDispW = springDisp;
-                physics.springVelW = springVel;
+                // Pair the reply with the matching in-flight slot via its sequence token.
+                // Stale replies (e.g. from a buffer set invalidated by a text change) are
+                // discarded without corrupting the slot queue.
+                let idx = -1;
+                for (let i = 0; i < physics.sendQueue.length; i++) {
+                    if (physics.sendQueue[i].seq === seq) { idx = i; break; }
+                }
+                if (idx === -1) return;
 
-                if (render.particles) {
-                    // The resident geometry buffers are never transferred, so they stay
-                    // valid during rendering. Copy the freshly computed W set into them.
-                    const posAttr = render.particles.geometry.attributes.position;
-                    posAttr.array.set(physics.posLiveW);
+                const slot = physics.sendQueue.splice(idx, 1)[0];
+                slot.inFlight = false;
+                slot.posLive = posLive;
+                slot.springDisp = springDisp;
+                slot.springVel = springVel;
+
+                // The resident geometry buffers are never transferred, so they stay valid
+                // during rendering. Copy the freshly computed slot into them.
+                const posAttr = render.particles && render.particles.geometry.attributes.position;
+                if (posAttr && posAttr.array.length === posLive.length) {
+                    posAttr.array.set(posLive);
                     posAttr.needsUpdate = true;
                 }
-                physics.isWorkerBusy = false;
             }
         };
     } catch (err) {
@@ -1270,19 +1396,14 @@ async function init() {
     setupUI();
 
     // Event Listeners
+    // pointermove only records the latest coordinates; the actual unproject + drag
+    // math runs once per frame in animate(), so high-Hz input never fires per-event work.
     window.addEventListener('pointermove', e => {
-        updateMouse(e.clientX, e.clientY);
-        if (interaction.isDragging && e.pointerType === 'mouse') {
-            const dx = e.clientX - interaction.prevMouseX;
-            const dy = e.clientY - interaction.prevMouseY;
-            if (render.particles) {
-                render.particles.rotation.y += dx * 0.005;
-                render.particles.rotation.x += dy * 0.005;
-            }
-            interaction.prevMouseX = e.clientX;
-            interaction.prevMouseY = e.clientY;
-            interaction.lastGestureEndTime = performance.now();
-        }
+        interaction.pendingPointer = {
+            clientX: e.clientX,
+            clientY: e.clientY,
+            pointerType: e.pointerType
+        };
     });
     window.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointerup', onPointerUp);
