@@ -46,6 +46,17 @@ const CONFIG = {
     explosionSpeedMin: 0.4,
     explosionSpeedRange: 0.8,
 
+    // Explosion coloring & recovery (fixed across presets)
+    // heatDistance: world distance at which a particle is fully "hot" (red).
+    // Computed as 1/3 of the visible screen height at the default camera depth:
+    // (1/3) * 2 * initialZ * tan(fov/2), where fov = 75 and initialZ = 35.
+    heatDistance: (2 / 3) * 35 * Math.tan(75 * Math.PI / 360),
+    // maxContractionVelocity: recovery duration = distance / velocity, so bigger
+    // explosions take proportionally longer to recover (world units per second).
+    maxContractionVelocity: 7,
+    contractionDurationMin: 0.8,
+    contractionDurationMax: 10,
+
     // Mouse repulsion
     mouseInfluence: 7.0,
     repulsionStrength: 3.5,
@@ -172,37 +183,39 @@ uniform vec3 uColorHot;
 uniform vec3 uColorWarm;
 uniform vec3 uColorCold;
 uniform float uExplosionProgress;
-uniform float uTanHalfFov; // [4.2] Uniform instead of magic constant 0.7673
+uniform float uExplosionActive;
+uniform float uHeatDistance;
+uniform vec3 uHeatCold;
+uniform vec3 uHeatWarm;
+uniform vec3 uHeatHot;
+
+attribute vec3 homePosition;
 
 varying vec3 vColor;
 
-// Helper to convert hue (0.0 to 1.0) to RGB rainbow spectrum
-vec3 hueToRgb(float h) {
-    float r = abs(h * 6.0 - 3.0) - 1.0;
-    float g = 2.0 - abs(h * 6.0 - 2.0);
-    float b = 2.0 - abs(h * 6.0 - 4.0);
-    return clamp(vec3(r, g, b), 0.0, 1.0);
-}
-
 void main() {
-    // Smooth heatmap based on mouse proximity and dynamic colors
+    // Smooth heatmap based on mouse proximity and dynamic colors (used while idle).
     float r = clamp(distance(uMouse, position) / uMouseInfluence, 0.0, 1.0);
     vec3 baseColor = (r < 0.5)
         ? mix(uColorHot, uColorWarm, r * 2.0)
         : mix(uColorWarm, uColorCold, (r - 0.5) * 2.0);
 
+    // Movement heatmap: cooler (blue) near the particle's OWN initial position, hotter
+    // (red) the further it has been displaced, with yellow in between. Independent of
+    // screen/message center, zoom and rotation because homePosition is in the same
+    // local space as position. Uses a fixed blue-yellow-red palette for every preset.
+    float movement = length(position - homePosition);
+    float heat = smoothstep(0.05, uHeatDistance, movement);
+    vec3 movementColor = (heat < 0.5)
+        ? mix(uHeatCold, uHeatWarm, heat * 2.0)
+        : mix(uHeatWarm, uHeatHot, (heat - 0.5) * 2.0);
+
+    // During an explosion every particle is colored purely by displacement (no idle
+    // theme/mouse white bleeding in); otherwise fall back to the mouse heatmap.
+    vColor = mix(baseColor, movementColor, step(0.5, uExplosionActive));
+
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mvPosition;
-
-    // View-space color spectrum (red in center, blue at window limits)
-    float viewDist = length(mvPosition.xy);
-    float maxViewDist = -mvPosition.z * uTanHalfFov;
-    float tSpectrum = clamp(viewDist / maxViewDist, 0.0, 1.0);
-    
-    // Map spectrum factor 0..1 to hue 0..0.666 (Red -> Orange -> Yellow -> Green -> Cyan -> Blue)
-    vec3 spectrumColor = hueToRgb(tSpectrum * 0.666);
-
-    vColor = mix(baseColor, spectrumColor, uExplosionProgress);
 
     // Size attenuation - corrected for device pixel ratio
     gl_PointSize = uPointSize * uPixelRatio * (${CONFIG.pointSizeAttenuationScale.toFixed(1)} / -mvPosition.z);
@@ -308,7 +321,13 @@ const uniforms = {
     uColorWarm: { value: new Vector3(1.0, 1.0, 0.0) },
     uColorCold: { value: new Vector3(1.0, 1.0, 1.0) },
     uExplosionProgress: { value: 0.0 },
-    uTanHalfFov: { value: Math.tan(75 * Math.PI / 360) } // [4.2] Uniform instead of magic constant
+    uExplosionActive: { value: 0.0 },
+    // Fixed motion-heat distance for every preset (red = 1/3 screen height at rest).
+    uHeatDistance: { value: CONFIG.heatDistance },
+    // Fixed motion heatmap used by every preset: cold = blue, mid = yellow, hot = red.
+    uHeatCold: { value: new Vector3(0.1, 0.4, 1.0) },
+    uHeatWarm: { value: new Vector3(1.0, 1.0, 0.1) },
+    uHeatHot: { value: new Vector3(1.0, 0.1, 0.1) }
 };
 
 // ─────────────────────────────────────────────
@@ -676,6 +695,8 @@ async function setupParticles(text, shouldScatter = false) {
     const posAttr = new BufferAttribute(physics.posLive, 3);
     posAttr.setUsage(DynamicDrawUsage);
     geo.setAttribute('position', posAttr);
+    // Static per-particle rest positions, used by the shader to color by displacement.
+    geo.setAttribute('homePosition', new BufferAttribute(physics.posHome, 3));
 
     const mat = new ShaderMaterial({
         uniforms,
@@ -780,7 +801,15 @@ function triggerExplosion() {
     // Randomize active timing and distance multipliers per blast
     state.activeMaxDist = state.explosionMaxDistMultiplier * (0.8 + Math.random() * 0.4);
     state.activeExpansionDuration = state.expansionDuration * (0.85 + Math.random() * 0.3);
-    state.activeContractionDuration = state.contractionDuration * (0.85 + Math.random() * 0.3);
+
+    // Recovery is purely distance-driven with a capped velocity: bigger explosions
+    // (larger activeMaxDist) take proportionally longer to contract and are clearly
+    // recognisable as slower to recover.
+    state.activeContractionDuration = MathUtils.clamp(
+        state.activeMaxDist / CONFIG.maxContractionVelocity,
+        CONFIG.contractionDurationMin,
+        CONFIG.contractionDurationMax
+    );
 
     if (physicsWorker) {
         // Re-randomize particle trajectory vectors/speeds inside the worker, so the
@@ -1206,6 +1235,9 @@ function animate() {
         }
     }
     uniforms.uExplosionProgress.value = progress;
+    // Explosion active flag: while a blast is in flight every particle is colored
+    // purely by displacement (fixed #2 thresholds); otherwise idle colors resume.
+    uniforms.uExplosionActive.value = (physics.explosionStartTime >= 0) ? 1.0 : 0.0;
     if (render.particles) {
         render.particles.frustumCulled = (progress === 0.0);
     }
