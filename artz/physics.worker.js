@@ -24,11 +24,11 @@ self.onmessage = function (e) {
         const count = randomSpeed.length;
         maxTravelSq = 0; // Start measuring the actual travel radius for this blast
 
-        // 0: Spherical Chaos, 1: Vortex Swirl, 2: Directional Blast, 3: Cluster Burst.
-        // Presets pin a deterministic style (-1 => random per blast).
+        // 0: Spherical Chaos, 1: Vortex Swirl, 2: Directional Blast, 3: Cluster Burst,
+        // 4: Starburst Rays. Presets pin a deterministic style (-1 => random per blast).
         const style = (typeof motionStyle === 'number' && motionStyle >= 0)
             ? motionStyle
-            : Math.floor(Math.random() * 4);
+            : Math.floor(Math.random() * 5);
         const biasX = (Math.random() - 0.5) * 2;
         const biasY = (Math.random() - 0.5) * 2;
         const biasZ = (Math.random() - 0.5) * 2;
@@ -58,9 +58,26 @@ self.onmessage = function (e) {
             } else if (style === 3) {
                 const cluster = 0.5 + 0.5 * Math.sin(i * 0.08);
                 randomSpeed[i] = (explosionSpeedMin + Math.random() * explosionSpeedRange) * (0.4 + cluster);
+            } else if (style === 4) {
+                // Starburst Rays: a fixed set of thick spokes with tight angular jitter,
+                // so particles flash out along a few bright rays instead of a full sphere.
+                const spokes = 10;
+                const sp = i % spokes;
+                const sa = (sp / spokes) * Math.PI * 2;
+                const sb = 0.5 + (((sp * 0.618) % 1.0) + 0.2) * 0.9;
+                const sx = Math.sin(sb) * Math.cos(sa);
+                const sy = Math.sin(sb) * Math.sin(sa);
+                const sz = Math.cos(sb);
+                const j = 0.16;
+                rx = sx + (Math.random() - 0.5) * 2 * j;
+                ry = sy + (Math.random() - 0.5) * 2 * j;
+                rz = sz + (Math.random() - 0.5) * 2 * j;
+                const blen = Math.sqrt(rx * rx + ry * ry + rz * rz) || 1;
+                rx /= blen; ry /= blen; rz /= blen;
+                randomSpeed[i] = (explosionSpeedMin + Math.random() * explosionSpeedRange) * (1.5 + Math.random() * 0.7);
             }
 
-            if (style !== 3) {
+            if (style !== 3 && style !== 4) {
                 const speedVar = 0.75 + Math.random() * 0.55;
                 randomSpeed[i] = (explosionSpeedMin + Math.random() * explosionSpeedRange) * speedVar;
             }

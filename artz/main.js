@@ -115,7 +115,8 @@ const CONFIG = {
             expansionDuration: 0.7,
             contractionDuration: 1.8,
             explosionMaxDistMultiplier: 25.0,
-            motionStyle: 2, // directional
+            motionStyle: 4, // starburst rays
+            emberBudget: 90,
             soundPitch: 190,
             soundDuration: 0.9,
             soundType: 'sawtooth'
@@ -127,6 +128,7 @@ const CONFIG = {
             contractionDuration: 6.0,
             explosionMaxDistMultiplier: 12.0,
             motionStyle: 1, // vortex
+            emberBudget: 70,
             soundPitch: 85,
             soundDuration: 2.4,
             soundType: 'sine'
@@ -138,6 +140,7 @@ const CONFIG = {
             contractionDuration: 5.0,
             explosionMaxDistMultiplier: 6.5,
             motionStyle: 3, // gentle cluster
+            emberBudget: 40,
             soundPitch: 155,
             soundDuration: 2.0,
             soundType: 'triangle'
@@ -149,6 +152,7 @@ const CONFIG = {
             contractionDuration: 3.8,
             explosionMaxDistMultiplier: 36.0,
             motionStyle: 0, // spherical chaos
+            emberBudget: 140,
             soundPitch: 110,
             soundDuration: 1.6,
             soundType: 'sine'
@@ -198,6 +202,10 @@ uniform float uHeatDistance;
 uniform vec3 uHeatCold;
 uniform vec3 uHeatWarm;
 uniform vec3 uHeatHot;
+uniform float uAudioBass;
+uniform float uAudioMid;
+uniform float uAudioHigh;
+uniform float uAudioEnvelope;
 
 attribute vec3 homePosition;
 
@@ -225,13 +233,19 @@ void main() {
     // a short afterglow after the blast so colors ease back to the idle heatmap.
     vColor = mix(baseColor, movementColor, uExplosionActive);
 
+    // Audio-reactive brightness: mid/high energy brighten the particles, the envelope
+    // gives a broad pulse while the blast is sounding.
+    float audioBright = 1.0 + 0.35 * uAudioMid + 0.25 * uAudioHigh;
+    vColor *= audioBright * (0.85 + 0.30 * uAudioEnvelope);
+
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mvPosition;
 
     // Size attenuation - corrected for device pixel ratio
     gl_PointSize = uPointSize * uPixelRatio * (${CONFIG.pointSizeAttenuationScale.toFixed(1)} / -mvPosition.z);
-    // Hotter (more displaced) particles grow slightly to emphasize the leading edge.
-    gl_PointSize *= (1.0 + 0.5 * heat * uExplosionActive);
+    // Hotter (more displaced) particles grow slightly to emphasize the leading edge;
+    // high-frequency audio sparkle also nudges size up.
+    gl_PointSize *= (1.0 + 0.5 * heat * uExplosionActive + 0.2 * uAudioHigh);
 }
 `;
 
@@ -245,6 +259,77 @@ void main() {
     if (r > 1.0) discard;
     float alpha = 0.9 * (1.0 - smoothstep(0.0, 1.0, r));
     gl_FragColor = vec4(vColor, alpha);
+}
+`;
+
+// Trail streaks: additive after-images that chase the live positions, so fast
+// particles leave coloured trails matching their displacement heat.
+const trailVertexShader = `
+uniform vec3 uHeatCold;
+uniform vec3 uHeatWarm;
+uniform vec3 uHeatHot;
+uniform float uHeatDistance;
+uniform float uPointSize;
+uniform float uPointSizeTrail;
+uniform float uPixelRatio;
+uniform float uTrailStrength;
+
+attribute vec3 homePosition;
+attribute vec3 livePosition;
+
+varying vec3 vColor;
+varying float vSpeed;
+
+void main() {
+    float movement = length(position - homePosition);
+    float heat = smoothstep(0.05, uHeatDistance, movement);
+    vec3 heatMap = (heat < 0.5)
+        ? mix(uHeatCold, uHeatWarm, heat * 2.0)
+        : mix(uHeatWarm, uHeatHot, (heat - 0.5) * 2.0);
+
+    vSpeed = clamp(length(livePosition - position) / uHeatDistance, 0.0, 1.0);
+    vColor = heatMap;
+
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    gl_Position = projectionMatrix * mv;
+    gl_PointSize = uPointSizeTrail * uPixelRatio * (${CONFIG.pointSizeAttenuationScale.toFixed(1)} / -mv.z) * (0.5 + 1.4 * vSpeed);
+}
+`;
+
+const trailFragmentShader = `
+varying vec3 vColor;
+varying float vSpeed;
+
+void main() {
+    vec2 cxy = 2.0 * gl_PointCoord - 1.0;
+    float r = dot(cxy, cxy);
+    if (r > 1.0) discard;
+    float alpha = (1.0 - smoothstep(0.0, 1.0, r)) * vSpeed * vSpeed;
+    gl_FragColor = vec4(vColor, alpha);
+}
+`;
+
+// Secondary ember sparks that burst from the fastest particles at peak expansion.
+const emberVertexShader = `
+attribute float aLife;
+varying float vLife;
+
+void main() {
+    vLife = aLife;
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    gl_Position = projectionMatrix * mv;
+    gl_PointSize = 3.0 * aLife;
+}
+`;
+
+const emberFragmentShader = `
+varying float vLife;
+void main() {
+    vec2 cxy = 2.0 * gl_PointCoord - 1.0;
+    float r = dot(cxy, cxy);
+    if (r > 1.0) discard;
+    float a = (1.0 - r) * 0.9 * vLife;
+    gl_FragColor = vec4(1.0, 0.75, 0.35, a);
 }
 `;
 
@@ -269,6 +354,7 @@ const state = {
     activeMaxDist: null,
     actualTravelRadius: 0,   // measured max distance particles actually travelled
     travelApplied: false,    // true once contraction duration is derived from actual travel
+    embersSpawned: false,    // true once embers are spawned at peak expansion
     afterglowStartTime: null,
     soundPitch: CONFIG.presets.DEFAULT.soundPitch,
     soundDuration: CONFIG.presets.DEFAULT.soundDuration,
@@ -288,6 +374,17 @@ const render = {
     renderer: null,
     particles: null,
     clock: new Clock(),
+    trailPoints: null,
+    trailData: null,
+    trailLive: null,
+    trailPosAttr: null,
+    trailLiveAttr: null,
+    emberPoints: null,
+    emberData: null,
+    emberVel: null,
+    emberLife: null,
+    emberPosAttr: null,
+    emberLifeAttr: null,
     targetZ: CONFIG.initialZ,
     prevTime: 0,
     prevDt: 0,
@@ -345,7 +442,15 @@ const uniforms = {
     // Fixed motion heatmap used by every preset: cold = blue, mid = yellow, hot = red.
     uHeatCold: { value: new Vector3(0.1, 0.4, 1.0) },
     uHeatWarm: { value: new Vector3(1.0, 1.0, 0.1) },
-    uHeatHot: { value: new Vector3(1.0, 0.1, 0.1) }
+    uHeatHot: { value: new Vector3(1.0, 0.1, 0.1) },
+    // Audio-reactive energy bands (from the shared analyser).
+    uAudioBass: { value: 0.0 },
+    uAudioMid: { value: 0.0 },
+    uAudioHigh: { value: 0.0 },
+    uAudioEnvelope: { value: 0.0 },
+    // Trail renderer uniforms.
+    uPointSizeTrail: { value: 0.4 },
+    uTrailStrength: { value: 0.25 }
 };
 
 // ─────────────────────────────────────────────
@@ -390,6 +495,9 @@ function flashImpact() {
 // Audio Synthesis (Web Audio API)
 // ─────────────────────────────────────────────
 let audioCtx = null;
+let audioMaster = null;    // Shared output gain (all layers route through this)
+let audioAnalyser = null;  // Analyser for audio-reactive visuals
+let audioFreqData = null;
 // Cached broadband noise buffer shared by every explosion's body/crackle layers.
 let noiseBuffer = null;
 function createNoiseBuffer(ctx) {
@@ -403,11 +511,53 @@ function createNoiseBuffer(ctx) {
     return noiseBuffer;
 }
 
+// Lazily build the shared audio graph: master gain -> analyser -> destination.
+function ensureAudioGraph() {
+    if (audioCtx && audioMaster) return;
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    audioMaster = audioCtx.createGain();
+    audioMaster.gain.value = 1.0;
+    audioAnalyser = audioCtx.createAnalyser();
+    audioAnalyser.fftSize = 256;
+    audioAnalyser.smoothingTimeConstant = 0.6;
+    audioMaster.connect(audioAnalyser);
+    audioAnalyser.connect(audioCtx.destination);
+    audioFreqData = new Uint8Array(audioAnalyser.frequencyBinCount);
+}
+
+// Read coarse frequency bands each frame and expose them as shader uniforms so the
+// sculpture visually reacts to the sound it generates.
+function updateAudioReactive() {
+    if (!audioAnalyser || !audioCtx || !audioFreqData) return;
+    if (audioCtx.state !== 'running') {
+        uniforms.uAudioEnvelope.value = 0;
+        return;
+    }
+    audioAnalyser.getByteFrequencyData(audioFreqData);
+    const n = audioFreqData.length;
+    function band(from, to) {
+        let s = 0, c = 0;
+        const a = Math.max(0, Math.floor(from * n));
+        const b = Math.min(n, Math.floor(to * n));
+        for (let i = a; i < b; i++) { s += audioFreqData[i] / 255; c++; }
+        return c ? s / c : 0;
+    }
+    const bass = band(0.02, 0.25);
+    const mid  = band(0.25, 0.55);
+    const high = band(0.55, 0.92);
+    // Smooth each band toward its target.
+    uniforms.uAudioBass.value += (bass - uniforms.uAudioBass.value) * 0.5;
+    uniforms.uAudioMid.value  += (mid  - uniforms.uAudioMid.value)  * 0.5;
+    uniforms.uAudioHigh.value += (high - uniforms.uAudioHigh.value) * 0.5;
+    const env = Math.min(1, bass * 1.3 + mid * 0.5 + high * 0.6);
+    uniforms.uAudioEnvelope.value += (env - uniforms.uAudioEnvelope.value) * 0.6;
+}
+
 function playExplosionSound(recoveryEstimate = 0) {
     try {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
+        ensureAudioGraph();
         if (audioCtx.state === 'suspended') {
             audioCtx.resume();
         }
@@ -428,7 +578,7 @@ function playExplosionSound(recoveryEstimate = 0) {
         master.gain.exponentialRampToValueAtTime(0.9, now + 0.014);
         master.gain.setValueAtTime(0.9, now + dur * 0.45);
         master.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-        master.connect(audioCtx.destination);
+        master.connect(audioMaster);
 
         // Low-end hygiene: trim subsonic rumble so the thump stays tight.
         const lowCut = audioCtx.createBiquadFilter();
@@ -525,6 +675,7 @@ function playExplosionSound(recoveryEstimate = 0) {
 // recovery duration so larger explosions audibly resolve more slowly.
 function scheduleContractionRumble(duration) {
     try {
+        ensureAudioGraph();
         if (!audioCtx) return;
         const now = audioCtx.currentTime;
         const len = Math.max(0.3, duration * 0.55);
@@ -540,7 +691,7 @@ function scheduleContractionRumble(duration) {
         gain.gain.exponentialRampToValueAtTime(0.0001, now + len);
 
         osc.connect(gain);
-        gain.connect(audioCtx.destination);
+        gain.connect(audioMaster);
         osc.start(now);
         osc.stop(now + len + 0.05);
 
@@ -651,14 +802,14 @@ async function setupParticles(text, shouldScatter = false) {
     // If another setup request started while waiting for fonts, drop this stale execution
     if (currentRequestId !== setupRequestId) return;
 
-    // Dispose old GPU resources before removing to prevent VRAM leak
-    if (render.particles) {
-        render.particles.geometry.dispose();
-        if (render.particles.material) {
-            render.particles.material.dispose();
-        }
-        render.scene.remove(render.particles);
-        render.particles = null;
+    // Living-morph support: capture the current rendered positions so that (when the
+    // particle count is unchanged) the particles can flow from the old message into
+    // the new one, rather than blinking out and back in.
+    const isMorph = !!render.particles;
+    let oldLive = null;
+    if (isMorph) {
+        const pa = render.particles.geometry.attributes.position;
+        oldLive = pa ? pa.array : null;
     }
 
     const points = sampleTextPoints(text);
@@ -733,12 +884,16 @@ async function setupParticles(text, shouldScatter = false) {
         }
     }
 
-    // Double-buffered worker working sets ("slots"): these buffers are transferred to
-    // the physics worker. They are kept SEPARATE from the resident geometry buffers
-    // above, because transferring detaches the buffer and would otherwise leave the
-    // geometry's position attribute empty/detached during rendering (=> NaN radius).
-    // Two slots allow the worker to keep computing while the main thread renders the
-    // most recent completed result, so a slow worker no longer freezes the simulation.
+    // Morph transition: when particle counts match, start particles at their OLD
+    // positions so the spring pulls them smoothly into the new glyph. Otherwise use
+    // the scatter cloud set above for a dissolve-and-reform morph.
+    if (isMorph && !shouldScatter && oldLive && oldLive.length === physics.posLive.length) {
+        physics.posLive.set(oldLive);
+        physics.springDisp.fill(0);
+        physics.springVel.fill(0);
+    }
+
+    // Rebuild double-buffered worker working sets ("slots") to match the current arrays.
     physics.slots = [];
     physics.sendQueue = [];
     for (let s = 0; s < 2; s++) {
@@ -753,25 +908,31 @@ async function setupParticles(text, shouldScatter = false) {
         slot.springVel.set(physics.springVel);
         physics.slots.push(slot);
     }
+    // Reuse the existing geometry when morphing so the sculpture never disappears;
+    // otherwise create it on the first build.
+    const isFirstBuild = !render.particles;
+    const geo = isFirstBuild
+        ? new BufferGeometry()
+        : render.particles.geometry;
 
-    const geo = new BufferGeometry();
     const posAttr = new BufferAttribute(physics.posLive, 3);
     posAttr.setUsage(DynamicDrawUsage);
     geo.setAttribute('position', posAttr);
-    // Static per-particle rest positions, used by the shader to color by displacement.
+    // Per-particle rest/glyph positions, used by the shader to color by displacement.
     geo.setAttribute('homePosition', new BufferAttribute(physics.posHome, 3));
 
-    const mat = new ShaderMaterial({
-        uniforms,
-        vertexShader,
-        fragmentShader,
-        blending: AdditiveBlending,
-        depthWrite: false,
-        transparent: true,
-    });
-
-    render.particles = new Points(geo, mat);
-    render.scene.add(render.particles);
+    if (isFirstBuild) {
+        const mat = new ShaderMaterial({
+            uniforms,
+            vertexShader,
+            fragmentShader,
+            blending: AdditiveBlending,
+            depthWrite: false,
+            transparent: true,
+        });
+        render.particles = new Points(geo, mat);
+        render.scene.add(render.particles);
+    }
 
     // Sync initialized positions to the Web Worker
     if (physicsWorker) {
@@ -784,6 +945,162 @@ async function setupParticles(text, shouldScatter = false) {
             }
         });
     }
+
+    buildTrailsAndEmbers();
+}
+
+// Build (or rebuild) the trail-streak and ember-spark secondary layers to match the
+// current particle pool. Reused across morphs; never disposed mid-frame.
+function buildTrailsAndEmbers() {
+    const n = physics.posLive.length;
+
+    // ── Trail streak layer ──────────────────────────────────────────────
+    render.trailData = new Float32Array(n);
+    render.trailLive = new Float32Array(n);
+    render.trailData.set(physics.posLive);
+    render.trailLive.set(physics.posLive);
+
+    const tPosAttr = new BufferAttribute(render.trailData, 3);
+    tPosAttr.setUsage(DynamicDrawUsage);
+    const tLiveAttr = new BufferAttribute(render.trailLive, 3);
+    tLiveAttr.setUsage(DynamicDrawUsage);
+
+    if (render.trailPoints) render.scene.remove(render.trailPoints);
+    const tgeo = new BufferGeometry();
+    tgeo.setAttribute('position', tPosAttr);
+    tgeo.setAttribute('livePosition', tLiveAttr);
+    tgeo.setAttribute('homePosition', new BufferAttribute(physics.posHome, 3));
+    render.trailPoints = new Points(tgeo, new ShaderMaterial({
+        uniforms,
+        vertexShader: trailVertexShader,
+        fragmentShader: trailFragmentShader,
+        blending: AdditiveBlending,
+        depthWrite: false,
+        transparent: true
+    }));
+    render.trailPoints.frustumCulled = false;
+    render.scene.add(render.trailPoints);
+    render.trailPosAttr = tPosAttr;
+    render.trailLiveAttr = tLiveAttr;
+
+    // ── Ember spark layer (capped) ──────────────────────────────────────
+    const EC = 300;
+    render.emberData = new Float32Array(EC * 3);
+    render.emberVel = new Float32Array(EC * 3);
+    render.emberLife = new Float32Array(EC);
+    render.emberCount = EC;
+
+    const ePosAttr = new BufferAttribute(render.emberData, 3);
+    ePosAttr.setUsage(DynamicDrawUsage);
+    const eLifeAttr = new BufferAttribute(render.emberLife, 1);
+    eLifeAttr.setUsage(DynamicDrawUsage);
+
+    if (render.emberPoints) render.scene.remove(render.emberPoints);
+    const egeo = new BufferGeometry();
+    egeo.setAttribute('position', ePosAttr);
+    egeo.setAttribute('aLife', eLifeAttr);
+    render.emberPoints = new Points(egeo, new ShaderMaterial({
+        uniforms: {},
+        vertexShader: emberVertexShader,
+        fragmentShader: emberFragmentShader,
+        blending: AdditiveBlending,
+        depthWrite: false,
+        transparent: true
+    }));
+    render.emberPoints.renderOrder = 2;
+    render.scene.add(render.emberPoints);
+    render.emberPosAttr = ePosAttr;
+    render.emberLifeAttr = eLifeAttr;
+}
+
+// Chase the live positions so fast particles leave coloured streaks behind them.
+function updateTrails(kFactor) {
+    if (!render.particles || !render.trailData) return;
+    if (isMotionReduced && render.trailPoints) { render.trailPoints.visible = false; return; }
+    if (render.trailPoints) render.trailPoints.visible = true;
+
+    const pos = render.particles.geometry.attributes.position.array;
+    const tPos = render.trailData;
+    const tLive = render.trailLive;
+    const k = 0.22;
+    for (let i = 0; i < pos.length; i++) {
+        tPos[i] += (pos[i] - tPos[i]) * k;
+        tLive[i] = pos[i];
+    }
+    render.trailPosAttr.needsUpdate = true;
+    render.trailLiveAttr.needsUpdate = true;
+}
+
+// Burst ember sparks outward from the expanded particle field at peak, so the sparks
+// feel connected to the main sculpture instead of detaching from its centre.
+function spawnEmbers() {
+    if (!render.emberData || !render.particles) return;
+    if (isMotionReduced) return;
+
+    // Scale the spark budget per preset.
+    const preset = (state.activePreset && CONFIG.presets[state.activePreset]) || null;
+    const budget = preset ? (preset.emberBudget || 90) : 90;
+    const E = Math.min(render.emberCount, budget);
+    const pos = render.particles.geometry.attributes.position.array;
+    const home = physics.posHome;
+    const n3 = pos.length;
+
+    // Choose source particles on the outer shell of the explosion (displaced from home).
+    const candidates = [];
+    for (let i = 0; i < n3 / 3; i++) {
+        const i3 = i * 3;
+        const dx = pos[i3] - home[i3];
+        const dy = pos[i3 + 1] - home[i3 + 1];
+        const dz = pos[i3 + 2] - home[i3 + 2];
+        const d2 = dx * dx + dy * dy + dz * dz;
+        if (d2 > 1.0) candidates.push(i);
+    }
+    if (candidates.length === 0) return;
+
+    for (let i = 0; i < E; i++) {
+        const i3 = i * 3;
+        const src = candidates[(Math.random() * candidates.length) | 0];
+        const s3 = src * 3;
+        // Inherit the source particle's current position and outward direction.
+        render.emberData[i3]     = pos[s3];
+        render.emberData[i3 + 1] = pos[s3 + 1];
+        render.emberData[i3 + 2] = pos[s3 + 2];
+
+        const ox = pos[s3] - home[s3];
+        const oy = pos[s3 + 1] - home[s3 + 1];
+        const oz = pos[s3 + 2] - home[s3 + 2];
+        const olen = Math.sqrt(ox * ox + oy * oy + oz * oz) || 1;
+        const push = 3 + Math.random() * 14;
+        // Outward direction + small tangential jitter.
+        render.emberVel[i3]     = (ox / olen) * push + (Math.random() - 0.5) * 4;
+        render.emberVel[i3 + 1] = (oy / olen) * push + (Math.random() - 0.5) * 4;
+        render.emberVel[i3 + 2] = (oz / olen) * push * 0.5 + (Math.random() - 0.5) * 2;
+        render.emberLife[i] = 0.35 + Math.random() * 0.45;
+    }
+}
+
+function updateEmbers(dt) {
+    if (!render.emberData) return;
+    if (isMotionReduced && render.emberPoints) { render.emberPoints.visible = false; return; }
+    if (render.emberPoints) render.emberPoints.visible = true;
+
+    const E = render.emberCount;
+    for (let i = 0; i < E; i++) {
+        if (render.emberLife[i] <= 0) continue;
+        const i3 = i * 3;
+        render.emberData[i3]     += render.emberVel[i3] * dt;
+        render.emberData[i3 + 1] += render.emberVel[i3 + 1] * dt;
+        render.emberData[i3 + 2] += render.emberVel[i3 + 2] * dt;
+        // Gently pull embers toward gravity/down + drag.
+        render.emberVel[i3 + 1] -= 8 * dt;
+        render.emberVel[i3]     *= Math.pow(0.02, dt);
+        render.emberVel[i3 + 1] *= Math.pow(0.02, dt);
+        render.emberVel[i3 + 2] *= Math.pow(0.02, dt);
+        render.emberLife[i] -= dt;
+        if (render.emberLife[i] <= 0) render.emberLife[i] = 0;
+    }
+    render.emberPosAttr.needsUpdate = true;
+    render.emberLifeAttr.needsUpdate = true;
 }
 
 // ─────────────────────────────────────────────
@@ -811,8 +1128,12 @@ function randomizeExplosionVectors() {
     const count = physics.randomSpeed.length;
     const { explosionSpeedMin, explosionSpeedRange } = CONFIG;
 
-    // Pick a randomized explosion pattern for this blast (0: Spherical Chaos, 1: Vortex Swirl, 2: Directional Blast, 3: Cluster Burst)
-    const style = Math.floor(Math.random() * 4);
+    // Pick a randomized explosion pattern for this blast (0: Spherical Chaos,
+    // 1: Vortex Swirl, 2: Directional Blast, 3: Cluster Burst, 4: Starburst Rays).
+    // Respect a pinned preset style when one is active.
+    const style = (typeof state.motionStyle === 'number' && state.motionStyle >= 0)
+        ? state.motionStyle
+        : Math.floor(Math.random() * 5);
     const biasX = (Math.random() - 0.5) * 2;
     const biasY = (Math.random() - 0.5) * 2;
     const biasZ = (Math.random() - 0.5) * 2;
@@ -845,9 +1166,25 @@ function randomizeExplosionVectors() {
             // Cluster Burst pattern
             const cluster = 0.5 + 0.5 * Math.sin(i * 0.08);
             physics.randomSpeed[i] = (explosionSpeedMin + Math.random() * explosionSpeedRange) * (0.4 + cluster);
+        } else if (style === 4) {
+            // Starburst Rays pattern
+            const spokes = 10;
+            const sp = i % spokes;
+            const sa = (sp / spokes) * Math.PI * 2;
+            const sb = 0.5 + (((sp * 0.618) % 1.0) + 0.2) * 0.9;
+            const sx = Math.sin(sb) * Math.cos(sa);
+            const sy = Math.sin(sb) * Math.sin(sa);
+            const sz = Math.cos(sb);
+            const j = 0.16;
+            rx = sx + (Math.random() - 0.5) * 2 * j;
+            ry = sy + (Math.random() - 0.5) * 2 * j;
+            rz = sz + (Math.random() - 0.5) * 2 * j;
+            const blen = Math.sqrt(rx * rx + ry * ry + rz * rz) || 1;
+            rx /= blen; ry /= blen; rz /= blen;
+            physics.randomSpeed[i] = (explosionSpeedMin + Math.random() * explosionSpeedRange) * (1.5 + Math.random() * 0.7);
         }
 
-        if (style !== 3) {
+        if (style !== 3 && style !== 4) {
             const speedVar = 0.75 + Math.random() * 0.55;
             physics.randomSpeed[i] = (explosionSpeedMin + Math.random() * explosionSpeedRange) * speedVar;
         }
@@ -864,6 +1201,7 @@ function triggerExplosion() {
     // Reset per-blast state
     state.actualTravelRadius = 0;
     state.travelApplied = false;
+    state.embersSpawned = false;
     state.afterglowStartTime = null;
     fallbackMaxTravelSq = 0;
 
@@ -1010,13 +1348,8 @@ async function applyPresetExplosion(presetName, shouldScatter = true) {
     state.soundDuration = preset.soundDuration;
     state.soundType = preset.soundType;
 
-    // Apply specific theme and font to reinforce the preset identity
-    if (preset.theme) selectTheme(preset.theme, true);
-    if (preset.font) {
-        await selectFont(preset.font, true, shouldScatter);
-    } else {
-        await setupParticles(state.currentText, shouldScatter);
-    }
+    // Presets drive explosion behaviour only — theme and font stay as the user set them.
+    await setupParticles(state.currentText, shouldScatter);
 }
 
 // ─────────────────────────────────────────────
@@ -1210,6 +1543,8 @@ function animate() {
     const dt = Math.min(time - render.prevTime, 0.05); // cap at 50ms to prevent browser tab freeze math jumps
     render.prevTime = time;
 
+    updateAudioReactive();
+
     const { keys, invMatrix, lastGestureEndTime } = interaction;
     const { particles, camera } = render;
 
@@ -1311,6 +1646,11 @@ function animate() {
                 );
                 state.travelApplied = true;
                 scheduleContractionRumble(state.activeContractionDuration);
+            }
+            // Spawn embers once, at peak, from the expanded particle field.
+            if (elapsed >= activeExpDuration && !state.embersSpawned) {
+                state.embersSpawned = true;
+                spawnEmbers();
             }
             const contrDur = state.activeContractionDuration || state.contractionDuration;
             if (elapsed < activeExpDuration) {
@@ -1439,6 +1779,9 @@ function animate() {
         state.actualTravelRadius = Math.sqrt(fallbackMaxTravelSq);
         posAttr.needsUpdate = true;
     }
+
+    updateTrails();
+    updateEmbers(dt);
 
     render.renderer.render(render.scene, camera);
 }
