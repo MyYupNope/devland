@@ -56,6 +56,8 @@ const CONFIG = {
     maxContractionVelocity: 7,
     contractionDurationMin: 0.8,
     contractionDurationMax: 10,
+    contractionDurationFloor: 0.3,
+    afterglowDuration: 0.2,
 
     // Mouse repulsion
     mouseInfluence: 7.0,
@@ -113,6 +115,7 @@ const CONFIG = {
             expansionDuration: 0.7,
             contractionDuration: 1.8,
             explosionMaxDistMultiplier: 25.0,
+            motionStyle: 2, // directional
             soundPitch: 190,
             soundDuration: 0.9,
             soundType: 'sawtooth'
@@ -123,6 +126,7 @@ const CONFIG = {
             expansionDuration: 3.5,
             contractionDuration: 6.0,
             explosionMaxDistMultiplier: 12.0,
+            motionStyle: 1, // vortex
             soundPitch: 85,
             soundDuration: 2.4,
             soundType: 'sine'
@@ -133,6 +137,7 @@ const CONFIG = {
             expansionDuration: 4.0,
             contractionDuration: 5.0,
             explosionMaxDistMultiplier: 6.5,
+            motionStyle: 3, // gentle cluster
             soundPitch: 155,
             soundDuration: 2.0,
             soundType: 'triangle'
@@ -143,6 +148,7 @@ const CONFIG = {
             expansionDuration: 1.1,
             contractionDuration: 3.8,
             explosionMaxDistMultiplier: 36.0,
+            motionStyle: 0, // spherical chaos
             soundPitch: 110,
             soundDuration: 1.6,
             soundType: 'sine'
@@ -151,6 +157,7 @@ const CONFIG = {
             expansionDuration: 2.0,
             contractionDuration: 4.0,
             explosionMaxDistMultiplier: 15.0,
+            motionStyle: -1, // random per blast
             soundPitch: 140,
             soundDuration: 1.5,
             soundType: 'sine'
@@ -170,6 +177,9 @@ window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',
 // Web Worker for Offloaded Physics Calculation
 // ─────────────────────────────────────────────
 let physicsWorker = null;
+
+// Tracks the actual travel radius in the CPU-fallback path (worker path uses its own).
+let fallbackMaxTravelSq = 0;
 
 // ─────────────────────────────────────────────
 // Shaders
@@ -211,14 +221,17 @@ void main() {
         : mix(uHeatWarm, uHeatHot, (heat - 0.5) * 2.0);
 
     // During an explosion every particle is colored purely by displacement (no idle
-    // theme/mouse white bleeding in); otherwise fall back to the mouse heatmap.
-    vColor = mix(baseColor, movementColor, step(0.5, uExplosionActive));
+    // theme/mouse white bleeding in); uExplosionActive blends from 1 down to 0 over
+    // a short afterglow after the blast so colors ease back to the idle heatmap.
+    vColor = mix(baseColor, movementColor, uExplosionActive);
 
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mvPosition;
 
     // Size attenuation - corrected for device pixel ratio
     gl_PointSize = uPointSize * uPixelRatio * (${CONFIG.pointSizeAttenuationScale.toFixed(1)} / -mvPosition.z);
+    // Hotter (more displaced) particles grow slightly to emphasize the leading edge.
+    gl_PointSize *= (1.0 + 0.5 * heat * uExplosionActive);
 }
 `;
 
@@ -250,9 +263,13 @@ const state = {
     expansionDuration: CONFIG.presets.DEFAULT.expansionDuration,
     contractionDuration: CONFIG.presets.DEFAULT.contractionDuration,
     explosionMaxDistMultiplier: CONFIG.presets.DEFAULT.explosionMaxDistMultiplier,
+    motionStyle: CONFIG.presets.DEFAULT.motionStyle,
     activeExpansionDuration: null,
     activeContractionDuration: null,
     activeMaxDist: null,
+    actualTravelRadius: 0,   // measured max distance particles actually travelled
+    travelApplied: false,    // true once contraction duration is derived from actual travel
+    afterglowStartTime: null,
     soundPitch: CONFIG.presets.DEFAULT.soundPitch,
     soundDuration: CONFIG.presets.DEFAULT.soundDuration,
     soundType: CONFIG.presets.DEFAULT.soundType,
@@ -305,6 +322,7 @@ const interaction = {
     lastGestureEndTime: 0,
     inputDebounceTimer: null,
     toastTimer: null,
+    flashTimer: null,
     isDragging: false,
     prevMouseX: 0,
     prevMouseY: 0,
@@ -355,6 +373,20 @@ function announceToScreenReader(message) {
 }
 
 // ─────────────────────────────────────────────
+// Impact Flash (procedural, no assets)
+// ─────────────────────────────────────────────
+function flashImpact() {
+    const el = document.getElementById('flash');
+    if (!el) return;
+    el.classList.remove('active');
+    // Force reflow so the transition restarts on rapid triggers.
+    void el.offsetWidth;
+    el.classList.add('active');
+    clearTimeout(interaction.flashTimer);
+    interaction.flashTimer = setTimeout(() => el.classList.remove('active'), 120);
+}
+
+// ─────────────────────────────────────────────
 // Audio Synthesis (Web Audio API)
 // ─────────────────────────────────────────────
 let audioCtx = null;
@@ -371,7 +403,7 @@ function createNoiseBuffer(ctx) {
     return noiseBuffer;
 }
 
-function playExplosionSound() {
+function playExplosionSound(recoveryEstimate = 0) {
     try {
         if (!audioCtx) {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -381,7 +413,8 @@ function playExplosionSound() {
         }
 
         const now  = audioCtx.currentTime;
-        const dur  = state.soundDuration * (0.85 + Math.random() * 0.3);
+        // Length scales with the recovery time so bigger explosions sound larger.
+        const dur  = Math.max(state.soundDuration * (0.85 + Math.random() * 0.3), recoveryEstimate * 0.7);
         const pitch = state.soundPitch * (0.85 + Math.random() * 0.3);
         const type = state.soundType;
 
@@ -488,11 +521,41 @@ function playExplosionSound() {
     }
 }
 
+// Low, swelling rumble that plays during the contraction phase, tuned to the actual
+// recovery duration so larger explosions audibly resolve more slowly.
+function scheduleContractionRumble(duration) {
+    try {
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        const len = Math.max(0.3, duration * 0.55);
+
+        const osc = audioCtx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(85, now);
+        osc.frequency.exponentialRampToValueAtTime(32, now + len);
+
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.16, now + Math.min(0.25, len * 0.3));
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + len);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + len + 0.05);
+
+        setTimeout(() => {
+            try { osc.disconnect(); gain.disconnect(); } catch (_) { /* ended */ }
+        }, (len + 0.1) * 1000);
+    } catch (err) {
+        console.warn('Rumble synthesis error:', err);
+    }
+}
+const loadedFonts = new Set(['Outfit']);
+
 // ─────────────────────────────────────────────
 // Font Loading Optimization
 // ─────────────────────────────────────────────
-const loadedFonts = new Set(['Outfit']);
-
 async function ensureFontLoaded(fontFamily) {
     if (loadedFonts.has(fontFamily)) return;
     const fontUrls = {
@@ -798,18 +861,23 @@ function randomizeExplosionVectors() {
 function triggerExplosion() {
     if (physics.explosionStartTime >= 0) return;
 
+    // Reset per-blast state
+    state.actualTravelRadius = 0;
+    state.travelApplied = false;
+    state.afterglowStartTime = null;
+    fallbackMaxTravelSq = 0;
+
     // Randomize active timing and distance multipliers per blast
     state.activeMaxDist = state.explosionMaxDistMultiplier * (0.8 + Math.random() * 0.4);
     state.activeExpansionDuration = state.expansionDuration * (0.85 + Math.random() * 0.3);
 
-    // Recovery is purely distance-driven with a capped velocity: bigger explosions
-    // (larger activeMaxDist) take proportionally longer to contract and are clearly
-    // recognisable as slower to recover.
-    state.activeContractionDuration = MathUtils.clamp(
+    // Initial recovery estimate (replaced at peak by the measured travel radius).
+    state.activeContractionDuration = Math.max(
         state.activeMaxDist / CONFIG.maxContractionVelocity,
-        CONFIG.contractionDurationMin,
-        CONFIG.contractionDurationMax
+        CONFIG.contractionDurationFloor
     );
+
+    const estimatedRecovery = state.activeContractionDuration;
 
     if (physicsWorker) {
         // Re-randomize particle trajectory vectors/speeds inside the worker, so the
@@ -818,7 +886,8 @@ function triggerExplosion() {
             type: 'randomize',
             data: {
                 explosionSpeedMin: CONFIG.explosionSpeedMin,
-                explosionSpeedRange: CONFIG.explosionSpeedRange
+                explosionSpeedRange: CONFIG.explosionSpeedRange,
+                motionStyle: state.motionStyle
             }
         });
     } else {
@@ -826,7 +895,8 @@ function triggerExplosion() {
     }
 
     physics.explosionStartTime = render.clock.getElapsedTime();
-    playExplosionSound();
+    flashImpact();
+    playExplosionSound(estimatedRecovery);
     announceToScreenReader(`Explosion triggered for "${state.currentText}"`);
 }
 
@@ -853,6 +923,7 @@ function resetToDefaultExplosion() {
     state.expansionDuration = preset.expansionDuration;
     state.contractionDuration = preset.contractionDuration;
     state.explosionMaxDistMultiplier = preset.explosionMaxDistMultiplier;
+    state.motionStyle = (preset.motionStyle != null) ? preset.motionStyle : -1;
     state.soundPitch = preset.soundPitch;
     state.soundDuration = preset.soundDuration;
     state.soundType = preset.soundType;
@@ -872,6 +943,7 @@ function applyActiveOrRandomPreset() {
     state.expansionDuration = preset.expansionDuration;
     state.contractionDuration = preset.contractionDuration;
     state.explosionMaxDistMultiplier = preset.explosionMaxDistMultiplier;
+    state.motionStyle = (preset.motionStyle != null) ? preset.motionStyle : -1;
     state.soundPitch = preset.soundPitch;
     state.soundDuration = preset.soundDuration;
     state.soundType = preset.soundType;
@@ -933,6 +1005,7 @@ async function applyPresetExplosion(presetName, shouldScatter = true) {
     state.expansionDuration = preset.expansionDuration;
     state.contractionDuration = preset.contractionDuration;
     state.explosionMaxDistMultiplier = preset.explosionMaxDistMultiplier;
+    state.motionStyle = (preset.motionStyle != null) ? preset.motionStyle : -1;
     state.soundPitch = preset.soundPitch;
     state.soundDuration = preset.soundDuration;
     state.soundType = preset.soundType;
@@ -1223,21 +1296,44 @@ function animate() {
     if (physics.explosionStartTime > 0) {
         elapsed = time - physics.explosionStartTime;
         if (elapsed > state.totalExplosionDuration) {
+            // Blast fully finished -> begin the afterglow fade back to idle colors.
             physics.explosionStartTime = -1;
+            state.afterglowStartTime = time;
             elapsed = -1;
         } else {
-            // Calculate progress (0.0 -> 1.0 -> 0.0)
+            // At peak, lock the contraction duration to the ACTUAL distance travelled
+            // so recovery genuinely reflects how far particles flew.
+            if (elapsed >= activeExpDuration && !state.travelApplied) {
+                const travel = state.actualTravelRadius;
+                state.activeContractionDuration = Math.max(
+                    travel / CONFIG.maxContractionVelocity,
+                    CONFIG.contractionDurationFloor
+                );
+                state.travelApplied = true;
+                scheduleContractionRumble(state.activeContractionDuration);
+            }
+            const contrDur = state.activeContractionDuration || state.contractionDuration;
             if (elapsed < activeExpDuration) {
                 progress = elapsed / activeExpDuration;
             } else {
-                progress = 1.0 - (elapsed - activeExpDuration) / activeContrDuration;
+                progress = 1.0 - (elapsed - activeExpDuration) / contrDur;
             }
         }
     }
     uniforms.uExplosionProgress.value = progress;
-    // Explosion active flag: while a blast is in flight every particle is colored
-    // purely by displacement (fixed #2 thresholds); otherwise idle colors resume.
-    uniforms.uExplosionActive.value = (physics.explosionStartTime >= 0) ? 1.0 : 0.0;
+
+    // Explosion color blend: 1 for the whole blast (including recovery), then a brief
+    // afterglow fade back to idle theme colors so particles don't snap.
+    let activeBlend;
+    if (physics.explosionStartTime >= 0) {
+        activeBlend = 1.0;
+    } else if (state.afterglowStartTime != null) {
+        activeBlend = Math.max(0, 1 - (time - state.afterglowStartTime) / CONFIG.afterglowDuration);
+        if (activeBlend <= 0) state.afterglowStartTime = null;
+    } else {
+        activeBlend = 0.0;
+    }
+    uniforms.uExplosionActive.value = activeBlend;
     if (render.particles) {
         render.particles.frustumCulled = (progress === 0.0);
     }
@@ -1331,7 +1427,16 @@ function animate() {
             pos[ix] = bx + springDisp[ix];
             pos[iy] = by + springDisp[iy];
             pos[iz] = bz + springDisp[iz];
+
+            if (elapsed > 0.0) {
+                const tx = pos[ix] - posHome[ix];
+                const ty = pos[iy] - posHome[iy];
+                const tz = pos[iz] - posHome[iz];
+                const td2 = tx * tx + ty * ty + tz * tz;
+                if (td2 > fallbackMaxTravelSq) fallbackMaxTravelSq = td2;
+            }
         }
+        state.actualTravelRadius = Math.sqrt(fallbackMaxTravelSq);
         posAttr.needsUpdate = true;
     }
 
@@ -1373,7 +1478,7 @@ async function init() {
             type: 'module'
         });
         physicsWorker.onmessage = function (e) {
-            const { type, seq, posLive, springDisp, springVel } = e.data;
+            const { type, seq, posLive, springDisp, springVel, travelRadius } = e.data;
             if (type === 'update') {
                 // Pair the reply with the matching in-flight slot via its sequence token.
                 // Stale replies (e.g. from a buffer set invalidated by a text change) are
@@ -1389,6 +1494,11 @@ async function init() {
                 slot.posLive = posLive;
                 slot.springDisp = springDisp;
                 slot.springVel = springVel;
+
+                // Track the actual distance particles travelled (used for recovery).
+                if (typeof travelRadius === 'number' && travelRadius > 0) {
+                    state.actualTravelRadius = travelRadius;
+                }
 
                 // The resident geometry buffers are never transferred, so they stay valid
                 // during rendering. Copy the freshly computed slot into them.

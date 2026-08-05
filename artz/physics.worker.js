@@ -4,6 +4,7 @@
 let posHome = null;
 let randomDir = null;
 let randomSpeed = null;
+let maxTravelSq = 0; // Running max squared displacement from home, reset per blast
 
 self.onmessage = function (e) {
     const { type, data, seq } = e.data;
@@ -18,12 +19,16 @@ self.onmessage = function (e) {
     if (type === 'randomize') {
         // Randomize explosion trajectory vectors/speeds off the main thread, so the
         // per-blast 30k-particle trig loop never causes a main-thread hitch.
-        const { explosionSpeedMin, explosionSpeedRange } = data;
+        const { explosionSpeedMin, explosionSpeedRange, motionStyle } = data;
         if (!randomDir || !randomSpeed) return;
         const count = randomSpeed.length;
+        maxTravelSq = 0; // Start measuring the actual travel radius for this blast
 
-        // 0: Spherical Chaos, 1: Vortex Swirl, 2: Directional Blast, 3: Cluster Burst
-        const style = Math.floor(Math.random() * 4);
+        // 0: Spherical Chaos, 1: Vortex Swirl, 2: Directional Blast, 3: Cluster Burst.
+        // Presets pin a deterministic style (-1 => random per blast).
+        const style = (typeof motionStyle === 'number' && motionStyle >= 0)
+            ? motionStyle
+            : Math.floor(Math.random() * 4);
         const biasX = (Math.random() - 0.5) * 2;
         const biasY = (Math.random() - 0.5) * 2;
         const biasZ = (Math.random() - 0.5) * 2;
@@ -89,7 +94,7 @@ self.onmessage = function (e) {
 
         if (!posHome) {
             // Safe fallback if update is sent before init completes
-            self.postMessage({ type: 'update', seq, posLive, springDisp, springVel }, [posLive.buffer, springDisp.buffer, springVel.buffer]);
+            self.postMessage({ type: 'update', seq, posLive, springDisp, springVel, travelRadius: 0 }, [posLive.buffer, springDisp.buffer, springVel.buffer]);
             return;
         }
 
@@ -159,6 +164,16 @@ self.onmessage = function (e) {
             posLive[ix] = bx + springDisp[ix];
             posLive[iy] = by + springDisp[iy];
             posLive[iz] = bz + springDisp[iz];
+
+            // Measure how far this particle actually travelled from its rest position,
+            // but only while an explosion is active (reset on randomize).
+            if (elapsed > 0.0) {
+                const tx = posLive[ix] - posHome[ix];
+                const ty = posLive[iy] - posHome[iy];
+                const tz = posLive[iz] - posHome[iz];
+                const td2 = tx * tx + ty * ty + tz * tz;
+                if (td2 > maxTravelSq) maxTravelSq = td2;
+            }
         }
 
         // Return updated buffers to the main thread (zero-copy transfer)
@@ -167,7 +182,8 @@ self.onmessage = function (e) {
             seq,
             posLive,
             springDisp,
-            springVel
+            springVel,
+            travelRadius: Math.sqrt(maxTravelSq)
         }, [posLive.buffer, springDisp.buffer, springVel.buffer]);
     }
 };

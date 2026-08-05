@@ -337,6 +337,20 @@ select:focus-visible {
     border: 0;
 }
 
+/* Explosion Impact Flash overlay */
+#flash {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0) 70%);
+    opacity: 0;
+    transition: opacity 0.12s ease-out;
+}
+#flash.active {
+    opacity: 1;
+}
+
 /* Empty text Toast alert element */
 #toast {
     position: absolute;
