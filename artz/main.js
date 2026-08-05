@@ -534,6 +534,14 @@ async function setupParticles(text, shouldScatter = false) {
     physics.randomDir  = new Float32Array(finalCount * 3);
     physics.randomSpeed = new Float32Array(finalCount);
 
+    // Worker working set ("W"): these buffers are transferred to the physics worker
+    // every frame. They are kept SEPARATE from the resident geometry buffers above,
+    // because transferring detaches the buffer and would otherwise leave the
+    // geometry's position attribute empty/detached during rendering (=> NaN radius).
+    physics.posLiveW    = new Float32Array(finalCount * 3);
+    physics.springDispW = new Float32Array(finalCount * 3);
+    physics.springVelW  = new Float32Array(finalCount * 3);
+
     for (let i = 0; i < filteredPoints.length; i++) {
         const p = filteredPoints[i];
         for (let d = 0; d < density; d++) {
@@ -571,6 +579,11 @@ async function setupParticles(text, shouldScatter = false) {
             physics.randomSpeed[idx] = explosionSpeedMin + Math.random() * explosionSpeedRange;
         }
     }
+
+    // Copy the freshly initialized resident buffers into the worker working set.
+    physics.posLiveW.set(physics.posLive);
+    physics.springDispW.set(physics.springDisp);
+    physics.springVelW.set(physics.springVel);
 
     const geo = new BufferGeometry();
     geo.setAttribute('position', new BufferAttribute(physics.posLive, 3));
@@ -1099,9 +1112,9 @@ function animate() {
             physicsWorker.postMessage({
                 type: 'update',
                 data: {
-                    posLive: physics.posLive,
-                    springDisp: physics.springDisp,
-                    springVel: physics.springVel,
+                    posLive: physics.posLiveW,
+                    springDisp: physics.springDispW,
+                    springVel: physics.springVelW,
                     count, dt, time, elapsed,
                     isMotionReduced,
                     mouseLocal: { x: ml.x, y: ml.y, z: ml.z },
@@ -1112,7 +1125,7 @@ function animate() {
                     mouseInfluence,
                     repulsionStr
                 }
-            });
+            }, [physics.posLiveW.buffer, physics.springDispW.buffer, physics.springVelW.buffer]);
         }
     } else {
         // Local CPU Fallback (Main Thread)
@@ -1213,13 +1226,16 @@ async function init() {
         physicsWorker.onmessage = function (e) {
             const { type, posLive, springDisp, springVel } = e.data;
             if (type === 'update') {
-                physics.posLive = posLive;
-                physics.springDisp = springDisp;
-                physics.springVel = springVel;
-                
+                // Store the zero-copy returned buffers back into the worker working set.
+                physics.posLiveW = posLive;
+                physics.springDispW = springDisp;
+                physics.springVelW = springVel;
+
                 if (render.particles) {
+                    // The resident geometry buffers are never transferred, so they stay
+                    // valid during rendering. Copy the freshly computed W set into them.
                     const posAttr = render.particles.geometry.attributes.position;
-                    posAttr.array = physics.posLive;
+                    posAttr.array.set(physics.posLiveW);
                     posAttr.needsUpdate = true;
                 }
                 physics.isWorkerBusy = false;

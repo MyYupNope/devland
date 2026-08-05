@@ -109,12 +109,12 @@ self.onmessage = function (e) {
             posLive[iz] = bz + springDisp[iz];
         }
 
-        // Return updated buffers to the main thread
+        // Return updated buffers to the main thread (zero-copy transfer)
         self.postMessage({
             type: 'update',
             posLive,
             springDisp,
             springVel
-        });
+        }, [posLive.buffer, springDisp.buffer, springVel.buffer]);
     }
 };
