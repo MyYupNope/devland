@@ -404,7 +404,15 @@ const physics = {
     sendQueue: [],      // FIFO of slots currently in flight at the worker
     seq: 0,             // Monotonic token echoed by the worker to pair replies
     explosionStartTime: -1,
+    positionsDirty: false, // true when a fresh worker result (or fallback step) moved particles
+    usingFallback: false,  // true when the CPU fallback replaces a dead/unavailable worker
 };
+
+// Particle budget: full density with the worker, a reduced cap for the main-thread
+// CPU fallback so it stays within the frame budget on weaker machines.
+function currentParticleCap() {
+    return physicsWorker ? 30000 : 15000;
+}
 
 // Interaction / UI state
 const interaction = {
@@ -748,16 +756,19 @@ function sampleTextPoints(text) {
     ctx.fillText(text, CONFIG.canvasWidth / 2, CONFIG.canvasHeight / 2);
 
     const imgData = ctx.getImageData(0, 0, CONFIG.canvasWidth, CONFIG.canvasHeight).data;
-    const rawPoints = [];
+    const W = CONFIG.canvasWidth, H = CONFIG.canvasHeight;
+    const step = CONFIG.pixelStep, thr = CONFIG.pixelThreshold;
 
+    // Pass 1: count sampled points and the bounding box, so we can allocate one flat
+    // buffer up front and compute the centre/scale once (avoid per-point object churn).
+    let rawCount = 0;
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
 
-    for (let y = 0; y < CONFIG.canvasHeight; y += CONFIG.pixelStep) {
-        for (let x = 0; x < CONFIG.canvasWidth; x += CONFIG.pixelStep) {
-            const index = (y * CONFIG.canvasWidth + x) * 4;
-            if (imgData[index] > CONFIG.pixelThreshold) {
-                rawPoints.push({ x, y });
+    for (let y = 0; y < H; y += step) {
+        for (let x = 0; x < W; x += step) {
+            if (imgData[(y * W + x) * 4] > thr) {
+                rawCount++;
                 if (x < minX) minX = x;
                 if (x > maxX) maxX = x;
                 if (y < minY) minY = y;
@@ -766,17 +777,25 @@ function sampleTextPoints(text) {
         }
     }
 
-    if (rawPoints.length === 0) return null;
+    if (rawCount === 0) return null;
 
     const scale = CONFIG.targetWorldWidth / Math.max(maxX - minX, 1);
     const cx = (minX + maxX) / 2;
     const cy = (minY + maxY) / 2;
 
-    return rawPoints.map(p => ({
-        x: (p.x - cx) * scale,
-        y: (cy - p.y) * scale,
-        z: 0,
-    }));
+    // Pass 2: fill a flat interleaved (x, y, z) triple buffer.
+    const flat = new Float32Array(rawCount * 3);
+    let fi = 0;
+    for (let y = 0; y < H; y += step) {
+        for (let x = 0; x < W; x += step) {
+            if (imgData[(y * W + x) * 4] > thr) {
+                flat[fi++] = (x - cx) * scale;
+                flat[fi++] = (cy - y) * scale;
+                flat[fi++] = 0;
+            }
+        }
+    }
+    return flat;
 }
 
 // ─────────────────────────────────────────────
@@ -819,22 +838,19 @@ async function setupParticles(text, shouldScatter = false) {
     }
 
     const { density, jitterXY, jitterZ, explosionSpeedMin, explosionSpeedRange } = CONFIG;
-    let count = points.length * density;
+    const pointCount = points.length / 3;
+    let count = pointCount * density;
     let step = 1;
 
     // Subsample points if overall particle count budget is exceeded
-    const maxParticles = 30000;
+    const maxParticles = currentParticleCap();
     if (count > maxParticles) {
         const targetPoints = Math.floor(maxParticles / density);
-        step = Math.max(1, Math.ceil(points.length / targetPoints));
+        step = Math.max(1, Math.ceil(pointCount / targetPoints));
     }
 
-    const filteredPoints = [];
-    for (let i = 0; i < points.length; i += step) {
-        filteredPoints.push(points[i]);
-    }
-
-    const finalCount = filteredPoints.length * density;
+    const sampledCount = Math.ceil(pointCount / step);
+    const finalCount = sampledCount * density;
 
     physics.posHome    = new Float32Array(finalCount * 3);
     physics.posLive    = new Float32Array(finalCount * 3);
@@ -846,15 +862,16 @@ async function setupParticles(text, shouldScatter = false) {
     // Build fresh double-buffered worker working sets below (after resident buffers
     // are populated), since any prior in-flight slots have been transferred away.
 
-    for (let i = 0; i < filteredPoints.length; i++) {
-        const p = filteredPoints[i];
+    let si = 0;
+    for (let i = 0; i < pointCount; i += step, si++) {
+        const px = points[i * 3], py = points[i * 3 + 1], pz = points[i * 3 + 2];
         for (let d = 0; d < density; d++) {
-            const idx = i * density + d;
+            const idx = si * density + d;
             const ix = idx * 3, iy = ix + 1, iz = ix + 2;
 
-            const hx = p.x + (Math.random() - 0.5) * jitterXY;
-            const hy = p.y + (Math.random() - 0.5) * jitterXY;
-            const hz = p.z + (Math.random() - 0.5) * jitterZ;
+            const hx = px + (Math.random() - 0.5) * jitterXY;
+            const hy = py + (Math.random() - 0.5) * jitterXY;
+            const hz = pz + (Math.random() - 0.5) * jitterZ;
 
             physics.posHome[ix] = hx;
             physics.posHome[iy] = hy;
@@ -934,14 +951,16 @@ async function setupParticles(text, shouldScatter = false) {
         render.scene.add(render.particles);
     }
 
-    // Sync initialized positions to the Web Worker
+    // Sync initialized positions to the Web Worker. Pass CLONED copies so the worker
+    // owns its arrays and the main-thread arrays stay attached for the resident
+    // geometry attributes (homePosition) and the CPU fallback (never transferred).
     if (physicsWorker) {
         physicsWorker.postMessage({
             type: 'init',
             data: {
-                posHome: physics.posHome,
-                randomDir: physics.randomDir,
-                randomSpeed: physics.randomSpeed
+                posHome: physics.posHome.slice(),
+                randomDir: physics.randomDir.slice(),
+                randomSpeed: physics.randomSpeed.slice()
             }
         });
     }
@@ -965,7 +984,13 @@ function buildTrailsAndEmbers() {
     const tLiveAttr = new BufferAttribute(render.trailLive, 3);
     tLiveAttr.setUsage(DynamicDrawUsage);
 
-    if (render.trailPoints) render.scene.remove(render.trailPoints);
+    if (render.trailPoints) {
+        render.scene.remove(render.trailPoints);
+        // Release the previous layer's GPU resources so repeated text/font changes do
+        // not leak geometries/materials until the next garbage collection.
+        render.trailPoints.geometry.dispose();
+        render.trailPoints.material.dispose();
+    }
     const tgeo = new BufferGeometry();
     tgeo.setAttribute('position', tPosAttr);
     tgeo.setAttribute('livePosition', tLiveAttr);
@@ -995,7 +1020,11 @@ function buildTrailsAndEmbers() {
     const eLifeAttr = new BufferAttribute(render.emberLife, 1);
     eLifeAttr.setUsage(DynamicDrawUsage);
 
-    if (render.emberPoints) render.scene.remove(render.emberPoints);
+    if (render.emberPoints) {
+        render.scene.remove(render.emberPoints);
+        render.emberPoints.geometry.dispose();
+        render.emberPoints.material.dispose();
+    }
     const egeo = new BufferGeometry();
     egeo.setAttribute('position', ePosAttr);
     egeo.setAttribute('aLife', eLifeAttr);
@@ -1018,6 +1047,12 @@ function updateTrails(kFactor) {
     if (!render.particles || !render.trailData) return;
     if (isMotionReduced && render.trailPoints) { render.trailPoints.visible = false; return; }
     if (render.trailPoints) render.trailPoints.visible = true;
+
+    // Skip the full-buffer chase when no fresh physics result moved the particles this
+    // frame (positions unchanged => trails have already converged). This avoids scanning
+    // and uploading both full-size trail attributes every single frame while idle.
+    if (!physics.positionsDirty) return;
+    physics.positionsDirty = false;
 
     const pos = render.particles.geometry.attributes.position.array;
     const tPos = render.trailData;
@@ -1504,16 +1539,22 @@ function setupUI() {
         });
     }
 
-    // Capture functionality ([1.4] safe with preserveDrawingBuffer: false because we run in the same tick)
+    // Capture functionality ([1.4] safe with preserveDrawingBuffer: false because we run in the same tick).
+    // Uses toBlob() instead of toDataURL() so PNG encoding runs off the main thread and
+    // we avoid allocating a large base64 string (lower peak memory, no UI freeze).
     if (captureBtn) {
         captureBtn.addEventListener('click', () => {
             render.renderer.render(render.scene, render.camera);
-            const dataURL = render.renderer.domElement.toDataURL('image/png');
-            const link = document.createElement('a');
-            const name = state.currentText.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-            link.download = `artz-sculpture-${name || 'kinetic'}.png`;
-            link.href = dataURL;
-            link.click();
+            render.renderer.domElement.toBlob((blob) => {
+                if (!blob) return;
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                const name = state.currentText.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                link.download = `artz-sculpture-${name || 'kinetic'}.png`;
+                link.href = url;
+                link.click();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            }, 'image/png');
         });
     }
 
@@ -1536,7 +1577,56 @@ function setupUI() {
 // ─────────────────────────────────────────────
 // Animation Loop
 // ─────────────────────────────────────────────
+// Terminate a broken worker and switch to the CPU fallback without freezing the
+// simulation. Unsticks any in-flight double-buffer slots that will never return.
+function teardownWorker() {
+    if (!physicsWorker) return;
+    try { physicsWorker.terminate(); } catch (_) { /* already dead */ }
+    physicsWorker = null;
+    physics.usingFallback = true;
+    for (const slot of physics.slots) slot.inFlight = false;
+    physics.sendQueue.length = 0;
+}
+
+// DPR caps per adaptive quality level (index 0 = lowest resolution / cheapest fill-rate).
+const QUALITY_DPR = [1.0, 1.25, 1.5, 2.0];
+let adaptiveQuality = { level: QUALITY_DPR.length - 1, slowStreak: 0, fastStreak: 0 };
+
+function applyQualityLevel(level) {
+    const dpr = Math.min(window.devicePixelRatio, QUALITY_DPR[level]);
+    render.renderer.setPixelRatio(dpr);
+    uniforms.uPixelRatio.value = dpr;
+}
+
+// React to sustained frame time with hysteresis: drop DPR after a run of slow frames,
+// restore it only after a long comfortable run, so resolution doesn't flutter.
+function updateAdaptiveQuality(frameMs) {
+    const aq = adaptiveQuality;
+    if (frameMs > 28) {
+        aq.slowStreak++;
+        aq.fastStreak = 0;
+        if (aq.slowStreak >= 30) {
+            aq.slowStreak = 0;
+            if (aq.level > 0) { aq.level--; applyQualityLevel(aq.level); }
+        }
+    } else if (frameMs < 16) {
+        aq.fastStreak++;
+        aq.slowStreak = 0;
+        const maxLevel = QUALITY_DPR.length - 1;
+        if (aq.fastStreak >= 120 && aq.level < maxLevel
+            && Math.min(window.devicePixelRatio, QUALITY_DPR[aq.level + 1]) > Math.min(window.devicePixelRatio, QUALITY_DPR[aq.level])) {
+            aq.fastStreak = 0;
+            aq.level++;
+            applyQualityLevel(aq.level);
+        }
+    } else {
+        aq.slowStreak = 0;
+        aq.fastStreak = 0;
+    }
+}
+
 function animate() {
+    const frameStart = performance.now();
     requestAnimationFrame(animate);
 
     const time = render.clock.getElapsedTime();
@@ -1778,12 +1868,17 @@ function animate() {
         }
         state.actualTravelRadius = Math.sqrt(fallbackMaxTravelSq);
         posAttr.needsUpdate = true;
+        physics.positionsDirty = true;
     }
 
     updateTrails();
     updateEmbers(dt);
 
     render.renderer.render(render.scene, camera);
+
+    // Adapt rendering resolution to sustained frame-time pressure (cheap, no particle
+    // rebuild required).
+    updateAdaptiveQuality(performance.now() - frameStart);
 }
 
 // ─────────────────────────────────────────────
@@ -1815,11 +1910,14 @@ async function init() {
     canvas.setAttribute('aria-label', 'Kinetic particle sculpture — interactive particle animation');
     document.body.appendChild(canvas);
 
-    // Initialize physics Web Worker
-    try {
-        physicsWorker = new Worker(new URL('./physics.worker.js', import.meta.url), {
-            type: 'module'
-        });
+    // Initialize physics Web Worker. `?noworker=1` forces the CPU fallback so the
+    // fallback path can be exercised by the browser test suite.
+    const disableWorkerForTest = new URLSearchParams(window.location.search).get('noworker') === '1';
+    if (!disableWorkerForTest) {
+        try {
+            physicsWorker = new Worker(new URL('./physics.worker.js', import.meta.url), {
+                type: 'module'
+            });
         physicsWorker.onmessage = function (e) {
             const { type, seq, posLive, springDisp, springVel, travelRadius } = e.data;
             if (type === 'update') {
@@ -1849,11 +1947,24 @@ async function init() {
                 if (posAttr && posAttr.array.length === posLive.length) {
                     posAttr.array.set(posLive);
                     posAttr.needsUpdate = true;
+                    physics.positionsDirty = true;
                 }
             }
         };
+        // Runtime worker failures must not leave the simulation frozen: tear the worker
+        // down and switch to the CPU fallback (main-thread arrays remain valid because
+        // they are never transferred to the worker).
+        physicsWorker.onerror = () => {
+            console.error('Physics worker error — switching to CPU fallback.');
+            teardownWorker();
+        };
+        physicsWorker.onmessageerror = () => {
+            console.error('Physics worker message error — switching to CPU fallback.');
+            teardownWorker();
+        };
     } catch (err) {
         console.error('Failed to initialize physics Web Worker:', err);
+    }
     }
 
     // Wait for font assets before rasterizing text
@@ -1958,5 +2069,24 @@ async function init() {
 
     animate();
 }
+
+// ─────────────────────────────────────────────
+// Test/Debug hook (used by the Playwright browser suite; harmless in production)
+// ─────────────────────────────────────────────
+window.__artzDebug = {
+    _render: () => render,
+    get particleCount() { return physics.posLive ? physics.posLive.length / 3 : 0; },
+    get usingWorker() { return !!physicsWorker; },
+    get geometryCount() {
+        return render.renderer ? render.renderer.info.memory.geometries : -1;
+    },
+    get textureCount() {
+        return render.renderer ? render.renderer.info.memory.textures : -1;
+    },
+    get renderCalls() {
+        return render.renderer ? render.renderer.info.render.calls : -1;
+    },
+    triggerExplosion,
+};
 
 init();
