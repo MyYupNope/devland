@@ -168,9 +168,65 @@ export function parseMarkdown(text) {
     }
   }
   
-  closeAllLists();
-  
-  const parsedHtml = sanitizeHtml(result.join('\n'));
+  let parsedHtml = sanitizeHtml(result.join('\n'));
+  parsedHtml = fixTellMeAboutYourselfPitches(parsedHtml);
   markdownCache.set(text, parsedHtml);
   return parsedHtml;
+}
+
+/**
+ * Transforms bullet-point list items under the "Tell Me About Yourself" pitches section
+ * into bold titles and paragraph text instead of <ul><li> list items.
+ */
+function fixTellMeAboutYourselfPitches(html) {
+  if (!html || !/Tell\s+Me\s+About\s+Yourself/i.test(html)) return html;
+
+  // Split HTML into blocks around heading tags (<h1..6>) or paragraph tags (<p>)
+  const blockRegex = /(<(?:h[1-6]|p)[^>]*>[\s\S]*?<\/(?:h[1-6]|p)>)/gi;
+  const parts = html.split(blockRegex);
+
+  let inTargetSection = false;
+
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (/^<(?:h[1-6]|p)/i.test(part)) {
+      if (/Tell\s+Me\s+About\s+Yourself/i.test(part)) {
+        inTargetSection = true;
+      } else if (/^<h[1-6]/i.test(part)) {
+        inTargetSection = false;
+      }
+    } else if (inTargetSection) {
+      parts[i] = part.replace(/<ul>([\s\S]*?)<\/ul>/gi, (match, ulContent) => {
+        const liRegex = /<li>([\s\S]*?)<\/li>/gi;
+        let resultHtml = '';
+        let liMatch;
+
+        while ((liMatch = liRegex.exec(ulContent)) !== null) {
+          const itemText = liMatch[1].trim();
+
+          // Match strong title at the start of the li item: <strong>Title:?</strong> Body
+          const strongMatch = itemText.match(/^<strong>([\s\S]*?)<\/strong>\s*:?\s*([\s\S]*)$/i);
+          if (strongMatch) {
+            let title = strongMatch[1].replace(/:\s*$/, '').trim();
+            let body = strongMatch[2].trim();
+
+            if (title) {
+              resultHtml += `<p><strong>${title}</strong></p>\n`;
+            }
+            if (body) {
+              resultHtml += `<p>${body}</p>\n`;
+            }
+          } else {
+            if (itemText) {
+              resultHtml += `<p>${itemText}</p>\n`;
+            }
+          }
+        }
+
+        return resultHtml || match;
+      });
+    }
+  }
+
+  return parts.join('');
 }
