@@ -3166,7 +3166,7 @@ a.topbar-nav-btn:hover svg {
   }
 
   .new-application-section form .btn-primary {
-    width: 100%;
+    width: auto;
   }
 }
 

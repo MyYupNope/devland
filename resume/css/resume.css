@@ -2172,6 +2172,7 @@ a {
   position: relative;
   overflow: hidden;
   padding-top: 120px !important;
+  margin-bottom: 60px;
 }
 
 :root.theme-dark .resume-hero {

@@ -566,6 +566,12 @@ export class ResumeApp {
         siteNav.classList.remove('scrolled');
       }
 
+      // When near the top, always keep "About" active
+      if (window.scrollY < window.innerHeight * 0.5) {
+        this._setActiveNavLink('about');
+        return;
+      }
+
       // Check if user has scrolled near bottom of page
       if ((window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 100)) {
         this._setActiveNavLink('contact');
@@ -575,9 +581,17 @@ export class ResumeApp {
     window.addEventListener('scroll', this.handleNavScroll, { passive: true });
     this.handleNavScroll();
 
+    // Set initial state: highlight "About" and hide nav brand on page load
+    this._setActiveNavLink('about');
+
     const sections = document.querySelectorAll('#about, #metrics, #pillars, #experience, #skills, #education, #contact');
     if ('IntersectionObserver' in window && sections.length > 0) {
       const sectionObserver = new IntersectionObserver((entries) => {
+        // When near the top of the page, always keep "About" active
+        if (window.scrollY < window.innerHeight * 0.5) {
+          this._setActiveNavLink('about');
+          return;
+        }
         if ((window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 100)) {
           this._setActiveNavLink('contact');
           return;
