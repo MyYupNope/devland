@@ -847,6 +847,11 @@ a {
   min-height: 140px;
 }
 
+/* Mobile detail blocks only render inside the vertical timeline list */
+.resume-timeline-node-details-mobile {
+  display: none;
+}
+
 .resume-timeline-detail-card {
   display: none !important;
 }
@@ -1595,14 +1600,20 @@ a {
     overflow: hidden;
     transition: max-height var(--rm-transition-slow) ease-out, margin-top var(--rm-transition) ease-out;
     margin-top: 0;
-    border-top: 1px dashed transparent;
   }
 
   .resume-timeline-node-item.active .resume-timeline-node-details-mobile {
-    max-height: 400px;
+    max-height: 2000px;
     margin-top: 12px;
-    padding-top: 10px;
-    border-top-color: rgba(255, 255, 255, 0.05);
+    background: var(--rm-bg-surface) !important;
+    border: none !important;
+    border-radius: 20px !important;
+  }
+
+  .resume-timeline-node-details-mobile .resume-timeline-detail-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 20px !important;
   }
 }
 

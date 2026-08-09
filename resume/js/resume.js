@@ -418,7 +418,10 @@ export class ResumeApp {
      -------------------------------------------------------------------------- */
   _initTimeline() {
     const nodes = document.querySelectorAll('.resume-timeline-node-item');
-    
+
+    // Mobile detail blocks are cloned from the desktop detail cards
+    this._createMobileTimelineDetails(nodes);
+
     // Add Click & Keydown listener to node dot to change active detail
     nodes.forEach(node => {
       const dot = node.querySelector('.resume-timeline-node-dot');
@@ -426,7 +429,10 @@ export class ResumeApp {
         dot.setAttribute('tabindex', '0');
         dot.setAttribute('role', 'button');
         const roleTitle = node.querySelector('.resume-timeline-node-title')?.textContent || 'role';
+        const detailId = `timeline-mobile-detail-${node.getAttribute('data-index')}`;
         dot.setAttribute('aria-label', `View experience details for ${roleTitle}`);
+        dot.setAttribute('aria-controls', detailId);
+        dot.setAttribute('aria-expanded', 'false');
 
         const selectNode = () => {
           const index = node.getAttribute('data-index');
@@ -463,15 +469,43 @@ export class ResumeApp {
     this._switchTimelineNode("0");
   }
 
+  _createMobileTimelineDetails(nodes) {
+    const detailCards = document.querySelectorAll('.resume-timeline-detail-card');
+
+    nodes.forEach(node => {
+      // Guard against duplicate generation if initialization runs again
+      if (node.querySelector('.resume-timeline-node-details-mobile')) return;
+
+      const index = node.getAttribute('data-index');
+      const detailCard = Array.from(detailCards).find(card => card.getAttribute('data-index') === index);
+      const grid = detailCard?.querySelector('.resume-timeline-detail-grid');
+      if (!grid) return;
+
+      const mobileDetails = document.createElement('div');
+      mobileDetails.className = 'resume-timeline-node-details-mobile';
+      mobileDetails.id = `timeline-mobile-detail-${index}`;
+      mobileDetails.setAttribute('data-index', index);
+      mobileDetails.setAttribute('aria-hidden', 'true');
+      mobileDetails.appendChild(grid.cloneNode(true));
+      node.appendChild(mobileDetails);
+    });
+  }
+
   _switchTimelineNode(index) {
     const nodes = document.querySelectorAll('.resume-timeline-node-item');
     const detailCards = document.querySelectorAll('.resume-timeline-detail-card');
     
     nodes.forEach(node => {
-      if (node.getAttribute('data-index') === index) {
-        node.classList.add('active');
-      } else {
-        node.classList.remove('active');
+      const isActive = node.getAttribute('data-index') === index;
+      node.classList.toggle('active', isActive);
+
+      const mobileDetails = node.querySelector('.resume-timeline-node-details-mobile');
+      const dot = node.querySelector('.resume-timeline-node-dot');
+      if (mobileDetails) {
+        mobileDetails.setAttribute('aria-hidden', String(!isActive));
+      }
+      if (dot) {
+        dot.setAttribute('aria-expanded', String(isActive));
       }
     });
     
