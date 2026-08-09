@@ -526,13 +526,18 @@ export class ResumeApp {
     bentoCards.forEach(card => {
       card.setAttribute('tabindex', '0');
       card.setAttribute('role', 'button');
+      card.setAttribute('aria-expanded', 'false');
 
       const selectBento = (e) => {
         if (e.target.closest('a') || e.target.closest('button')) return;
         const isSelected = card.classList.contains('selected');
-        bentoCards.forEach(c => c.classList.remove('selected'));
+        bentoCards.forEach(c => {
+          c.classList.remove('selected');
+          c.setAttribute('aria-expanded', 'false');
+        });
         if (!isSelected) {
           card.classList.add('selected');
+          card.setAttribute('aria-expanded', 'true');
         }
       };
 

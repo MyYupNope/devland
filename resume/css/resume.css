@@ -3504,6 +3504,23 @@ a {
   cursor: pointer !important;
 }
 
+/* Expand/collapse indicator for bento cards */
+.bento-card-expand-icon {
+  position: absolute !important;
+  top: 30px !important;
+  right: 30px !important;
+  z-index: 5 !important;
+  font-size: 0.9rem;
+  line-height: 1;
+  color: var(--card-accent);
+  pointer-events: none;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), color 0.5s;
+}
+
+.bento-card.selected .bento-card-expand-icon {
+  transform: rotate(180deg);
+}
+
 /* Selection State Styling for Bento Cards */
 :root:not(.theme-dark) .bento-card.selected {
   background: color-mix(in srgb, var(--card-accent) 8%, #ffffff) !important;
