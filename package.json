@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "deploy": "node deploy.js",
-    "deploy-interviewz": "node deploy.js"
+    "deploy-interviewz": "node deploy.js",
+    "serve": "node serve.js"
   }
 }
