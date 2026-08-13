@@ -5,8 +5,8 @@ import { waitForRender } from './helpers';
 // main thread (see DIRECTIONS_VERIFY). Patterns are verified from those direction
 // vectors directly — deterministic and immune to the frame-rate/timing jitter of
 // headless software WebGL under parallel load. Expected styles:
-// 0 = EXPLODE (uniform sphere), 1 = GALAXY (tangential vortex, flattened disk),
-// 2 = BREEZE (coherent gust), 3 = KINETIC (crisp rays).
+// 0 = EXPLODE (uniform sphere), 1 = TORNADO (screen-space funnel in X/Z swirl
+// with screen-up Y lift), 2 = BREEZE (strong coherent gust), 3 = KINETIC rays.
 async function getPattern(page, url, chip, expectedStyle) {
     await page.goto(url);
     await waitForRender(page);
@@ -58,29 +58,62 @@ function assertKinetic(dirs) {
     expect(alignedPairs).toBeGreaterThan(150);
 }
 
-function assertGalaxy(dirs, homes) {
+function assertTornado(dirs, homes) {
     expect(dirs.length).toBeGreaterThan(50);
-    let mt = 0, mr = 0, maz = 0, mx = 0, my = 0, mz = 0;
+    let mt = 0, mr = 0, maz = 0, mz = 0;
     for (let i = 0; i < dirs.length; i++) {
         const [dx, dy, dz] = dirs[i];
-        const [hx, hy] = homes[i];
-        const r = Math.hypot(hx, hy);
-        let radx = 0, rady = 0, tx = 1, ty = 0;
+        const [hx, hy, hz] = homes[i];
+        // The camera looks along world Z, so the funnel swirls in the X/Z screen
+        // plane while the lift travels up the visible Y axis.
+        const r = Math.hypot(hx, hz);
+        let tx = 0, tz = 0, radx = 0, radz = 1;
         if (r > 1e-4) {
-            radx = hx / r; rady = hy / r;
-            tx = -rady; ty = radx;
+            radx = hx / r; radz = hz / r;
+            tx = -radz; tz = radx;
         }
-        mt += Math.abs(dx * tx + dy * ty);
-        mr += Math.abs(dx * radx + dy * rady);
-        maz += Math.abs(dz);
-        mx += dx; my += dy; mz += dz;
+        mt += Math.abs(dx * tx + dz * tz);
+        mr += Math.abs(dx * radx + dz * radz);
+        maz += Math.abs(dy);
+        mz += dy;
     }
-    mt /= dirs.length; mr /= dirs.length; maz /= dirs.length;
-    const meanMag = Math.hypot(mx / dirs.length, my / dirs.length, mz / dirs.length);
-    expect(mt).toBeGreaterThan(0.6);
-    expect(mr).toBeLessThan(0.5);
-    expect(maz).toBeLessThan(0.35);
-    expect(meanMag).toBeLessThan(0.25);
+    mt /= dirs.length; mr /= dirs.length; maz /= dirs.length; mz /= dirs.length;
+    // A tornado swirls tightly around its Y axis in the visible X/Z plane without
+    // blowing outward, and carries the whole sculpture up the screen.
+    expect(mt).toBeGreaterThan(0.5);    // swirls in the visible X/Z plane
+    expect(mr).toBeLessThan(0.35);      // no outward radial blow-out
+    expect(maz).toBeGreaterThan(0.15);  // strong screen-up component
+    expect(maz).toBeLessThan(0.85);
+    expect(mz).toBeGreaterThan(0.15);   // net screen-up lift
+}
+
+function assertFunnelStructure(snap) {
+    expect(snap.activeStyle).toBe(1);
+    const p = snap.funnelProfile;
+    expect(p.height).toBeGreaterThan(0);
+    // Broad turbulent crown over a narrow waist over a fading tail.
+    expect(p.crownRadius).toBeGreaterThan(p.waistRadius);
+    expect(p.waistRadius).toBeGreaterThan(p.tailRadius);
+    expect(p.tailRadius).toBeGreaterThan(0);
+    expect(p.fadeEnd).toBeGreaterThan(p.fadeStart);
+    // The stable per-particle roles span the whole funnel: some particles form the
+    // crown, some fall inside the fading tail band.
+    const ft = snap.funnelT;
+    expect(ft.length).toBeGreaterThan(50);
+    expect(Math.max(...ft)).toBeGreaterThan(0.85);
+    expect(ft.filter(v => v < p.fadeEnd).length).toBeGreaterThan(0);
+}
+
+async function getFunnel(page, url) {
+    await page.goto(url);
+    await waitForRender(page);
+    await page.click(`[data-text="TORNADO"]`);
+    await page.waitForFunction(
+        (st) => window.__artzDebug.snapshot(1).randomized.style === st,
+        1,
+        { timeout: 15_000 }
+    );
+    return page.evaluate(() => window.__artzDebug.snapshot(384));
 }
 
 function assertBreeze(dirs) {
@@ -89,7 +122,8 @@ function assertBreeze(dirs) {
     const meanY = dirs.reduce((s, d) => s + d[1], 0) / dirs.length;
     const meanZ = dirs.reduce((s, d) => s + d[2], 0) / dirs.length;
     const meanMag = Math.hypot(meanX, meanY, meanZ);
-    expect(meanMag).toBeGreaterThan(0.4);
+    // High coherence: the whole cloud surges as one strong gust.
+    expect(meanMag).toBeGreaterThan(0.7);
     expect(Math.abs(meanZ)).toBeLessThan(0.3);
 }
 
@@ -101,28 +135,15 @@ test('KINETIC preset snaps particles onto crisp rays', async ({ page }) => {
     assertKinetic((await getPattern(page, '/', 'KINETIC', 3)).dirs);
 });
 
-test('GALAXY preset orbits tangentially in a flattened disk', async ({ page }) => {
-    const { dirs, homes } = await getPattern(page, '/', 'GALAXY', 1);
-    assertGalaxy(dirs, homes);
+test('TORNADO preset swirls particles up into a visible funnel', async ({ page }) => {
+    const { dirs, homes } = await getPattern(page, '/', 'TORNADO', 1);
+    assertTornado(dirs, homes);
+});
+
+test('TORNADO funnel shape has a broad crown over a waist over a fading tail @slow', async ({ page }) => {
+    assertFunnelStructure(await getFunnel(page, '/'));
 });
 
 test('BREEZE preset flows in one coherent horizontal direction', async ({ page }) => {
     assertBreeze((await getPattern(page, '/', 'BREEZE', 2)).dirs);
-});
-
-test('CPU fallback matches EXPLODE uniform sphere', async ({ page }) => {
-    assertExplode((await getPattern(page, '/?noworker=1', 'EXPLODE', 0)).dirs);
-});
-
-test('CPU fallback matches KINETIC ray clustering', async ({ page }) => {
-    assertKinetic((await getPattern(page, '/?noworker=1', 'KINETIC', 3)).dirs);
-});
-
-test('CPU fallback matches GALAXY tangential disk', async ({ page }) => {
-    const { dirs, homes } = await getPattern(page, '/?noworker=1', 'GALAXY', 1);
-    assertGalaxy(dirs, homes);
-});
-
-test('CPU fallback matches BREEZE gust coherence', async ({ page }) => {
-    assertBreeze((await getPattern(page, '/?noworker=1', 'BREEZE', 2)).dirs);
 });

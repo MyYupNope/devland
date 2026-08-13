@@ -5,7 +5,6 @@
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --accent: #6366f1;
-    --accent-hover: #4f46e5;
     --accent-glow: rgba(99, 102, 241, 0.25);
     --danger: #ef4444;
     --danger-glow: rgba(239, 68, 68, 0.2);
@@ -68,13 +67,27 @@ canvas {
                 inset 0 1px 1px rgba(255, 255, 255, 0.15);
 }
 
-/* Row of controls */
+/* Rows and sections of controls */
 .control-row {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
+}
+
+.control-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.control-section h2 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.8px;
 }
 
 .control-group {
@@ -85,10 +98,9 @@ canvas {
     min-width: 140px;
 }
 
-/* Make message group larger */
-.control-group:first-child {
-    flex: 2;
-    min-width: 200px;
+#appearance-row .control-group {
+    flex: 1;
+    min-width: 140px;
 }
 
 label {
@@ -124,6 +136,96 @@ input[type="text"]:focus {
     border-color: var(--accent);
     background: rgba(255, 255, 255, 0.08);
     box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.message-options {
+    display: flex;
+    gap: 6px;
+}
+
+.message-option {
+    flex: 1;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-secondary);
+    padding: 8px 10px;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.message-option:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.message-option.active {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 0 14px var(--accent-glow);
+}
+
+.message-mode {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.message-mode[hidden] {
+    display: none;
+}
+
+.image-upload-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+#image-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.image-upload-button {
+    flex: 0 0 auto;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.image-upload-button:hover {
+    border-color: var(--accent);
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.image-upload-button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.field-hint {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 #char-counter {
@@ -209,12 +311,15 @@ select option {
 }
 
 /* Presets Row */
+#animations-section {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 14px;
+}
+
 #presets-row {
     display: flex;
     align-items: center;
     gap: 10px;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    padding-top: 12px;
     flex-wrap: wrap;
 }
 
@@ -388,6 +493,10 @@ select option {
         gap: 6px;
     }
 
+    #appearance-row {
+        gap: 10px;
+    }
+
     #emoji-row {
         flex-wrap: nowrap;
         overflow-x: auto;
@@ -414,8 +523,10 @@ select option {
 
 /* Accessibility Focus States */
 #capture-btn:focus-visible,
+.message-option:focus-visible,
 .preset-chip:focus-visible,
 .emoji-chip:focus-visible,
+#image-input:focus-visible,
 input[type="text"]:focus-visible,
 select:focus-visible {
     outline: 2px solid var(--accent);

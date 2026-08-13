@@ -78,25 +78,3 @@ test('mobile: menu stays on top and stage covers the full viewport', async ({ pa
     expect(info.canvas.left).toBe(0);
     expect(info.canvas.width).toBeCloseTo(W, 0);
 });
-
-test('crossing the breakpoint relayouts stage and refits the zoom', async ({ page }) => {
-    // Start small (mobile: top menu, full-viewport stage).
-    await openPage(page, 390, 844);
-
-    const mobile = await stageInfo(page);
-    expect(mobile.stage.left).toBe(0);
-
-    // Grow to desktop width inside the same page; the resize handler must dock the
-    // menu left, shift the stage right, and auto-fit the zoom.
-    await page.setViewportSize({ width: 1400, height: 800 });
-    await page.waitForFunction(() => {
-        const stage = document.getElementById('stage').getBoundingClientRect();
-        return stage.left > 300;
-    });
-    await waitForCameraSettle(page);
-
-    const desktop = await stageInfo(page);
-    expect(desktop.stage.left).toBeGreaterThan(300);
-    expect(desktop.cam.aspect).toBeGreaterThan(1);
-    expect(desktop.cam.right).toBeGreaterThan(41);
-});

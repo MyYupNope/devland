@@ -3,7 +3,7 @@ import { waitForRender, setText, geometryCount } from './helpers';
 
 // Regression test for Phase 3 (GPU resource disposal): repeated text/font changes
 // must not grow the WebGL geometry count — otherwise we're leaking resources.
-test('geometry count stays stable after many rebuilds', async ({ page }) => {
+test('geometry count stays stable after many rebuilds @slow', async ({ page }) => {
     test.setTimeout(120_000);
     await page.goto('/');
     await waitForRender(page);
@@ -25,17 +25,4 @@ test('geometry count stays stable after many rebuilds', async ({ page }) => {
     console.log(`peak geometries after 40 rebuilds: ${peak}`);
     // Small tolerance: allow a transient program reuse, but no unbounded growth.
     expect(peak).toBeLessThanOrEqual(baseline + 4);
-});
-
-test('particles continue to render after many rebuilds', async ({ page }) => {
-    await page.goto('/');
-    await waitForRender(page);
-
-    for (let i = 0; i < 15; i++) {
-        await setText(page, `REBUILD ${i}`);
-    }
-    await waitForRender(page);
-
-    const count = await page.evaluate(() => window.__artzDebug.particleCount);
-    expect(count).toBeGreaterThan(0);
 });

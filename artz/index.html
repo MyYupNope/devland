@@ -32,15 +32,58 @@
 <body>
     <!-- [2.1 / 5.3] Fully Expanded Control Panel -->
     <div id="control-panel">
-        <div class="control-row">
-            <div class="control-group">
-                <label for="text-input">Message</label>
+        <section id="message-section" class="control-section" aria-labelledby="message-heading">
+            <h2 id="message-heading">MESSAGE</h2>
+            <div class="message-options" role="tablist" aria-label="Message type">
+                <button type="button" class="message-option active" data-message-mode="text" role="tab"
+                    aria-selected="true" aria-controls="text-message-mode">Text</button>
+                <button type="button" class="message-option" data-message-mode="image" role="tab"
+                    aria-selected="false" aria-controls="image-message-mode">Image</button>
+            </div>
+
+            <div id="text-message-mode" class="message-mode" role="tabpanel">
+                <label for="text-input">Text</label>
                 <div class="input-wrapper">
                     <input type="text" id="text-input" value="Bring your message!" maxlength="25" autocomplete="off">
                     <span id="char-counter">0/25</span>
                 </div>
+
+                <div id="emoji-row" aria-label="Emoji message options">
+                    <span class="presets-label">Emojis:</span>
+                    <button class="emoji-chip" data-emoji="😀" title="😀 Grinning Face">😀</button>
+                    <button class="emoji-chip" data-emoji="😂" title="😂 Tears of Joy">😂</button>
+                    <button class="emoji-chip" data-emoji="😍" title="😍 Heart Eyes">😍</button>
+                    <button class="emoji-chip" data-emoji="🥰" title="🥰 Smiling with Hearts">🥰</button>
+                    <button class="emoji-chip" data-emoji="😎" title="😎 Cool Shades">😎</button>
+                    <button class="emoji-chip" data-emoji="🤔" title="🤔 Thinking Face">🤔</button>
+                    <button class="emoji-chip" data-emoji="😭" title="😭 Loudly Crying">😭</button>
+                    <button class="emoji-chip" data-emoji="😡" title="😡 Angry Face">😡</button>
+                    <button class="emoji-chip" data-emoji="😱" title="😱 Screaming">😱</button>
+                    <button class="emoji-chip" data-emoji="🥳" title="🥳 Partying">🥳</button>
+                    <button class="emoji-chip" data-emoji="👍" title="👍 Thumbs Up">👍</button>
+                    <button class="emoji-chip" data-emoji="👎" title="👎 Thumbs Down">👎</button>
+                    <button class="emoji-chip" data-emoji="👏" title="👏 Clapping">👏</button>
+                    <button class="emoji-chip" data-emoji="🙏" title="🙏 Folded Hands">🙏</button>
+                    <button class="emoji-chip" data-emoji="👌" title="👌 OK Hand">👌</button>
+                    <button class="emoji-chip" data-emoji="💪" title="💪 Flexed Biceps">💪</button>
+                    <button class="emoji-chip" data-emoji="❤️" title="❤️ Red Heart">❤️</button>
+                    <button class="emoji-chip" data-emoji="🔥" title="🔥 Fire">🔥</button>
+                    <button class="emoji-chip" data-emoji="✨" title="✨ Sparkles">✨</button>
+                    <button class="emoji-chip" data-emoji="🎉" title="🎉 Party Popper">🎉</button>
+                </div>
             </div>
 
+            <div id="image-message-mode" class="message-mode" role="tabpanel" hidden>
+                <label for="image-input">Image</label>
+                <div class="image-upload-row">
+                    <label class="image-upload-button" for="image-input">Choose File</label>
+                    <input type="file" id="image-input" accept="image/*">
+                    <span id="image-name" class="field-hint">No file chosen</span>
+                </div>
+            </div>
+        </section>
+
+        <div id="appearance-row" class="control-row">
             <div class="control-group">
                 <label for="theme-select">Theme</label>
                 <select id="theme-select">
@@ -63,37 +106,15 @@
             </div>
         </div>
 
-        <div id="emoji-row" aria-label="Emoji message options">
-            <span class="presets-label">Emojis:</span>
-            <button class="emoji-chip" data-emoji="😀" title="😀 Grinning Face">😀</button>
-            <button class="emoji-chip" data-emoji="😂" title="😂 Tears of Joy">😂</button>
-            <button class="emoji-chip" data-emoji="😍" title="😍 Heart Eyes">😍</button>
-            <button class="emoji-chip" data-emoji="🥰" title="🥰 Smiling with Hearts">🥰</button>
-            <button class="emoji-chip" data-emoji="😎" title="😎 Cool Shades">😎</button>
-            <button class="emoji-chip" data-emoji="🤔" title="🤔 Thinking Face">🤔</button>
-            <button class="emoji-chip" data-emoji="😭" title="😭 Loudly Crying">😭</button>
-            <button class="emoji-chip" data-emoji="😡" title="😡 Angry Face">😡</button>
-            <button class="emoji-chip" data-emoji="😱" title="😱 Screaming">😱</button>
-            <button class="emoji-chip" data-emoji="🥳" title="🥳 Partying">🥳</button>
-            <button class="emoji-chip" data-emoji="👍" title="👍 Thumbs Up">👍</button>
-            <button class="emoji-chip" data-emoji="👎" title="👎 Thumbs Down">👎</button>
-            <button class="emoji-chip" data-emoji="👏" title="👏 Clapping">👏</button>
-            <button class="emoji-chip" data-emoji="🙏" title="🙏 Folded Hands">🙏</button>
-            <button class="emoji-chip" data-emoji="👌" title="👌 OK Hand">👌</button>
-            <button class="emoji-chip" data-emoji="💪" title="💪 Flexed Biceps">💪</button>
-            <button class="emoji-chip" data-emoji="❤️" title="❤️ Red Heart">❤️</button>
-            <button class="emoji-chip" data-emoji="🔥" title="🔥 Fire">🔥</button>
-            <button class="emoji-chip" data-emoji="✨" title="✨ Sparkles">✨</button>
-            <button class="emoji-chip" data-emoji="🎉" title="🎉 Party Popper">🎉</button>
-        </div>
-
-        <div id="presets-row">
-            <span class="presets-label">Animations:</span>
-            <button class="preset-chip" data-text="KINETIC">Kinetic</button>
-            <button class="preset-chip" data-text="GALAXY">Galaxy</button>
-            <button class="preset-chip" data-text="BREEZE">Breeze</button>
-            <button class="preset-chip" data-text="EXPLODE">Explode</button>
-        </div>
+        <section id="animations-section" class="control-section" aria-labelledby="animations-heading">
+            <h2 id="animations-heading">ANIMATIONS</h2>
+            <div id="presets-row">
+                <button class="preset-chip" data-text="KINETIC">Kinetic</button>
+                <button class="preset-chip" data-text="TORNADO">Tornado</button>
+                <button class="preset-chip" data-text="BREEZE">Breeze</button>
+                <button class="preset-chip" data-text="EXPLODE">Explode</button>
+            </div>
+        </section>
 
         <button id="capture-btn" title="Capture Screenshot">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"

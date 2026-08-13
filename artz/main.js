@@ -65,6 +65,21 @@ const CONFIG = {
     emojiPointSize: 1.6,      // sprite base size covering interior sample cells
     emojiMotionMix: 0.35,     // how much of the explosion heat palette blends into emoji colors
 
+    // Uploaded image MESSAGE options. Images are contained in a square raster so
+    // their aspect ratio is preserved while the largest dimension fits the stage.
+    imageRasterSize: 320,
+    imagePixelStep: 2,
+    imageAlphaThreshold: 16,
+    imageJitterXY: 0.03,
+    imageJitterZ: 0.6,
+imageDepthCue: 0.06,
+    imagePointSize: 1.2,
+    // Initial image framing: keep a fair distance from the left menu side and the
+    // bottom instructions overlay (pixels of cleared stage each side). Uniform
+    // camera distance means the image's aspect ratio is never distorted.
+    imageFitPadX: 120,
+    imageFitPadY: 120,
+
     // Particles
     density: 8,
     jitterXY: 0.08,
@@ -84,8 +99,6 @@ const CONFIG = {
     // maxContractionVelocity: recovery duration = distance / velocity, so bigger
     // explosions take proportionally longer to recover (world units per second).
     maxContractionVelocity: 7,
-    contractionDurationMin: 0.8,
-    contractionDurationMax: 10,
     contractionDurationFloor: 0.3,
     afterglowDuration: 0.2,
 
@@ -138,12 +151,10 @@ const CONFIG = {
     },
 
     // Unique preset configurations for custom particle physics and Web Audio properties.
-    // Pattern styles: 0 = uniform sphere (Explode), 1 = tangential vortex (Galaxy),
-    // 2 = coherent wind gust (Breeze), 3 = crisp starburst rays (Kinetic).
+    // Pattern styles: 0 = uniform sphere (Explode), 1 = screen-space funnel
+    // (Tornado), 2 = coherent wind gust (Breeze), 3 = crisp starburst rays (Kinetic).
     presets: {
         KINETIC: {
-            theme: 'neon',
-            font: 'Fira Code',
             expansionDuration: 1.1,
             contractionDuration: 1.8,
             explosionMaxDistMultiplier: 25.0,
@@ -161,15 +172,21 @@ const CONFIG = {
             soundDuration: 0.9,
             soundType: 'sawtooth'
         },
-        GALAXY: {
-            theme: 'arctic',
-            font: 'Outfit',
+        TORNADO: {
             expansionDuration: 3.5,
             contractionDuration: 6.0,
             explosionMaxDistMultiplier: 12.0,
-            motionStyle: 1, // tangential vortex
-            spinSpeed: 2.0,
-            diskFlatten: 0.25,
+            motionStyle: 1, // tornado: morph into a visible vertical funnel
+            spinSpeed: 2.4,
+            funnelHeight: 38,
+            funnelBottom: -19,
+            funnelCrownRadius: 10.5,
+            funnelWaistRadius: 2.2,
+            funnelTailRadius: 0.55,
+            funnelWaistT: 0.42,
+            funnelCrownT: 0.78,
+            funnelFadeStart: 0.03,
+            funnelFadeEnd: 0.30,
             trailStrength: 0.35,
             heat: {
                 cold: [0.05, 0.15, 0.55],
@@ -182,15 +199,17 @@ const CONFIG = {
             soundType: 'sine'
         },
         BREEZE: {
-            theme: 'sakura',
-            font: 'Pacifico',
             expansionDuration: 4.0,
             contractionDuration: 5.0,
-            explosionMaxDistMultiplier: 6.5,
-            motionStyle: 2, // coherent wind gust
-            gustCoherence: 0.75,
-            swayAmp: 0.35,
+            explosionMaxDistMultiplier: 11.0,
+            motionStyle: 2, // strong coherent wind gust
+            gustCoherence: 0.9,
+            swayAmp: 0.5,
             swayFreq: 0.5,
+            gustAmp: 0.35,
+            gustFreq: 2.2,
+            windDrift: 4.0,
+            turbulence: 0.12,
             trailStrength: 0.08,
             heat: {
                 cold: [0.05, 0.35, 0.2],
@@ -203,8 +222,6 @@ const CONFIG = {
             soundType: 'triangle'
         },
         EXPLODE: {
-            theme: 'ember',
-            font: 'Playfair Display',
             expansionDuration: 1.1,
             contractionDuration: 3.8,
             explosionMaxDistMultiplier: 36.0,
@@ -228,10 +245,22 @@ const CONFIG = {
             spokes: 12,
             spokeJitter: 0.03,
             spinSpeed: 0,
-            diskFlatten: 0,
+            funnelHeight: 0,
+            funnelBottom: 0,
+            funnelCrownRadius: 0,
+            funnelWaistRadius: 0,
+            funnelTailRadius: 0,
+            funnelWaistT: 0,
+            funnelCrownT: 0,
+            funnelFadeStart: 0,
+            funnelFadeEnd: 0,
             gustCoherence: 0,
             swayAmp: 0,
             swayFreq: 0,
+            gustAmp: 0,
+            gustFreq: 0,
+            windDrift: 0,
+            turbulence: 0,
             trailStrength: 0.25,
             heat: {
                 cold: [0.1, 0.4, 1.0],
@@ -266,6 +295,10 @@ const DIRECTIONS_VERIFY = 384;
 // Tracks the actual travel radius in the CPU-fallback path (worker path uses its own).
 let fallbackMaxTravelSq = 0;
 
+// Shared gust direction for the current Breeze blast, reused each frame for the
+// wind follow-through drift. Set when style 2 directions are generated.
+let activeGustX = 1, activeGustY = 0;
+
 // ─────────────────────────────────────────────
 // Shaders
 // ─────────────────────────────────────────────
@@ -279,13 +312,14 @@ uniform float uDepthCue;
 uniform vec3 uColorHot;
 uniform vec3 uColorWarm;
 uniform vec3 uColorCold;
-uniform float uExplosionProgress;
 uniform float uExplosionActive;
+uniform float uTornadoActive;
+uniform float uTornadoFadeStart;
+uniform float uTornadoFadeEnd;
 uniform float uHeatDistance;
 uniform vec3 uHeatCold;
 uniform vec3 uHeatWarm;
 uniform vec3 uHeatHot;
-uniform float uAudioBass;
 uniform float uAudioMid;
 uniform float uAudioHigh;
 uniform float uAudioEnvelope;
@@ -295,9 +329,11 @@ uniform float uEmojiMotionMix;
 attribute vec3 homePosition;
 attribute vec4 sourceColor;
 attribute float sampleSize;
+attribute float funnelT;
 
 varying vec3 vColor;
 varying float vCoverage;
+varying float vTornadoFade;
 
 void main() {
     // Smooth heatmap based on mouse proximity and dynamic colors (used while idle).
@@ -338,7 +374,13 @@ void main() {
     float depthCue = 1.0 + uDepthCue * homePosition.z;
     vColor *= depthCue;
 
-    vCoverage = sourceColor.a;
+vCoverage = sourceColor.a;
+    // Safe fade for the funnel tail: clamped instead of smoothstep so equal uniform
+    // edges (non-Tornado presets) can never produce undefined values that poison alpha.
+    float funnelFade = clamp(
+        (funnelT - uTornadoFadeStart) / max(uTornadoFadeEnd - uTornadoFadeStart, 1e-4),
+        0.0, 1.0);
+    vTornadoFade = mix(1.0, 0.14 + 0.86 * funnelFade, uTornadoActive);
 
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mvPosition;
@@ -352,6 +394,7 @@ void main() {
     // Hotter (more displaced) particles grow slightly to emphasize the leading edge;
     // high-frequency audio sparkle also nudges size up.
     gl_PointSize *= (1.0 + 0.5 * heat * uExplosionActive + 0.2 * uAudioHigh);
+    gl_PointSize *= mix(1.0, 0.76 + 0.24 * funnelFade, uTornadoActive);
 }
 `;
 
@@ -359,6 +402,7 @@ const fragmentShader = `
 uniform float uEmojiMode;
 varying vec3 vColor;
 varying float vCoverage;
+varying float vTornadoFade;
 
 void main() {
     // Soft circular falloff so points look smooth without MSAA (antialias: false).
@@ -369,6 +413,7 @@ void main() {
     // Emoji particles fade with their source coverage, keeping anti-aliased glyph
     // edges soft; text particles stay fully opaque as before.
     alpha *= mix(1.0, vCoverage, uEmojiMode);
+    alpha *= vTornadoFade;
     gl_FragColor = vec4(vColor, alpha);
 }
 `;
@@ -380,17 +425,20 @@ uniform vec3 uHeatCold;
 uniform vec3 uHeatWarm;
 uniform vec3 uHeatHot;
 uniform float uHeatDistance;
-uniform float uPointSize;
 uniform float uPointSizeTrail;
 uniform float uPixelRatio;
 uniform float uPointScale;
-uniform float uTrailStrength;
+uniform float uTornadoActive;
+uniform float uTornadoFadeStart;
+uniform float uTornadoFadeEnd;
 
 attribute vec3 homePosition;
 attribute vec3 livePosition;
+attribute float funnelT;
 
 varying vec3 vColor;
 varying float vSpeed;
+varying float vTornadoFade;
 
 void main() {
     float movement = length(position - homePosition);
@@ -399,8 +447,12 @@ void main() {
         ? mix(uHeatCold, uHeatWarm, heat * 2.0)
         : mix(uHeatWarm, uHeatHot, (heat - 0.5) * 2.0);
 
-    vSpeed = clamp(length(livePosition - position) / uHeatDistance, 0.0, 1.0);
+vSpeed = clamp(length(livePosition - position) / uHeatDistance, 0.0, 1.0);
     vColor = heatMap;
+    float funnelFade = clamp(
+        (funnelT - uTornadoFadeStart) / max(uTornadoFadeEnd - uTornadoFadeStart, 1e-4),
+        0.0, 1.0);
+    vTornadoFade = mix(1.0, 0.14 + 0.86 * funnelFade, uTornadoActive);
 
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mv;
@@ -412,12 +464,14 @@ const trailFragmentShader = `
 uniform float uTrailStrength;
 varying vec3 vColor;
 varying float vSpeed;
+varying float vTornadoFade;
 
 void main() {
     vec2 cxy = 2.0 * gl_PointCoord - 1.0;
     float r = dot(cxy, cxy);
     if (r > 1.0) discard;
     float alpha = (1.0 - smoothstep(0.0, 1.0, r)) * vSpeed * vSpeed * uTrailStrength;
+    alpha *= vTornadoFade;
     gl_FragColor = vec4(vColor, alpha);
 }
 `;
@@ -455,6 +509,9 @@ const state = {
     currentText: 'Bring your message!',
     currentTheme: 'ember',
     currentFont: 'Outfit',
+    messageMode: 'text',
+    activeImage: null,
+    imageName: '',
     activePreset: null,  // Tracks which preset chip is currently selected
     activeEmoji: null,   // Set when an emoji is picked from the list; cleared by typing
 
@@ -477,13 +534,25 @@ const state = {
     // Per-preset explosion pattern tuning (used by generation + the time-dependent
     // spin/sway applied in both physics paths).
     pattern: {
-        spokes: CONFIG.presets.DEFAULT.spokes,
-        spokeJitter: CONFIG.presets.DEFAULT.spokeJitter,
-        spinSpeed: CONFIG.presets.DEFAULT.spinSpeed,
-        diskFlatten: CONFIG.presets.DEFAULT.diskFlatten,
+        spokes:       CONFIG.presets.DEFAULT.spokes,
+        spokeJitter:  CONFIG.presets.DEFAULT.spokeJitter,
+        spinSpeed:    CONFIG.presets.DEFAULT.spinSpeed,
+        funnelHeight: CONFIG.presets.DEFAULT.funnelHeight,
+        funnelBottom: CONFIG.presets.DEFAULT.funnelBottom,
+        funnelCrownRadius: CONFIG.presets.DEFAULT.funnelCrownRadius,
+        funnelWaistRadius: CONFIG.presets.DEFAULT.funnelWaistRadius,
+        funnelTailRadius: CONFIG.presets.DEFAULT.funnelTailRadius,
+        funnelWaistT: CONFIG.presets.DEFAULT.funnelWaistT,
+        funnelCrownT: CONFIG.presets.DEFAULT.funnelCrownT,
+        funnelFadeStart: CONFIG.presets.DEFAULT.funnelFadeStart,
+        funnelFadeEnd: CONFIG.presets.DEFAULT.funnelFadeEnd,
         gustCoherence: CONFIG.presets.DEFAULT.gustCoherence,
-        swayAmp: CONFIG.presets.DEFAULT.swayAmp,
-        swayFreq: CONFIG.presets.DEFAULT.swayFreq
+        swayAmp:      CONFIG.presets.DEFAULT.swayAmp,
+        swayFreq:     CONFIG.presets.DEFAULT.swayFreq,
+        gustAmp:      CONFIG.presets.DEFAULT.gustAmp,
+        gustFreq:     CONFIG.presets.DEFAULT.gustFreq,
+        windDrift:    CONFIG.presets.DEFAULT.windDrift,
+        turbulence:   CONFIG.presets.DEFAULT.turbulence
     },
     heatCold: [0.1, 0.4, 1.0],
     heatWarm: [1.0, 1.0, 0.1],
@@ -531,6 +600,10 @@ const physics = {
     springVel: null,    // Spring velocity
     randomDir: null,    // Explosion direction per particle
     randomSpeed: null,  // Explosion speed per particle
+    funnelT: null,      // Stable vertical role for the Tornado funnel
+    funnelRadialX: null, // Stable radial role in the screen/depth XZ plane
+    funnelRadialZ: null,
+    activeStyle: -1,    // Actual style selected for the current blast
     slots: [],          // Double-buffered working sets transferred to the worker
     sendQueue: [],      // FIFO of slots currently in flight at the worker
     seq: 0,             // Monotonic token echoed by the worker to pair replies
@@ -538,7 +611,6 @@ const physics = {
     motionToken: 0,     // Reject worker results from an older blast/recovery phase
     explosionStartTime: -1,
     positionsDirty: false, // true when a fresh worker result (or fallback step) moved particles
-    usingFallback: false,  // true when the CPU fallback replaces a dead/unavailable worker
     randomized: null,      // { dirs, style } echo of the active blast's generated directions
 };
 
@@ -579,8 +651,10 @@ const uniforms = {
     uColorHot: { value: new Vector3(1.0, 0.0, 0.0) },
     uColorWarm: { value: new Vector3(1.0, 1.0, 0.0) },
     uColorCold: { value: new Vector3(1.0, 1.0, 1.0) },
-    uExplosionProgress: { value: 0.0 },
     uExplosionActive: { value: 0.0 },
+    uTornadoActive: { value: 0.0 },
+    uTornadoFadeStart: { value: 0.03 },
+    uTornadoFadeEnd: { value: 0.30 },
     // Fixed motion-heat distance for every preset (red = 1/3 screen height at rest).
     uHeatDistance: { value: CONFIG.heatDistance },
     // Per-preset motion heatmap (cold = far, mid = mid, hot = leading edge).
@@ -589,7 +663,6 @@ const uniforms = {
     uHeatWarm: { value: new Vector3(1.0, 1.0, 0.1) },
     uHeatHot: { value: new Vector3(1.0, 0.1, 0.1) },
     // Audio-reactive energy bands (from the shared analyser).
-    uAudioBass: { value: 0.0 },
     uAudioMid: { value: 0.0 },
     uAudioHigh: { value: 0.0 },
     uAudioEnvelope: { value: 0.0 },
@@ -696,7 +769,6 @@ function updateAudioReactive() {
     const mid  = band(0.25, 0.55);
     const high = band(0.55, 0.92);
     // Smooth each band toward its target.
-    uniforms.uAudioBass.value += (bass - uniforms.uAudioBass.value) * 0.5;
     uniforms.uAudioMid.value  += (mid  - uniforms.uAudioMid.value)  * 0.5;
     uniforms.uAudioHigh.value += (high - uniforms.uAudioHigh.value) * 0.5;
     const env = Math.min(1, bass * 1.3 + mid * 0.5 + high * 0.6);
@@ -939,6 +1011,96 @@ function sampleTextPoints(text) {
 }
 
 // ─────────────────────────────────────────────
+// Uploaded Image Rasterization
+// ─────────────────────────────────────────────
+let imageCanvas = null;
+let imageCtx = null;
+
+function sampleImagePoints(image) {
+    if (!image) return null;
+    const sourceWidth = image.naturalWidth || image.width;
+    const sourceHeight = image.naturalHeight || image.height;
+    if (!sourceWidth || !sourceHeight) return null;
+
+    if (!imageCanvas) {
+        imageCanvas = document.createElement('canvas');
+        imageCtx = imageCanvas.getContext('2d', { willReadFrequently: true });
+    }
+
+    const size = CONFIG.imageRasterSize;
+    const canvas = imageCanvas;
+    const ctx = imageCtx;
+    canvas.width = size;
+    canvas.height = size;
+    ctx.clearRect(0, 0, size, size);
+    ctx.imageSmoothingEnabled = true;
+
+    const padding = Math.round(size * 0.04);
+    const drawScale = Math.min(
+        (size - padding * 2) / sourceWidth,
+        (size - padding * 2) / sourceHeight
+    );
+    const drawWidth = Math.max(1, Math.round(sourceWidth * drawScale));
+    const drawHeight = Math.max(1, Math.round(sourceHeight * drawScale));
+    const drawX = Math.round((size - drawWidth) / 2);
+    const drawY = Math.round((size - drawHeight) / 2);
+    ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+
+    const imgData = ctx.getImageData(0, 0, size, size).data;
+    const step = CONFIG.imagePixelStep;
+    const alphaThreshold = CONFIG.imageAlphaThreshold;
+    const points = [];
+    const colors = [];
+    const covers = [];
+    const sizes = [];
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
+
+    for (let y = 0; y < size; y += step) {
+        for (let x = 0; x < size; x += step) {
+            const i = (y * size + x) * 4;
+            const alpha = imgData[i + 3];
+            if (alpha <= alphaThreshold) continue;
+
+            points.push(x, y);
+            colors.push(imgData[i], imgData[i + 1], imgData[i + 2]);
+            covers.push(alpha);
+            sizes.push(step);
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+        }
+    }
+
+    if (points.length === 0) return null;
+
+    const sourceWidthPx = Math.max(maxX - minX, 1);
+    const sourceHeightPx = Math.max(maxY - minY, 1);
+    const scale = CONFIG.targetWorldWidth / Math.max(sourceWidthPx, sourceHeightPx);
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    const flat = new Float32Array((points.length / 2) * 3);
+    let fi = 0;
+    for (let i = 0; i < points.length; i += 2) {
+        flat[fi++] = (points[i] - cx) * scale;
+        flat[fi++] = (cy - points[i + 1]) * scale;
+        flat[fi++] = 0;
+    }
+
+    return {
+        flat,
+        colors: new Uint8Array(colors),
+        covers: new Uint8Array(covers),
+        sizes: new Uint8Array(sizes),
+        // Image samples have no separate feature pass; CPU fallback reduction
+        // keeps a regular stride over the full raster.
+        featureCount: 0,
+        bounds: { w: sourceWidthPx, h: sourceHeightPx }
+    };
+}
+
+// ─────────────────────────────────────────────
 // Emoji Rasterization (high-detail two-pass sampling)
 // ─────────────────────────────────────────────
 let emojiCanvas = null;
@@ -1117,42 +1279,49 @@ async function setupParticles(text, shouldScatter = false) {
         oldLive = pa ? pa.array : null;
     }
 
-    // Emojis picked from the list render through the high-detail emoji rasterizer;
-    // anything typed (or loaded) as regular text keeps the standard text path.
-    const isEmojiMessage = state.activeEmoji === text && CONFIG.emojiOptions.includes(text);
+    // Emojis picked from the list and uploaded images use their source pixels;
+    // anything typed or loaded as regular text keeps the standard text path.
+    const isEmojiMessage = state.messageMode === 'text'
+        && state.activeEmoji === text
+        && CONFIG.emojiOptions.includes(text);
+    const isImageMessage = state.messageMode === 'image' && !!state.activeImage;
     const emojiData = isEmojiMessage ? sampleEmojiPoints(text) : null;
-    const points = emojiData ? emojiData.flat : sampleTextPoints(text);
+    const imageData = isImageMessage ? sampleImagePoints(state.activeImage) : null;
+    const sourceData = emojiData || imageData;
+    const isSourceMessage = !!sourceData;
+    const points = sourceData ? sourceData.flat : (isImageMessage ? null : sampleTextPoints(text));
     if (!points) {
-        showToast('Text must contain at least one visible character!');
+        showToast(isImageMessage ? 'The image has no visible pixels!' : 'Text must contain at least one visible character!');
         return;
     }
 
-    // One particle per sampled cell for emojis (max recognizable detail under the
-    // particle cap) instead of the text path's density-clone stacking.
+    // One particle per sampled cell for source images (max recognizable detail under
+    // the particle cap) instead of the text path's density-clone stacking.
     const { jitterXY, jitterZ, explosionSpeedMin, explosionSpeedRange } = CONFIG;
-    const density = isEmojiMessage ? CONFIG.emojiDensityOverride : CONFIG.density;
+    const density = isSourceMessage ? CONFIG.emojiDensityOverride : CONFIG.density;
     let pointCount = points.length / 3;
     let step = 1;
 
-    // Subsample points if overall particle count budget is exceeded. Emojis use a
-    // feature-aware reduction: silhouette/color-boundary samples are kept first,
-    // and only interior fill is strided, so narrow tears/eyes/mouth survive the cap.
+    // Subsample points if overall particle count budget is exceeded. Emoji features
+    // are kept first; image pixels use a regular stride over the source raster.
     const maxParticles = currentParticleCap();
     const maxPoints = Math.floor(maxParticles / density);
     let flat = points;
-    let srcColors = null;   // Uint8Array RGBA (emoji) — normalized byte colors
+    let srcColors = null;   // Uint8Array RGB source colors
     let srcCovers = null;   // Uint8Array source coverage
-    let srcSizes = null;    // Uint8Array raster cell size per sample (1 edge / 2 interior)
-    if (isEmojiMessage) {
-        srcColors = emojiData.colors;
-        srcCovers = emojiData.covers;
-        srcSizes = emojiData.sizes;
+    let srcSizes = null;    // Uint8Array raster cell size per sample
+    if (isSourceMessage) {
+        srcColors = sourceData.colors;
+        srcCovers = sourceData.covers;
+        srcSizes = sourceData.sizes;
         if (pointCount > maxPoints) {
             const keep = [];
-            const featureCount = emojiData.featureCount;
-            const keepFeatures = Math.min(featureCount, Math.floor(maxPoints * 0.6));
-            const featStep = Math.max(1, Math.ceil(featureCount / keepFeatures));
-            for (let i = 0; i < featureCount; i += featStep) keep.push(i);
+            const featureCount = Math.min(sourceData.featureCount || 0, pointCount);
+            if (featureCount > 0) {
+                const keepFeatures = Math.min(featureCount, Math.floor(maxPoints * 0.6));
+                const featStep = Math.max(1, Math.ceil(featureCount / Math.max(keepFeatures, 1)));
+                for (let i = 0; i < featureCount; i += featStep) keep.push(i);
+            }
             const interiorBudget = Math.max(0, maxPoints - keep.length);
             if (interiorBudget > 0) {
                 const interiorCount = pointCount - featureCount;
@@ -1200,6 +1369,23 @@ async function setupParticles(text, shouldScatter = false) {
     physics.springVel  = new Float32Array(finalCount * 3);
     physics.randomDir  = new Float32Array(finalCount * 3);
     physics.randomSpeed = new Float32Array(finalCount);
+    physics.funnelT = new Float32Array(finalCount);
+    physics.funnelRadialX = new Float32Array(finalCount);
+    physics.funnelRadialZ = new Float32Array(finalCount);
+
+    // Stable low-discrepancy roles fill the funnel evenly without per-frame random
+    // work. The vertical role is biased slightly toward the broad crown so the
+    // narrow tail remains a sparse, fading stream rather than a dense stem.
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+    for (let i = 0; i < finalCount; i++) {
+        const verticalSeed = (i * 0.6180339887498949 + 0.5) % 1;
+        const radialSeed = (i * 0.7548776662466927 + 0.17) % 1;
+        const radius = Math.sqrt(radialSeed);
+        const angle = i * goldenAngle;
+        physics.funnelT[i] = Math.pow(verticalSeed, 0.78);
+        physics.funnelRadialX[i] = Math.cos(angle) * radius;
+        physics.funnelRadialZ[i] = Math.sin(angle) * radius;
+    }
 
     // Per-particle source appearance: RGBA + raster-cell size. Emojis carry their
     // sampled glyph colors/coverage; text is white/opaque unit-size cells.
@@ -1209,10 +1395,13 @@ async function setupParticles(text, shouldScatter = false) {
     // Build fresh double-buffered worker working sets below (after resident buffers
     // are populated), since any prior in-flight slots have been transferred away.
 
-    // Emojis keep their 2D glyph continuity: much lower XY/Z jitter than text so
-    // thin internal details (tears, eyes, mouth lines) stay continuous.
-    const jx = isEmojiMessage ? CONFIG.emojiJitterXY : jitterXY;
-    const jz = isEmojiMessage ? CONFIG.emojiJitterZ : jitterZ;
+    // Emoji/image layouts keep their 2D source continuity: much lower XY/Z jitter
+    // than text so thin internal details stay continuous.
+    const imageJitter = isEmojiMessage
+        ? { xy: CONFIG.emojiJitterXY, z: CONFIG.emojiJitterZ }
+        : { xy: CONFIG.imageJitterXY, z: CONFIG.imageJitterZ };
+    const jx = isSourceMessage ? imageJitter.xy : jitterXY;
+    const jz = isSourceMessage ? imageJitter.z : jitterZ;
 
     let si = 0;
     for (let i = 0; i < pointCount; i += step, si++) {
@@ -1315,6 +1504,7 @@ const posAttr = new BufferAttribute(physics.posLive, 3);
     // raster-cell size each particle represents (drives sprite size).
     geo.setAttribute('sourceColor', new BufferAttribute(srcColorArr, 4, true));
     geo.setAttribute('sampleSize', new BufferAttribute(srcSizeArr, 1));
+    geo.setAttribute('funnelT', new BufferAttribute(physics.funnelT, 1));
 
     if (isFirstBuild) {
         const mat = new ShaderMaterial({
@@ -1329,13 +1519,17 @@ const posAttr = new BufferAttribute(physics.posLive, 3);
         render.scene.add(render.particles);
     }
 
-    // Emoji layout uses the sampled glyph colors with normal alpha blending (so
-    // dark pupils/mouth render) and a crisp, low-jitter, low-depth-cue profile.
-    // Text keeps the theme/heat additive style unchanged.
-    uniforms.uEmojiMode.value = isEmojiMessage ? 1 : 0;
-    uniforms.uPointSize.value = isEmojiMessage ? CONFIG.emojiPointSize : CONFIG.pointSize;
-    uniforms.uDepthCue.value = isEmojiMessage ? CONFIG.emojiDepthCue : 0.28;
-    render.particles.material.blending = isEmojiMessage ? NormalBlending : AdditiveBlending;
+    // Source layouts (emoji/image) use the sampled source colors with normal alpha
+    // blending (so dark pixels render) and a crisp, low-jitter, low-depth-cue
+    // profile. Text keeps the theme/heat additive style unchanged.
+    uniforms.uEmojiMode.value = isSourceMessage ? 1 : 0;
+    uniforms.uPointSize.value = isEmojiMessage
+        ? CONFIG.emojiPointSize
+        : (isImageMessage ? CONFIG.imagePointSize : CONFIG.pointSize);
+    uniforms.uDepthCue.value = isEmojiMessage
+        ? CONFIG.emojiDepthCue
+        : (isImageMessage ? CONFIG.imageDepthCue : 0.28);
+    render.particles.material.blending = isSourceMessage ? NormalBlending : AdditiveBlending;
     render.particles.material.needsUpdate = true;
     // New layouts always begin face-on so the text itself is not presented at an
     // inherited angle from a previous interaction.
@@ -1352,7 +1546,9 @@ const posAttr = new BufferAttribute(physics.posLive, 3);
                 explosionOrigin: physics.explosionOrigin.slice(),
                 randomDir: physics.randomDir.slice(),
                 randomSpeed: physics.randomSpeed.slice(),
-                sourceGeneration: physics.sourceGeneration
+                funnelT: physics.funnelT.slice(),
+                funnelRadialX: physics.funnelRadialX.slice(),
+funnelRadialZ: physics.funnelRadialZ.slice()
             }
         });
     }
@@ -1387,6 +1583,7 @@ function buildTrailsAndEmbers() {
     tgeo.setAttribute('position', tPosAttr);
     tgeo.setAttribute('livePosition', tLiveAttr);
     tgeo.setAttribute('homePosition', new BufferAttribute(physics.posHome, 3));
+    tgeo.setAttribute('funnelT', new BufferAttribute(physics.funnelT, 1));
     render.trailPoints = new Points(tgeo, new ShaderMaterial({
         uniforms,
         vertexShader: trailVertexShader,
@@ -1435,7 +1632,7 @@ function buildTrailsAndEmbers() {
 }
 
 // Chase the live positions so fast particles leave coloured streaks behind them.
-function updateTrails(kFactor) {
+function updateTrails() {
     if (!render.particles || !render.trailData) return;
     if (isMotionReduced && render.trailPoints) { render.trailPoints.visible = false; return; }
     if (render.trailPoints) render.trailPoints.visible = true;
@@ -1534,7 +1731,6 @@ function updateEmbers(dt) {
 // Mouse Utilities & Optimization
 // ─────────────────────────────────────────────
 const _vec = new Vector3();
-const _dir = new Vector3();
 
 function updateMouse(clientX, clientY) {
     const rect = render.renderer.domElement.getBoundingClientRect();
@@ -1547,13 +1743,7 @@ function updateMouse(clientX, clientY) {
         _vec.set(nx, ny, 0).unproject(render.camera);
         interaction.mouseWorld.copy(_vec);
         interaction.mouseWorld.z = 0;
-        return;
     }
-
-    _vec.set(nx, ny, 0.5).unproject(render.camera);
-    _dir.copy(_vec).sub(render.camera.position).normalize();
-    interaction.mouseWorld.copy(render.camera.position)
-        .add(_dir.multiplyScalar(-render.camera.position.z / _dir.z));
 }
 
 // ─────────────────────────────────────────────
@@ -1567,7 +1757,7 @@ function randomizeExplosionVectors() {
     const home = physics.posHome;
 
     // Pick a randomized explosion pattern for this blast. Pattern styles:
-    // 0: uniform sphere (Explode), 1: tangential vortex (Galaxy),
+    // 0: uniform sphere (Explode), 1: tornado funnel (Tornado),
     // 2: coherent wind gust (Breeze), 3: crisp starburst rays (Kinetic).
     // Respect a pinned preset style when one is active.
     const style = (typeof state.motionStyle === 'number' && state.motionStyle >= 0)
@@ -1593,35 +1783,34 @@ function randomizeExplosionVectors() {
         let rx, ry, rz;
 
         if (style === 1) {
-            // Tangential vortex: velocity follows the tangent of the particle's own
-            // home position, so the field circulates around the message centre.
-            const hx = home[ix], hy = home[iy];
-            const r2 = hx * hx + hy * hy;
-            let tx, ty;
+            // Tornado directions use screen-up Y and swirl in the visible X/Z
+            // funnel plane. The actual target profile is applied in the update loop;
+            // these directions keep the blast's semantic debug signal consistent.
+            const hx = home[ix], hz = home[iz];
+            const r2 = hx * hx + hz * hz;
+            let tx, tz;
             if (r2 > 1e-6) {
                 const inv = 1 / Math.sqrt(r2);
-                tx = -hy * inv;
-                ty =  hx * inv;
+                tx = -hz * inv;
+                tz =  hx * inv;
             } else {
                 const a = Math.random() * Math.PI * 2;
-                tx = Math.cos(a); ty = Math.sin(a);
+                tx = Math.cos(a); tz = Math.sin(a);
             }
-            const sign = Math.random() < 0.5 ? 1 : -1;
-            const flatten = pattern.diskFlatten || 0;
-            rx = tx * sign;
-            ry = ty * sign;
-            rz = home[iz] * flatten;
-            // Small tangential wobble so the disk feels alive.
-            rx += (Math.random() - 0.5) * 0.2;
-            ry += (Math.random() - 0.5) * 0.2;
+            const spinSign = Math.random() < 0.5 ? 1 : -1;
+            rx = tx * spinSign + (Math.random() - 0.5) * 0.15;
+            ry = 0.72 + (Math.random() - 0.5) * 0.12;
+            rz = tz * spinSign + (Math.random() - 0.5) * 0.15;
         } else if (style === 2) {
-            // Coherent gust: the shared gust direction blended with per-particle
-            // randomness — the whole sculpture visibly flows one way.
+            // Strong coherent gust: the shared gust direction blended with a little
+            // per-particle randomness — the whole sculpture visibly flows one way.
             const coherence = pattern.gustCoherence || 0;
             const rand = 1 - coherence;
             rx = gx * coherence + (Math.random() * 2 - 1) * rand;
             ry = gy * coherence + (Math.random() * 2 - 1) * rand;
             rz = gz * coherence + (Math.random() * 2 - 1) * rand;
+            activeGustX = gx;
+            activeGustY = gy;
         } else if (style === 3) {
             // Starburst rays: each particle snaps onto one of `spokes` crisp 3D
             // directions with tiny angular jitter, so the blast reads as rays.
@@ -1647,8 +1836,8 @@ function randomizeExplosionVectors() {
         rx /= len; ry /= len; rz /= len;
 
         if (style === 2) {
-            // Wind speeds are soft and varied so the gust feels like a breeze.
-            physics.randomSpeed[i] = (explosionSpeedMin + Math.random() * explosionSpeedRange) * (0.8 + Math.random() * 0.4);
+            // Strong gust: fast, purposeful speeds so the breeze reads clearly.
+            physics.randomSpeed[i] = (explosionSpeedMin + Math.random() * explosionSpeedRange) * (1.4 + Math.random() * 0.9);
         } else if (style === 3) {
             // Rays travel fast and uniformly so the spokes stay crisp.
             physics.randomSpeed[i] = (explosionSpeedMin + Math.random() * explosionSpeedRange) * (1.5 + Math.random() * 0.7);
@@ -1667,6 +1856,7 @@ function randomizeExplosionVectors() {
         dirs: physics.randomDir.slice(0, DIRECTIONS_VERIFY * 3),
         style
     };
+    physics.activeStyle = style;
 }
 
 function captureExplosionOrigin() {
@@ -1754,6 +1944,35 @@ function explosionAnchorWeight(elapsed, expansionDuration, contractionDuration) 
     return Math.max(0, 1 - t * t * t);
 }
 
+function tornadoEnvelope(elapsed, expansionDuration, contractionDuration) {
+    if (elapsed <= 0) return 0;
+    if (elapsed < expansionDuration) {
+        const t = elapsed / expansionDuration;
+        return t * (2 - t);
+    }
+    const t = Math.min(1, (elapsed - expansionDuration) / contractionDuration);
+    return Math.max(0, 1 - t * t * t);
+}
+
+function tornadoRadius(t, pattern) {
+    const waistT = Math.max(0.001, Math.min(0.999, pattern.funnelWaistT || 0.42));
+    const crownT = Math.max(waistT + 0.001, Math.min(1, pattern.funnelCrownT || 0.78));
+    const tail = pattern.funnelTailRadius || 0;
+    const waist = pattern.funnelWaistRadius || tail;
+    const crown = pattern.funnelCrownRadius || waist;
+    const smooth = value => value * value * (3 - 2 * value);
+
+    if (t < waistT) {
+        const u = smooth(Math.max(0, Math.min(1, t / waistT)));
+        return tail + (waist - tail) * u;
+    }
+    if (t < crownT) {
+        const u = smooth(Math.max(0, Math.min(1, (t - waistT) / (crownT - waistT))));
+        return waist + (crown - waist) * u;
+    }
+    return crown;
+}
+
 // ─────────────────────────────────────────────
 // URL Parameter Synchronisation (Undo/Redo Support)
 // ─────────────────────────────────────────────
@@ -1779,6 +1998,7 @@ function applyPresetPhysics(preset) {
     state.contractionDuration = preset.contractionDuration;
     state.explosionMaxDistMultiplier = preset.explosionMaxDistMultiplier;
     state.motionStyle = (preset.motionStyle != null) ? preset.motionStyle : -1;
+    physics.activeStyle = state.motionStyle;
     state.soundPitch = preset.soundPitch;
     state.soundDuration = preset.soundDuration;
     state.soundType = preset.soundType;
@@ -1788,10 +2008,22 @@ function applyPresetPhysics(preset) {
         spokes:       (preset.spokes != null)       ? preset.spokes       : 12,
         spokeJitter:  (preset.spokeJitter != null)  ? preset.spokeJitter  : 0.03,
         spinSpeed:    (preset.spinSpeed != null)    ? preset.spinSpeed    : 0,
-        diskFlatten:  (preset.diskFlatten != null)  ? preset.diskFlatten  : 0,
+        funnelHeight: (preset.funnelHeight != null) ? preset.funnelHeight : 0,
+        funnelBottom: (preset.funnelBottom != null) ? preset.funnelBottom : 0,
+        funnelCrownRadius: (preset.funnelCrownRadius != null) ? preset.funnelCrownRadius : 0,
+        funnelWaistRadius: (preset.funnelWaistRadius != null) ? preset.funnelWaistRadius : 0,
+        funnelTailRadius: (preset.funnelTailRadius != null) ? preset.funnelTailRadius : 0,
+        funnelWaistT: (preset.funnelWaistT != null) ? preset.funnelWaistT : 0,
+        funnelCrownT: (preset.funnelCrownT != null) ? preset.funnelCrownT : 0,
+        funnelFadeStart: (preset.funnelFadeStart != null) ? preset.funnelFadeStart : 0,
+        funnelFadeEnd: (preset.funnelFadeEnd != null) ? preset.funnelFadeEnd : 0,
         gustCoherence:(preset.gustCoherence != null)? preset.gustCoherence: 0,
         swayAmp:      (preset.swayAmp != null)      ? preset.swayAmp      : 0,
-        swayFreq:     (preset.swayFreq != null)     ? preset.swayFreq     : 0
+        swayFreq:     (preset.swayFreq != null)     ? preset.swayFreq     : 0,
+        gustAmp:      (preset.gustAmp != null)      ? preset.gustAmp      : 0,
+        gustFreq:     (preset.gustFreq != null)     ? preset.gustFreq     : 0,
+        windDrift:    (preset.windDrift != null)    ? preset.windDrift    : 0,
+        turbulence:   (preset.turbulence != null)   ? preset.turbulence   : 0
     };
 
     state.heatCold = preset.heat ? preset.heat.cold : [0.1, 0.4, 1.0];
@@ -1801,6 +2033,8 @@ function applyPresetPhysics(preset) {
     uniforms.uHeatCold.value.set(...state.heatCold);
     uniforms.uHeatWarm.value.set(...state.heatWarm);
     uniforms.uHeatHot.value.set(...state.heatHot);
+    uniforms.uTornadoFadeStart.value = state.pattern.funnelFadeStart;
+    uniforms.uTornadoFadeEnd.value = state.pattern.funnelFadeEnd;
     uniforms.uTrailStrength.value = state.trailStrength;
 }
 
@@ -1984,14 +2218,35 @@ function updateStageLayout() {
     uniforms.uPixelRatio.value = dpr;
 
     // Auto-zoom by message type, until the user zooms manually: emojis render at
-    // the farthest zoom (smallest display), text fills most of the desktop stage.
+    // the farthest zoom (smallest display), text fills most of the desktop stage,
+    // and uploaded images are framed to fit the whole square in the stage.
     if (render.autoFit && stage.getBoundingClientRect().left > 0) {
-        if (state.activeEmoji && CONFIG.emojiOptions.includes(state.currentText)) {
+        if (state.messageMode === 'image' && state.activeImage) {
+            render.targetZ = imageAutoZoom(w, h);
+        } else if (state.activeEmoji && CONFIG.emojiOptions.includes(state.currentText)) {
             render.targetZ = CONFIG.zoomMax;
         } else {
             render.targetZ = CONFIG.textAutoZoom;
         }
     }
+}
+
+// Frame the square 80-unit image raster inside the stage with explicit clearance
+// from the stage edges (the left menu side and the bottom instructions overlay).
+// The per-axis available space converts to a camera distance; the aspect cancels
+// out, and the larger distance wins so both paddings are satisfied. Only the
+// camera distance changes — the raster scale is untouched, so the image's own
+// aspect ratio is preserved exactly.
+function imageAutoZoom(stageW, stageH) {
+    const tanHalf = Math.tan(CONFIG.cameraAngleDeg * Math.PI / 360);
+    const halfBox = CONFIG.targetWorldWidth / 2;
+    const padX = Math.min(CONFIG.imageFitPadX, stageW * 0.35);
+    const padY = Math.min(CONFIG.imageFitPadY, stageH * 0.35);
+    const availW = Math.max(stageW - 2 * padX, 1);
+    const availH = Math.max(stageH - 2 * padY, 1);
+    const zByHeight = halfBox * stageH / (tanHalf * availH);
+    const zByWidth = halfBox * stageH / (tanHalf * availW);
+    return Math.min(CONFIG.zoomMax, Math.max(zByHeight, zByWidth, CONFIG.zoomMin));
 }
 
 // Highlight the active preset button, clear others
@@ -2024,6 +2279,63 @@ function setEmojiActive(emoji) {
     });
 }
 
+// Toggle the Message Text/Image option tabs and their panels.
+function setMessageModeUI(mode) {
+    state.messageMode = mode === 'image' ? 'image' : 'text';
+    document.querySelectorAll('.message-option').forEach(btn => {
+        const on = btn.getAttribute('data-message-mode') === state.messageMode;
+        btn.classList.toggle('active', on);
+        btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    const textPanel = document.getElementById('text-message-mode');
+    const imagePanel = document.getElementById('image-message-mode');
+    if (textPanel) textPanel.hidden = state.messageMode !== 'text';
+    if (imagePanel) imagePanel.hidden = state.messageMode !== 'image';
+}
+
+// Switch the active Message mode and rebuild the sculpture for the new source.
+async function switchMessageMode(mode) {
+    setMessageModeUI(mode);
+    clearActivePresets();
+    resetToDefaultExplosion();
+    if (state.messageMode === 'text') {
+        state.activeEmoji = CONFIG.emojiOptions.includes(state.currentText) ? state.currentText : null;
+        setEmojiActive(state.activeEmoji);
+        await setupParticles(state.currentText, false);
+    } else if (state.activeImage) {
+        await setupParticles(state.currentText, false);
+    }
+}
+
+// Turn a chosen image file into the active particle sculpture (local only).
+function handleImageUpload(file) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+        showToast('Please choose an image file!');
+        return;
+    }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = async () => {
+        URL.revokeObjectURL(url);
+        state.activeImage = img;
+        state.imageName = file.name;
+        state.activeEmoji = null;
+        setEmojiActive(null);
+        clearActivePresets();
+        resetToDefaultExplosion();
+        const imageName = document.getElementById('image-name');
+        if (imageName) imageName.textContent = file.name;
+        await setupParticles(state.currentText, false);
+        announceToScreenReader(`Image uploaded: ${file.name}`);
+    };
+    img.onerror = () => {
+        URL.revokeObjectURL(url);
+        showToast('Could not read that image!');
+    };
+    img.src = url;
+}
+
 // ─────────────────────────────────────────────
 // UI Setup
 // ─────────────────────────────────────────────
@@ -2041,6 +2353,7 @@ function setupUI() {
         textInput.addEventListener('input', () => {
             clearActivePresets(); // Typing clears preset active marks
             state.activeEmoji = null; // Typing reverts to the regular text path
+            state.activeImage = null; // ... and drops any uploaded image
             setEmojiActive(null);
             resetToDefaultExplosion(); // Typing resets preset physics details
             updateCharCounter(textInput.value);
@@ -2048,6 +2361,24 @@ function setupUI() {
             interaction.inputDebounceTimer = setTimeout(async () => {
                 await updateText(textInput.value);
             }, CONFIG.inputDebounceMs);
+        });
+    }
+
+    // Message Text/Image option tabs
+    document.querySelectorAll('.message-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+            switchMessageMode(btn.getAttribute('data-message-mode'));
+        });
+    });
+
+    // Image upload: rasterize the chosen file into the particle sculpture
+    const imageInput = document.getElementById('image-input');
+    if (imageInput) {
+        imageInput.addEventListener('change', () => {
+            handleImageUpload(imageInput.files && imageInput.files[0]);
+            // Reset the hidden native control so choosing the same file again
+            // still emits change; the visible filename is managed by #image-name.
+            imageInput.value = '';
         });
     }
 
@@ -2079,7 +2410,9 @@ function setupUI() {
                 if (!blob) return;
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
-                const name = state.currentText.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                const name = (state.messageMode === 'image' && state.imageName
+                    ? state.imageName
+                    : state.currentText).replace(/[^a-z0-9]/gi, '_').toLowerCase();
                 link.download = `artz-sculpture-${name || 'kinetic'}.png`;
                 link.href = url;
                 link.click();
@@ -2136,7 +2469,6 @@ function teardownWorker() {
     if (!physicsWorker) return;
     try { physicsWorker.terminate(); } catch (_) { /* already dead */ }
     physicsWorker = null;
-    physics.usingFallback = true;
     for (const slot of physics.slots) slot.inFlight = false;
     physics.sendQueue.length = 0;
 }
@@ -2264,7 +2596,17 @@ function animate() {
     const posAttr = particles.geometry.attributes.position;
     const pos = posAttr.array;
     const count = posAttr.count;
-    const { posHome, explosionOrigin, springDisp, springVel, randomDir, randomSpeed } = physics;
+    const {
+        posHome,
+        explosionOrigin,
+        springDisp,
+        springVel,
+        randomDir,
+        randomSpeed,
+        funnelT,
+        funnelRadialX,
+        funnelRadialZ
+    } = physics;
     const mouseInfluence  = CONFIG.mouseInfluence;
     const mouseInfluence2 = mouseInfluence * mouseInfluence;
     const repulsionStr    = CONFIG.repulsionStrength;
@@ -2325,7 +2667,6 @@ function animate() {
             }
         }
     }
-    uniforms.uExplosionProgress.value = progress;
 
     // Explosion color blend: 1 for the whole blast (including recovery), then a brief
     // afterglow fade back to idle theme colors so particles don't snap.
@@ -2339,6 +2680,7 @@ function animate() {
         activeBlend = 0.0;
     }
     uniforms.uExplosionActive.value = activeBlend;
+    uniforms.uTornadoActive.value = physics.explosionStartTime >= 0 && physics.activeStyle === 1 ? 1 : 0;
     if (render.particles) {
         render.particles.frustumCulled = (progress === 0.0);
     }
@@ -2368,8 +2710,7 @@ function animate() {
                     posLive: slot.posLive,
                     springDisp: slot.springDisp,
                     springVel: slot.springVel,
-                    count, dt, time, elapsed,
-                    isMotionReduced,
+                    count, dt, elapsed,
                     mouseLocal: { x: ml.x, y: ml.y, z: ml.z },
                     kFrame, dampFrame,
                     expansionDuration: activeExpDuration,
@@ -2385,13 +2726,40 @@ function animate() {
         }
     } else {
         // Local CPU Fallback (Main Thread)
-        // Per-frame rotation of the pattern's base directions: Galaxy spins around Z,
-        // Breeze sways gently. One sin/cos pair per frame, then cheap per-particle math.
+        // Per-frame time evolution of the pattern's base directions. Tornado morphs
+        // into a screen-space funnel, fading back to rest. Breeze surges
+        // via a gust envelope, sways the cloud, adds turbulence, and carries the
+        // return with a decaying wind drift. All sin/cos pairs computed once/frame.
         const pat = state.pattern;
-        const spinAngle = (elapsed > 0 && pat.spinSpeed) ? elapsed * pat.spinSpeed : 0;
-        const swayAngle = (elapsed > 0 && pat.swayAmp) ? pat.swayAmp * Math.sin(elapsed * pat.swayFreq) : 0;
+        const activeStyle = physics.activeStyle >= 0 ? physics.activeStyle : state.motionStyle;
+        let spinAngle = 0, swayAngle = 0, gust = 1, drift = 0, turbAngle = 0;
+        // Tornado: the shape morphs into a vertical funnel whose cross-sections
+        // rotate around Y. Its target and the captured origin share one envelope,
+        // which guarantees exact recovery at the end of contraction.
+        const isTornado = activeStyle === 1
+            && pat.funnelHeight
+            && funnelT
+            && funnelRadialX
+            && funnelRadialZ;
+        if (elapsed > 0 && isTornado) {
+            spinAngle = elapsed * pat.spinSpeed;
+        } else if (elapsed > 0 && activeStyle === 2) {
+            const gustAmp = pat.gustAmp || 0;
+            const gustFreq = pat.gustFreq || 0;
+            if (gustFreq) gust = 1 + gustAmp * Math.sin(elapsed * gustFreq);
+            if (pat.swayAmp) swayAngle = pat.swayAmp * Math.sin(elapsed * (pat.swayFreq || 0));
+            if (pat.turbulence) turbAngle = pat.turbulence * Math.sin(elapsed * 8);
+            const windDrift = pat.windDrift || 0;
+            if (windDrift) drift = elapsed < activeExpDuration
+                ? windDrift
+                : windDrift * (1 - Math.pow(Math.min(1, (elapsed - activeExpDuration) / activeContrDuration), 3));
+        }
         const spinCos = Math.cos(spinAngle), spinSin = Math.sin(spinAngle);
         const swayCos = Math.cos(swayAngle), swaySin = Math.sin(swayAngle);
+        const turbCos = Math.cos(turbAngle), turbSin = Math.sin(turbAngle);
+        const funnelProgress = isTornado
+            ? tornadoEnvelope(elapsed, activeExpDuration, activeContrDuration)
+            : 0;
         for (let i = 0; i < count; i++) {
             const ix = i * 3, iy = ix + 1, iz = ix + 2;
             const anchor = elapsed > 0
@@ -2402,17 +2770,36 @@ function animate() {
             let by = posHome[iy] + (origin[iy] - posHome[iy]) * anchor;
             let bz = posHome[iz] + (origin[iz] - posHome[iz]) * anchor;
 
-            if (elapsed > 0.0) {
-                const maxDist = randomSpeed[i] * activeMaxDistMult;
-                let rx = randomDir[ix], ry = randomDir[iy], rz = randomDir[iz];
-                if (state.motionStyle === 1) {
-                    const nrx = rx * spinCos - ry * spinSin;
-                    const nry = rx * spinSin + ry * spinCos;
-                    rx = nrx; ry = nry;
-                } else if (state.motionStyle === 2) {
-                    const nrx = rx * swayCos - ry * swaySin;
-                    const nry = rx * swaySin + ry * swayCos;
-                    rx = nrx; ry = nry;
+if (elapsed > 0.0) {
+                if (isTornado) {
+                    const t = funnelT[i];
+                    const radius = tornadoRadius(t, pat);
+                    const funnelX = funnelRadialX[i] * radius;
+                    const funnelZ = funnelRadialZ[i] * radius;
+                    const targetX = funnelX * spinCos - funnelZ * spinSin;
+                    const targetZ = funnelX * spinSin + funnelZ * spinCos;
+                    const targetY = (pat.funnelBottom || 0) + (pat.funnelHeight || 0) * t;
+
+                    // The same progress drives the origin anchor and target offset:
+                    // home + (origin - home)q + (target - origin)q reaches target at
+                    // the peak and returns exactly to home when q reaches zero.
+                    bx += (targetX - origin[ix]) * funnelProgress;
+                    by += (targetY - origin[iy]) * funnelProgress;
+                    bz += (targetZ - origin[iz]) * funnelProgress;
+                } else {
+                    const maxDist = randomSpeed[i] * activeMaxDistMult;
+let rx = randomDir[ix], ry = randomDir[iy], rz = randomDir[iz];
+                if (activeStyle === 2) {
+                    if (swayAngle !== 0) {
+                        const nrx = rx * swayCos - ry * swaySin;
+                        const nry = rx * swaySin + ry * swayCos;
+                        rx = nrx; ry = nry;
+                    }
+                    if (turbAngle !== 0) {
+                        const nrx = rx * turbCos - ry * turbSin;
+                        const nry = rx * turbSin + ry * turbCos;
+                        rx = nrx; ry = nry;
+                    }
                 }
                 let dist;
                 if (elapsed < activeExpDuration) {
@@ -2422,9 +2809,14 @@ function animate() {
                     const t = (elapsed - activeExpDuration) / activeContrDuration;
                     dist = maxDist * (1.0 - t * t * t);
                 }
-                bx += rx * dist;
-                by += ry * dist;
-                bz += rz * dist;
+                bx += rx * dist * gust;
+                by += ry * dist * gust;
+                bz += rz * dist * gust;
+                // Wind follow-through: keep drifting downwind while returning, so the
+                // clouds is carried home by the breeze. Decays to zero by recovery.
+                bx += activeGustX * drift;
+                by += activeGustY * drift;
+                }
             }
 
             const cur_x = pos[ix], cur_y = pos[iy], cur_z = pos[iz];
@@ -2531,9 +2923,13 @@ async function init() {
             if (type === 'randomized') {
                 // The worker echoes a slice of the blast directions it generated so the
                 // pattern regression tests can verify them without timing sensitivity.
-                if (e.data.style === state.motionStyle) {
-                    physics.randomized = { dirs: e.data.dirs, style: e.data.style };
+                // Guard against stale echoes from an older layout or blast phase.
+                if (e.data.sourceGeneration !== physics.sourceGeneration
+                    || e.data.motionToken !== physics.motionToken) {
+                    return;
                 }
+                physics.randomized = { dirs: e.data.dirs, style: e.data.style };
+                physics.activeStyle = e.data.style;
                 return;
             }
             if (type === 'update') {
@@ -2667,6 +3063,7 @@ async function init() {
         state.currentTheme = theme;
         state.currentFont = font;
         state.activeEmoji = CONFIG.emojiOptions.includes(t) ? t : null;
+        setMessageModeUI('text'); // History stores text messages; images are local-only
 
         const textInput = document.getElementById('text-input');
         if (textInput) {
@@ -2713,7 +3110,7 @@ window.__artzDebug = {
     get renderCalls() {
         return render.renderer ? render.renderer.info.render.calls : -1;
     },
-    snapshot(limit = 96) {
+snapshot(limit = 96) {
         const position = render.particles?.geometry.attributes.position.array;
         const home = physics.posHome;
         const origin = physics.explosionOrigin;
@@ -2722,6 +3119,17 @@ window.__artzDebug = {
             position: position ? Array.from(position.slice(0, count)) : [],
             home: home ? Array.from(home.slice(0, count)) : [],
             explosionOrigin: origin ? Array.from(origin.slice(0, count)) : [],
+            funnelT: physics.funnelT ? Array.from(physics.funnelT.slice(0, limit)) : [],
+            activeStyle: physics.activeStyle,
+            funnelProfile: {
+                height: state.pattern.funnelHeight || 0,
+                bottom: state.pattern.funnelBottom || 0,
+                tailRadius: tornadoRadius(0.05, state.pattern),
+                waistRadius: tornadoRadius(0.5, state.pattern),
+                crownRadius: tornadoRadius(0.95, state.pattern),
+                fadeStart: state.pattern.funnelFadeStart || 0,
+                fadeEnd: state.pattern.funnelFadeEnd || 0
+            },
             rotation: render.particles
                 ? [render.particles.rotation.x, render.particles.rotation.y, render.particles.rotation.z]
                 : [0, 0, 0],

@@ -8,7 +8,9 @@ export default defineConfig({
     fullyParallel: true,
     forbidOnly: !!process.env.CI,
     retries: process.env.CI ? 2 : 0,
-    workers: process.env.CI ? 2 : undefined,
+    // 2 workers keep software-WebGL browsers from starving each other on this
+    // machine; more parallelism produces teardown timeouts and truncated traces.
+    workers: 2,
     reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
     timeout: 60_000,
     expect: { timeout: 15_000 },

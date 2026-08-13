@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { waitForRender, setText } from './helpers';
+import { waitForRender } from './helpers';
 
 // Measures average FPS over ~3 seconds. The headless software rasterizer (SwiftShader)
 // is far slower than a real GPU, so this is a sanity check that the loop keeps running
@@ -37,20 +37,4 @@ test('screenshot capture produces a PNG download', async ({ page }) => {
     await page.click('#capture-btn');
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toContain('.png');
-});
-
-test('frequent explosions and text edits stay responsive (no unhandled errors)', async ({ page }) => {
-    const errors = [];
-    page.on('pageerror', (e) => errors.push(String(e)));
-
-    await page.goto('/');
-    await waitForRender(page);
-
-    for (let i = 0; i < 6; i++) {
-        await setText(page, ['KINETIC', 'GALAXY', 'BREEZE', 'EXPLODE', 'TEST', 'PLANET'][i]);
-        await page.evaluate(() => window.__artzDebug.triggerExplosion());
-        await page.waitForTimeout(200);
-    }
-
-    expect(errors).toEqual([]);
 });

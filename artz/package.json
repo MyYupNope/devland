@@ -10,6 +10,8 @@
     "deploy": "vite build && npx gh-pages -d dist -r https://github.com/MyYupNope/myyupnope.github.io.git -b master --dest artz --dotfiles --remove '*'",
     "test": "npm run test:build && playwright test",
     "test:build": "vite build",
+    "test:quick": "npm run test:build && playwright test --grep-invert @slow",
+    "test:full": "npm run test:build && playwright test",
     "test:e2e": "playwright test",
     "test:headed": "playwright test --headed"
   },

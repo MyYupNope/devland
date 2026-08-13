@@ -1,5 +1,3 @@
-import { test, expect } from '@playwright/test';
-
 // Rebuild the particle sculpture from a text value (debounced input + morph).
 export async function setText(page, value) {
     await page.locator('#text-input').fill(value);

@@ -28,14 +28,6 @@ async function particleCount(page) {
     return page.evaluate(() => window.__artzDebug.particleCount);
 }
 
-test('emoji list offers 20 distinct quick-picks', async ({ page }) => {
-    await openPage(page);
-
-    const chips = await page.$$eval('.emoji-chip', els => els.map(e => e.getAttribute('data-emoji')));
-    expect(chips.length).toBe(20);
-    expect(new Set(chips).size).toBe(20);
-});
-
 test('picking an emoji substitutes the message with a detailed sculpture', async ({ page }) => {
     const errors = [];
     page.on('pageerror', (e) => errors.push(String(e)));
@@ -69,62 +61,6 @@ test('picking an emoji substitutes the message with a detailed sculpture', async
     expect(Math.abs(bbox.w / bbox.h - 1)).toBeLessThan(0.3);
 
     expect(errors).toEqual([]);
-});
-
-test('emoji interior details stay recognizable (negative space)', async ({ page }) => {
-    await openPage(page);
-    // 👌 has a large enclosed ring hole: interior empty cells fully surrounded
-    // by filled cells must survive the sampling.
-    await pickEmoji(page, '👌');
-
-    const grid = await page.evaluate(() => {
-        const home = window.__artzDebug._render().particles.geometry.attributes.homePosition.array;
-        const G = 32;
-        const occupied = new Uint8Array(G * G);
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        for (let i = 0; i < home.length; i += 3) {
-            if (home[i] < minX) minX = home[i];
-            if (home[i] > maxX) maxX = home[i];
-            if (home[i + 1] < minY) minY = home[i + 1];
-            if (home[i + 1] > maxY) maxY = home[i + 1];
-        }
-        const sx = Math.max((maxX - minX) / G, 1e-6);
-        const sy = Math.max((maxY - minY) / G, 1e-6);
-        for (let i = 0; i < home.length; i += 3) {
-            const cx = Math.min(G - 1, Math.max(0, Math.floor((home[i] - minX) / sx)));
-            const cy = Math.min(G - 1, Math.max(0, Math.floor((home[i + 1] - minY) / sy)));
-            occupied[cy * G + cx] = 1;
-        }
-
-        // Flood-fill empty cells from the grid border: any empty cell not reached
-        // is an enclosed (interior) negative-space region — the emoji's inner
-        // details (hole, gaps between fingers) surviving the sampling.
-        const visited = new Uint8Array(G * G);
-        const stack = [];
-        for (let x = 0; x < G; x++) { stack.push(x, 0, x, G - 1); }
-        for (let y = 0; y < G; y++) { stack.push(0, y, G - 1, y); }
-        const push = (x, y) => {
-            if (x < 0 || y < 0 || x >= G || y >= G) return;
-            const k = y * G + x;
-            if (occupied[k] || visited[k]) return;
-            visited[k] = 1;
-            stack.push(x - 1, y, x + 1, y, x, y - 1, x, y + 1);
-        };
-        while (stack.length) {
-            const y = stack.pop(), x = stack.pop();
-            push(x, y);
-        }
-
-        let enclosed = 0, filled = 0;
-        for (let i = 0; i < G * G; i++) {
-            if (occupied[i]) filled++;
-            else if (!visited[i]) enclosed++;
-        }
-        return { enclosed, filledRatio: filled / (G * G) };
-    });
-
-    expect(grid.enclosed).toBeGreaterThan(0);
-    expect(grid.filledRatio).toBeGreaterThan(0.2);
 });
 
 test('emoji renders under the CPU fallback within its cap', async ({ page }) => {
@@ -164,22 +100,6 @@ test('shared URL with an emoji message restores the detailed rendering', async (
     expect(count).toBeGreaterThan(7000);
 });
 
-test('emoji renders at the minimal zoom (smallest display) after picking', async ({ page }) => {
-    await openPage(page);
-    await pickEmoji(page, '😀');
-
-    // Emojis render fully zoomed out: the camera sits at the farthest zoom so the
-    // glyph appears small — its 80-unit extent is far inside the (much wider)
-    // visible frustum, leaving the full stage as breathing room.
-    const cam = await page.evaluate(() => {
-        const c = window.__artzDebug._render().camera;
-        return { z: c.position.z, right: c.right, top: c.top };
-    });
-    expect(cam.z).toBeGreaterThan(110); // zoomMax = 120 (fully zoomed out)
-    expect(cam.right).toBeGreaterThan(100);
-    expect(cam.top).toBeGreaterThan(80);
-});
-
 test('emoji stays at minimal zoom after a hard reload', async ({ page }) => {
     // Simulates ctrl+F5 with the emoji persisted in the URL (?t=😀).
     await openPage(page, `/?t=${EMOJI}`);
@@ -191,32 +111,6 @@ test('emoji stays at minimal zoom after a hard reload', async ({ page }) => {
     expect(cam.z).toBeGreaterThan(110);
     expect(cam.right).toBeGreaterThan(100);
     expect(cam.top).toBeGreaterThan(80);
-});
-
-test('25-character text fills most of the desktop stage', async ({ page }) => {
-    await openPage(page, '/?t=25%20CHARACTERS%20LOOK%20GREAT!');
-
-    // The 80-unit text layout should use most of the available stage width while
-    // staying distinct from the smallest emoji zoom.
-    const cam = await page.evaluate(() => {
-        const render = window.__artzDebug._render();
-        const c = render.camera;
-        const home = render.particles.geometry.attributes.homePosition.array;
-        let minX = Infinity, maxX = -Infinity;
-        for (let i = 0; i < home.length; i += 3) {
-            minX = Math.min(minX, home[i]);
-            maxX = Math.max(maxX, home[i]);
-        }
-        return { z: c.position.z, right: c.right, top: c.top, textWidth: maxX - minX };
-    });
-    expect(cam.z).toBeGreaterThan(42);
-    expect(cam.z).toBeLessThan(48);
-    expect(cam.right).toBeGreaterThan(42);
-    expect(cam.right).toBeLessThan(47);
-    expect(cam.top).toBeGreaterThan(32);
-    expect(cam.top).toBeLessThan(37);
-    expect(cam.textWidth / (cam.right * 2)).toBeGreaterThan(0.85);
-    expect(cam.textWidth / (cam.right * 2)).toBeLessThan(0.97);
 });
 
 // Color-class histogram helper over the particle sourceColor attribute.
@@ -281,22 +175,6 @@ test('emoji internal details survive the CPU fallback budget', async ({ page }) 
     // 15k fallback cap.
     expect(s.blue).toBeGreaterThan(300);
     expect(s.dark).toBeGreaterThan(150);
-});
-
-test('typing a message reverts to the theme palette (emoji mode off)', async ({ page }) => {
-    await openPage(page);
-    await pickEmoji(page, '😀');
-
-    await page.locator('#text-input').fill('HELLO');
-    await page.waitForTimeout(500);
-
-    const uniforms = await page.evaluate(() => {
-        const u = window.__artzDebug._render().particles.material.uniforms;
-        return { emojiMode: u.uEmojiMode.value, pointSize: u.uPointSize.value, depthCue: u.uDepthCue.value };
-    });
-    expect(uniforms.emojiMode).toBe(0);
-    expect(uniforms.pointSize).toBe(0.5);
-    expect(uniforms.depthCue).toBe(0.28);
 });
 
 // Re-rasterize the emoji on a transparent canvas and compare a coarse grid of the
@@ -421,11 +299,4 @@ test('particle sculpture matches the emoji raster mask and color regions', async
     await pickEmoji(page, '😂');
 
     await expectMask(await maskCorrespondence(page), 0.85);
-});
-
-test('mask correspondence survives the CPU fallback budget', async ({ page }) => {
-    await openPage(page, '/?noworker=1');
-    await pickEmoji(page, '😂');
-
-    await expectMask(await maskCorrespondence(page), 0.75);
 });

@@ -5,13 +5,49 @@ let posHome = null;
 let explosionOrigin = null;
 let randomDir = null;
 let randomSpeed = null;
+let funnelT = null;
+let funnelRadialX = null;
+let funnelRadialZ = null;
 let maxTravelSq = 0; // Running max squared displacement from each blast origin
 let lastMotionToken = -1;
 let pattern = null;
 let activeStyle = -1;
 
+// Shared gust direction for the current Breeze blast, reused each frame for the
+// wind follow-through drift. Set when style 2 directions are generated.
+let gustX = 1, gustY = 0;
+
 // Leading-slice size echoed back after each randomize for the pattern tests.
 const DIRECTIONS_VERIFY = 384;
+
+function tornadoEnvelope(elapsed, expansionDuration, contractionDuration) {
+    if (elapsed <= 0) return 0;
+    if (elapsed < expansionDuration) {
+        const t = elapsed / expansionDuration;
+        return t * (2 - t);
+    }
+    const t = Math.min(1, (elapsed - expansionDuration) / contractionDuration);
+    return Math.max(0, 1 - t * t * t);
+}
+
+function tornadoRadius(t, pattern) {
+    const waistT = Math.max(0.001, Math.min(0.999, pattern.funnelWaistT || 0.42));
+    const crownT = Math.max(waistT + 0.001, Math.min(1, pattern.funnelCrownT || 0.78));
+    const tail = pattern.funnelTailRadius || 0;
+    const waist = pattern.funnelWaistRadius || tail;
+    const crown = pattern.funnelCrownRadius || waist;
+    const smooth = value => value * value * (3 - 2 * value);
+
+    if (t < waistT) {
+        const u = smooth(Math.max(0, Math.min(1, t / waistT)));
+        return tail + (waist - tail) * u;
+    }
+    if (t < crownT) {
+        const u = smooth(Math.max(0, Math.min(1, (t - waistT) / (crownT - waistT))));
+        return waist + (crown - waist) * u;
+    }
+    return crown;
+}
 
 self.onmessage = function (e) {
     const { type, data, seq } = e.data;
@@ -21,6 +57,9 @@ self.onmessage = function (e) {
         explosionOrigin = data.explosionOrigin || data.posHome;
         randomDir = data.randomDir;
         randomSpeed = data.randomSpeed;
+        funnelT = data.funnelT;
+        funnelRadialX = data.funnelRadialX;
+        funnelRadialZ = data.funnelRadialZ;
         lastMotionToken = -1;
         return;
     }
@@ -33,7 +72,9 @@ const {
             explosionSpeedRange,
             motionStyle,
             pattern: patternData,
-            explosionOrigin: nextOrigin
+            explosionOrigin: nextOrigin,
+            motionToken,
+            sourceGeneration
         } = data;
         if (!randomDir || !randomSpeed) return;
         explosionOrigin = nextOrigin || posHome;
@@ -45,8 +86,8 @@ const {
         const count = randomSpeed.length;
         maxTravelSq = 0; // Start measuring the actual travel radius for this blast
 
-        // Pattern styles: 0 = uniform sphere (Explode), 1 = tangential vortex
-        // (Galaxy), 2 = coherent wind gust (Breeze), 3 = crisp starburst rays
+        // Pattern styles: 0 = uniform sphere (Explode), 1 = tornado funnel
+        // (Tornado), 2 = coherent wind gust (Breeze), 3 = crisp starburst rays
         // (Kinetic). Presets pin a style (-1 => random per blast).
         const style = activeStyle;
 
@@ -69,28 +110,31 @@ const {
             let rx, ry, rz;
 
             if (style === 1) {
-                // Tangential vortex around the particle's own home position.
-                const hx = posHome[ix], hy = posHome[iy];
-                const r2 = hx * hx + hy * hy;
-                let tx, ty;
+                // Tornado directions swirl in the visible X/Z plane and point up in
+                // screen-space Y. The update path morphs into the actual funnel.
+                const hx = posHome[ix], hz = posHome[iz];
+                const r2 = hx * hx + hz * hz;
+                let tx, tz;
                 if (r2 > 1e-6) {
                     const inv = 1 / Math.sqrt(r2);
-                    tx = -hy * inv;
-                    ty =  hx * inv;
+                    tx = -hz * inv;
+                    tz =  hx * inv;
                 } else {
                     const a = Math.random() * Math.PI * 2;
-                    tx = Math.cos(a); ty = Math.sin(a);
+                    tx = Math.cos(a); tz = Math.sin(a);
                 }
-                const sign = Math.random() < 0.5 ? 1 : -1;
-                rx = tx * sign + (Math.random() - 0.5) * 0.2;
-                ry = ty * sign + (Math.random() - 0.5) * 0.2;
-                rz = posHome[iz] * (pattern.diskFlatten || 0);
+                const spinSign = Math.random() < 0.5 ? 1 : -1;
+                rx = tx * spinSign + (Math.random() - 0.5) * 0.15;
+                ry = 0.72 + (Math.random() - 0.5) * 0.12;
+                rz = tz * spinSign + (Math.random() - 0.5) * 0.15;
             } else if (style === 2) {
                 const coherence = pattern.gustCoherence || 0;
                 const rand = 1 - coherence;
                 rx = gx * coherence + (Math.random() * 2 - 1) * rand;
                 ry = gy * coherence + (Math.random() * 2 - 1) * rand;
                 rz = gz * coherence + (Math.random() * 2 - 1) * rand;
+                gustX = gx;
+                gustY = gy;
             } else if (style === 3) {
                 const sp = i % spokes;
                 const sa = sp * golden;
@@ -113,7 +157,8 @@ const {
             rx /= len; ry /= len; rz /= len;
 
             if (style === 2) {
-                randomSpeed[i] = (explosionSpeedMin + Math.random() * explosionSpeedRange) * (0.8 + Math.random() * 0.4);
+                // Strong gust: fast, purposeful speeds so the breeze reads clearly.
+                randomSpeed[i] = (explosionSpeedMin + Math.random() * explosionSpeedRange) * (1.4 + Math.random() * 0.9);
             } else if (style === 3) {
                 randomSpeed[i] = (explosionSpeedMin + Math.random() * explosionSpeedRange) * (1.5 + Math.random() * 0.7);
             } else {
@@ -131,7 +176,9 @@ const {
         self.postMessage({
             type: 'randomized',
             dirs: randomDir.slice(0, DIRECTIONS_VERIFY * 3),
-            style: activeStyle
+            style: activeStyle,
+            motionToken,
+            sourceGeneration
         });
         return;
     }
@@ -178,13 +225,36 @@ const anchorWeight = elapsed <= 0
                 ? 1
                 : Math.max(0, 1 - Math.pow(Math.min(1, (elapsed - expansionDuration) / contractionDuration), 3));
 
-        // Pattern time-evolution: Galaxy spins the base directions around Z over
-        // time; Breeze gently sways them. One sin/cos pair per frame, then cheap
-        // per-particle multiplies.
-        const spinAngle = (elapsed > 0 && activeStyle === 1 && pattern.spinSpeed) ? elapsed * pattern.spinSpeed : 0;
-        const swayAngle = (elapsed > 0 && activeStyle === 2 && pattern.swayAmp) ? pattern.swayAmp * Math.sin(elapsed * pattern.swayFreq) : 0;
+        // Pattern time-evolution. Tornado morphs into a screen-space funnel and spins
+        // its X/Z cross-sections around Y, then the envelope fades back to rest.
+        // Breeze surges via a gust envelope, sways the cloud, adds turbulence, and
+        // carries the return with a decaying wind drift. One sin/cos pair per frame,
+        // then cheap per-particle multiplies.
+        let spinAngle = 0, swayAngle = 0, gust = 1, drift = 0, turbAngle = 0;
+        const isTornado = activeStyle === 1
+            && pattern.funnelHeight
+            && funnelT
+            && funnelRadialX
+            && funnelRadialZ;
+        if (elapsed > 0 && isTornado) {
+            spinAngle = elapsed * pattern.spinSpeed;
+        } else if (elapsed > 0 && activeStyle === 2) {
+            const gustAmp = pattern.gustAmp || 0;
+            const gustFreq = pattern.gustFreq || 0;
+            if (gustFreq) gust = 1 + gustAmp * Math.sin(elapsed * gustFreq);
+            if (pattern.swayAmp) swayAngle = pattern.swayAmp * Math.sin(elapsed * (pattern.swayFreq || 0));
+            if (pattern.turbulence) turbAngle = pattern.turbulence * Math.sin(elapsed * 8);
+            const windDrift = pattern.windDrift || 0;
+            if (windDrift) drift = elapsed < expansionDuration
+                ? windDrift
+                : windDrift * (1 - Math.pow(Math.min(1, (elapsed - expansionDuration) / contractionDuration), 3));
+        }
         const spinCos = Math.cos(spinAngle), spinSin = Math.sin(spinAngle);
         const swayCos = Math.cos(swayAngle), swaySin = Math.sin(swayAngle);
+        const turbCos = Math.cos(turbAngle), turbSin = Math.sin(turbAngle);
+        const funnelProgress = isTornado
+            ? tornadoEnvelope(elapsed, expansionDuration, contractionDuration)
+            : 0;
 
         for (let i = 0; i < count; i++) {
             const ix = i * 3, iy = ix + 1, iz = ix + 2;
@@ -195,32 +265,55 @@ const anchorWeight = elapsed <= 0
             let by = posHome[iy] + (explosionOrigin[iy] - posHome[iy]) * anchorWeight;
             let bz = posHome[iz] + (explosionOrigin[iz] - posHome[iz]) * anchorWeight;
 
-            if (elapsed > 0.0) {
-                const maxDist = randomSpeed[i] * explosionMaxDistMultiplier;
-                let rx = randomDir[ix], ry = randomDir[iy], rz = randomDir[iz];
-                if (activeStyle === 1 && spinAngle > 0) {
-                    const nrx = rx * spinCos - ry * spinSin;
-                    const nry = rx * spinSin + ry * spinCos;
-                    rx = nrx; ry = nry;
-                } else if (activeStyle === 2 && swayAngle !== 0) {
-                    const nrx = rx * swayCos - ry * swaySin;
-                    const nry = rx * swaySin + ry * swayCos;
-                    rx = nrx; ry = nry;
-                }
+if (elapsed > 0.0) {
+                if (isTornado) {
+                    const t = funnelT[i];
+                    const radius = tornadoRadius(t, pattern);
+                    const funnelX = funnelRadialX[i] * radius;
+                    const funnelZ = funnelRadialZ[i] * radius;
+                    const targetX = funnelX * spinCos - funnelZ * spinSin;
+                    const targetZ = funnelX * spinSin + funnelZ * spinCos;
+                    const targetY = (pattern.funnelBottom || 0) + (pattern.funnelHeight || 0) * t;
 
-                let dist;
-                if (elapsed < expansionDuration) {
-                    // Expansion: quadratic ease-out
-                    const t = elapsed / expansionDuration;
-                    dist = maxDist * t * (2.0 - t);
+                    // The origin anchor and target offset share one progress value,
+                    // so the exact endpoint is always the particle's home position.
+                    bx += (targetX - explosionOrigin[ix]) * funnelProgress;
+                    by += (targetY - explosionOrigin[iy]) * funnelProgress;
+                    bz += (targetZ - explosionOrigin[iz]) * funnelProgress;
                 } else {
-                    // Contraction: cubic ease-in
-                    const t = (elapsed - expansionDuration) / contractionDuration;
-                    dist = maxDist * (1.0 - t * t * t);
+                    const maxDist = randomSpeed[i] * explosionMaxDistMultiplier;
+                    let rx = randomDir[ix], ry = randomDir[iy], rz = randomDir[iz];
+                    if (activeStyle === 2) {
+                        if (swayAngle !== 0) {
+                            const nrx = rx * swayCos - ry * swaySin;
+                            const nry = rx * swaySin + ry * swayCos;
+                            rx = nrx; ry = nry;
+                        }
+                        if (turbAngle !== 0) {
+                            const nrx = rx * turbCos - ry * turbSin;
+                            const nry = rx * turbSin + ry * turbCos;
+                            rx = nrx; ry = nry;
+                        }
+                    }
+
+                    let dist;
+                    if (elapsed < expansionDuration) {
+                        // Expansion: quadratic ease-out
+                        const t = elapsed / expansionDuration;
+                        dist = maxDist * t * (2.0 - t);
+                    } else {
+                        // Contraction: cubic ease-in
+                        const t = (elapsed - expansionDuration) / contractionDuration;
+                        dist = maxDist * (1.0 - t * t * t);
+                    }
+                    bx += rx * dist * gust;
+                    by += ry * dist * gust;
+                    bz += rz * dist * gust;
+                    // Wind follow-through: keep drifting downwind while returning, so the
+                    // cloud is carried home by the breeze. Decays to zero by recovery.
+                    bx += gustX * drift;
+                    by += gustY * drift;
                 }
-                bx += rx * dist;
-                by += ry * dist;
-                bz += rz * dist;
             }
 
             // 2. Mouse repulsion calculations with early-exit squared comparison

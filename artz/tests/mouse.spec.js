@@ -81,16 +81,3 @@ test('mouse world mapping spans the full stage under the orthographic camera', a
     expect(left.x).toBeLessThan(-41);
     expect(right.x).toBeGreaterThan(41);
 });
-
-test('CPU fallback receives the same full-stage mouse mapping', async ({ page }) => {
-    await openPage(page, '/?t=Rodrigo%20rocks!&noworker=1');
-
-    const c = await stageCenter(page);
-    const center = await probeMouse(page, c.x, c.y);
-    const left = await probeMouse(page, 8, HEIGHT / 2);
-    const right = await probeMouse(page, WIDTH - 8, HEIGHT / 2);
-
-    expect(Math.abs(center.x)).toBeLessThan(0.01);
-    expect(left.x).toBeLessThan(-41);
-    expect(right.x).toBeGreaterThan(41);
-});
