@@ -13,7 +13,9 @@ import {
     Vector3,
     Vector2,
     Matrix4,
-    MathUtils
+    MathUtils,
+    CanvasTexture,
+    LinearFilter
 } from 'three';
 
 // ─────────────────────────────────────────────
@@ -53,17 +55,23 @@ const CONFIG = {
         '😀', '😂', '😍', '🥰', '😎', '🤔', '😭', '😡', '😱', '🥳',
         '👍', '👎', '👏', '🙏', '👌', '💪', '❤️', '🔥', '✨', '🎉'
     ],
-    emojiRasterSize: 320,     // canvas edge for a single emoji (px)
+    emojiRasterSize: 320,
+    emojiFitPadX: 52,
+    emojiFitPadY: 52,
+    emojiPixelStep: 2,     // canvas edge for a single emoji (px)
     emojiFontSize: 280,       // glyph size within the emoji raster (px)
     emojiEdgeStep: 1,         // feature/silhouette edge samples (full density)
     emojiInteriorStep: 2,     // interior fill samples (halves density, keeps detail)
     emojiDensityOverride: 1,  // one particle per sampled cell → max detail under the cap
     emojiColorEdgeThreshold: 64, // max RGB-channel delta that marks an internal color boundary
     emojiJitterXY: 0.03,      // flatter layout so thin features (tears, eyes) stay continuous
-    emojiJitterZ: 0.6,        // shallow depth band: keeps volume without breaking detail
+    emojiJitterZ: 0.5,        // per-layer jitter (much smaller than layer spacing)
     emojiDepthCue: 0.06,      // near-flat depth shading for emoji particles
     emojiPointSize: 1.6,      // sprite base size covering interior sample cells
     emojiMotionMix: 0.35,     // how much of the explosion heat palette blends into emoji colors
+    emojiDepthLayers: 5,      // number of Z-slices to replicate emoji points across (Approach A)
+    emojiDepthRange: 6.0,     // total depth extent of the emoji volume in world units
+    emojiIdleRotSpeed: 0.006, // slow idle Y-rotation speed (rad/s) to reveal depth at rest
 
     // Uploaded image MESSAGE options. Images are contained in a square raster so
     // their aspect ratio is preserved while the largest dimension fits the stage.
@@ -71,9 +79,11 @@ const CONFIG = {
     imagePixelStep: 2,
     imageAlphaThreshold: 16,
     imageJitterXY: 0.03,
-    imageJitterZ: 0.6,
-imageDepthCue: 0.06,
+    imageJitterZ: 0.5,        // per-layer jitter (smaller than layer spacing)
+    imageDepthCue: 0.06,
     imagePointSize: 1.2,
+    imageDepthLayers: 4,      // number of Z-slices to replicate image points across
+    imageDepthRange: 5.0,     // total depth extent of the image volume in world units
     // Initial image framing: keep a fair distance from the left menu side and the
     // bottom instructions overlay (pixels of cleared stage each side). Uniform
     // camera distance means the image's aspect ratio is never distorted.
@@ -330,10 +340,12 @@ attribute vec3 homePosition;
 attribute vec4 sourceColor;
 attribute float sampleSize;
 attribute float funnelT;
+attribute vec2 aSourceUV;
 
 varying vec3 vColor;
 varying float vCoverage;
 varying float vTornadoFade;
+varying vec2 vSourceUV;
 
 void main() {
     // Smooth heatmap based on mouse proximity and dynamic colors (used while idle).
@@ -374,7 +386,9 @@ void main() {
     float depthCue = 1.0 + uDepthCue * homePosition.z;
     vColor *= depthCue;
 
-vCoverage = sourceColor.a;
+    vCoverage = sourceColor.a;
+    vSourceUV = aSourceUV;
+
     // Safe fade for the funnel tail: clamped instead of smoothstep so equal uniform
     // edges (non-Tornado presets) can never produce undefined values that poison alpha.
     float funnelFade = clamp(
@@ -390,7 +404,8 @@ vCoverage = sourceColor.a;
     // by the per-frame uPointScale uniform (same visual size at every zoom level).
     // Each particle is sized by the source raster cell it represents, so interior
     // cells (sampleSize 2) cover their grid and feature edges stay sharp (size 1).
-    gl_PointSize = uPointSize * uPixelRatio * uPointScale * depthCue * sampleSize;
+    float effectiveSampleSize = mix(sampleSize, 1.0, uEmojiMode);
+    gl_PointSize = uPointSize * uPixelRatio * uPointScale * depthCue * effectiveSampleSize;
     // Hotter (more displaced) particles grow slightly to emphasize the leading edge;
     // high-frequency audio sparkle also nudges size up.
     gl_PointSize *= (1.0 + 0.5 * heat * uExplosionActive + 0.2 * uAudioHigh);
@@ -400,16 +415,32 @@ vCoverage = sourceColor.a;
 
 const fragmentShader = `
 uniform float uEmojiMode;
+uniform float uUseSourceTexture;
+uniform sampler2D uSourceTexture;
 varying vec3 vColor;
 varying float vCoverage;
 varying float vTornadoFade;
+varying vec2 vSourceUV;
 
 void main() {
-    // Soft circular falloff so points look smooth without MSAA (antialias: false).
+    // Soft circular falloff with a solid bright core for lively, luminous dots
     vec2 cxy = 2.0 * gl_PointCoord - 1.0;
     float r = dot(cxy, cxy);
     if (r > 1.0) discard;
-    float alpha = 0.9 * (1.0 - smoothstep(0.0, 1.0, r));
+    float softEdge = 1.0 - smoothstep(0.3, 1.0, r);
+
+    // Approach C: sample the source canvas texture at this particle's UV coordinate.
+    // Enhanced vibrancy & brightness boost so emojis and images feel luminous and alive.
+    if (uUseSourceTexture > 0.5) {
+        vec4 texel = texture2D(uSourceTexture, vSourceUV);
+        vec3 vibrantColor = min(vec3(1.0), texel.rgb * 1.20);
+        vec3 blendedColor = mix(vibrantColor, vColor, uEmojiMode * (1.0 - uUseSourceTexture + 0.001));
+        float texAlpha = texel.a * softEdge * vTornadoFade;
+        gl_FragColor = vec4(blendedColor, texAlpha);
+        return;
+    }
+
+    float alpha = 0.9 * softEdge;
     // Emoji particles fade with their source coverage, keeping anti-aliased glyph
     // edges soft; text particles stay fully opaque as before.
     alpha *= mix(1.0, vCoverage, uEmojiMode);
@@ -671,7 +702,10 @@ const uniforms = {
     uTrailStrength: { value: 0.25 },
     // Emoji source-color mode (0 = theme/heat palette, 1 = sampled glyph colors).
     uEmojiMode: { value: 0 },
-    uEmojiMotionMix: { value: CONFIG.emojiMotionMix }
+    uEmojiMotionMix: { value: CONFIG.emojiMotionMix },
+    // Approach C: source texture sampling (0 = disabled, 1 = full texture)
+    uUseSourceTexture: { value: 0.0 },
+    uSourceTexture: { value: null }
 };
 
 // ─────────────────────────────────────────────
@@ -1049,12 +1083,18 @@ function sampleImagePoints(image) {
     const imgData = ctx.getImageData(0, 0, size, size).data;
     const step = CONFIG.imagePixelStep;
     const alphaThreshold = CONFIG.imageAlphaThreshold;
-    const points = [];
+    const basePoints = [];
     const colors = [];
     const covers = [];
     const sizes = [];
+    const isEdgeList = [];
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
+
+    const alphaOf = (x, y) => {
+        if (x < 0 || y < 0 || x >= size || y >= size) return 0;
+        return imgData[(y * size + x) * 4 + 3];
+    };
 
     for (let y = 0; y < size; y += step) {
         for (let x = 0; x < size; x += step) {
@@ -1062,10 +1102,17 @@ function sampleImagePoints(image) {
             const alpha = imgData[i + 3];
             if (alpha <= alphaThreshold) continue;
 
-            points.push(x, y);
+            basePoints.push(x, y);
             colors.push(imgData[i], imgData[i + 1], imgData[i + 2]);
             covers.push(alpha);
-            sizes.push(step);
+            sizes.push(1);
+
+            const isBoundary = alphaOf(x - step, y) <= alphaThreshold
+                || alphaOf(x + step, y) <= alphaThreshold
+                || alphaOf(x, y - step) <= alphaThreshold
+                || alphaOf(x, y + step) <= alphaThreshold;
+            isEdgeList.push(isBoundary);
+
             if (x < minX) minX = x;
             if (x > maxX) maxX = x;
             if (y < minY) minY = y;
@@ -1073,30 +1120,82 @@ function sampleImagePoints(image) {
         }
     }
 
-    if (points.length === 0) return null;
+    if (basePoints.length === 0) return null;
 
     const sourceWidthPx = Math.max(maxX - minX, 1);
     const sourceHeightPx = Math.max(maxY - minY, 1);
     const scale = CONFIG.targetWorldWidth / Math.max(sourceWidthPx, sourceHeightPx);
     const cx = (minX + maxX) / 2;
     const cy = (minY + maxY) / 2;
-    const flat = new Float32Array((points.length / 2) * 3);
-    let fi = 0;
-    for (let i = 0; i < points.length; i += 2) {
-        flat[fi++] = (points[i] - cx) * scale;
-        flat[fi++] = (cy - points[i + 1]) * scale;
-        flat[fi++] = 0;
+
+    const depthRange = CONFIG.imageDepthRange || 5.0;
+    const halfD = depthRange * 0.5;
+    const baseCount = basePoints.length / 2;
+
+    const outPts = [];
+    const outUVs = [];
+    const outColors = [];
+    const outCovers = [];
+    const outSizes = [];
+
+    // 1. Back Face (drawn first)
+    for (let i = 0; i < baseCount; i += 8) {
+        const px = basePoints[i * 2], py = basePoints[i * 2 + 1];
+        outPts.push((px - cx) * scale, (cy - py) * scale, -halfD);
+        outUVs.push(px / size, 1.0 - (py / size));
+        outColors.push(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2]);
+        outCovers.push(covers[i]);
+        outSizes.push(sizes[i]);
     }
+
+    // 2. Extrusion Side Rims (drawn second)
+    for (let i = 0; i < baseCount; i++) {
+        if (!isEdgeList[i]) continue;
+        const px = basePoints[i * 2], py = basePoints[i * 2 + 1];
+        const r = colors[i * 3], g = colors[i * 3 + 1], b = colors[i * 3 + 2];
+        const a = covers[i], s = sizes[i];
+        const u = px / size, v = 1.0 - (py / size);
+        const wx = (px - cx) * scale, wy = (cy - py) * scale;
+
+        outPts.push(wx, wy, -halfD * 0.33);
+        outUVs.push(u, v);
+        outColors.push(r, g, b);
+        outCovers.push(a);
+        outSizes.push(s);
+
+        outPts.push(wx, wy, halfD * 0.33);
+        outUVs.push(u, v);
+        outColors.push(r, g, b);
+        outCovers.push(a);
+        outSizes.push(s);
+    }
+
+    // 3. Front Face (drawn LAST, on top of everything)
+    for (let i = 0; i < baseCount; i++) {
+        const px = basePoints[i * 2], py = basePoints[i * 2 + 1];
+        outPts.push((px - cx) * scale, (cy - py) * scale, halfD);
+        outUVs.push(px / size, 1.0 - (py / size));
+        outColors.push(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2]);
+        outCovers.push(covers[i]);
+        outSizes.push(sizes[i]);
+    }
+
+    const flat = new Float32Array(outPts);
+    const uvs = new Float32Array(outUVs);
+    const colorsOut = new Uint8Array(outColors);
+    const coversOut = new Uint8Array(outCovers);
+    const sizesOut = new Uint8Array(outSizes);
 
     return {
         flat,
-        colors: new Uint8Array(colors),
-        covers: new Uint8Array(covers),
-        sizes: new Uint8Array(sizes),
-        // Image samples have no separate feature pass; CPU fallback reduction
-        // keeps a regular stride over the full raster.
-        featureCount: 0,
-        bounds: { w: sourceWidthPx, h: sourceHeightPx }
+        uvs,
+        colors: colorsOut,
+        covers: coversOut,
+        sizes: sizesOut,
+        featureCount: baseCount,
+        frontCount: baseCount,
+        bounds: { w: sourceWidthPx, h: sourceHeightPx },
+        sourceCanvas: canvas
     };
 }
 
@@ -1117,10 +1216,6 @@ function sampleEmojiPoints(emoji) {
     const size = CONFIG.emojiRasterSize;
     canvas.width = size;
     canvas.height = size;
-    // Transparent background: the glyph's own alpha becomes the occupancy mask,
-    // and the sampled RGB keeps the emoji's real colors (black eyes/mouth are
-    // then real features instead of holes in an opaque black canvas). Color emoji
-    // ignore fillStyle; monochrome fallback glyphs render white instead of black.
     ctx.clearRect(0, 0, size, size);
     ctx.fillStyle = 'white';
     ctx.font = `${CONFIG.emojiFontSize}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif`;
@@ -1129,117 +1224,121 @@ function sampleEmojiPoints(emoji) {
     ctx.fillText(emoji, size / 2, size / 2 + size * 0.02);
 
     const imgData = ctx.getImageData(0, 0, size, size).data;
-    const iStep = CONFIG.emojiInteriorStep;
-    const eStep = CONFIG.emojiEdgeStep;
+    const step = CONFIG.emojiPixelStep || 2;
     const alphaThr = CONFIG.pixelThreshold;     // coverage mask (0-255)
-    const colorThr = CONFIG.emojiColorEdgeThreshold; // RGB channel delta for internal color edges
 
-    // Coverage of a pixel: alpha > threshold counts as filled; anti-aliased edge
-    // pixels keep their partial alpha as coverage data for the fragment shader.
-    const alphaOf = (x, y) => imgData[(y * size + x) * 4 + 3];
-    const filled = (x, y) => alphaOf(x, y) > alphaThr;
-    const isEdge = (x, y) => {
-        if ((x > 0 && !filled(x - 1, y)) || (x < size - 1 && !filled(x + 1, y))) return true;
-        if ((y > 0 && !filled(x, y - 1)) || (y < size - 1 && !filled(x, y + 1))) return true;
-        return false;
-    };
-    // Internal color boundary: an adjacent filled pixel whose color differs enough
-    // (e.g. blue tears against a yellow face, dark pupil against skin).
-    const isColorEdge = (x, y) => {
-        const i = (y * size + x) * 4;
-        const r = imgData[i], g = imgData[i + 1], b = imgData[i + 2];
-        const neighbor = (nx, ny) => {
-            if (nx < 0 || ny < 0 || nx >= size || ny >= size) return false;
-            if (!filled(nx, ny)) return false;
-            const j = (ny * size + nx) * 4;
-            const dr = Math.abs(r - imgData[j]);
-            const dg = Math.abs(g - imgData[j + 1]);
-            const db = Math.abs(b - imgData[j + 2]);
-            return dr > colorThr || dg > colorThr || db > colorThr;
-        };
-        return neighbor(x - 1, y) || neighbor(x + 1, y) || neighbor(x, y - 1) || neighbor(x, y + 1);
-    };
-
-    // Pass 1 (features): silhouette edges AND internal color boundaries at full
-    // density, retaining their true RGB and partial coverage.
-    const points = [];
+    const basePoints = [];
     const colors = [];
     const covers = [];
     const sizes = [];
-    const edgeSet = new Set();
+    const isEdgeList = [];
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
-    for (let y = 0; y < size; y += eStep) {
-        for (let x = 0; x < size; x += eStep) {
-            if (filled(x, y)) {
-                if (isEdge(x, y) || isColorEdge(x, y)) {
-                    const i = (y * size + x) * 4;
-                    points.push(x, y);
-                    colors.push(imgData[i], imgData[i + 1], imgData[i + 2]);
-                    covers.push(alphaOf(x, y));
-                    sizes.push(1); // 1-raster-pixel feature sample
-                    edgeSet.add(y * size + x);
-                }
-                if (x < minX) minX = x;
-                if (x > maxX) maxX = x;
-                if (y < minY) minY = y;
-                if (y > maxY) maxY = y;
-            }
-        }
-    }
-    if (points.length === 0) return null;
 
-    // Pass 2 (content): interior cells at reduced resolution, averaging the cell's
-    // RGBA so flat color regions stay faithful without noisy single-pixel samples.
-    const pointCount = points.length / 2;
-    for (let y = 0; y < size; y += iStep) {
-        for (let x = 0; x < size; x += iStep) {
-            if (edgeSet.has(y * size + x)) continue;
-            if (!filled(x, y)) continue;
-            const x1 = Math.min(x + iStep - 1, size - 1);
-            const y1 = Math.min(y + iStep - 1, size - 1);
-            let sr = 0, sg = 0, sb = 0, sa = 0, n = 0;
-            for (let cy = y; cy <= y1; cy++) {
-                for (let cx = x; cx <= x1; cx++) {
-                    const i = (cy * size + cx) * 4;
-                    if (imgData[i + 3] > alphaThr) {
-                        sr += imgData[i];
-                        sg += imgData[i + 1];
-                        sb += imgData[i + 2];
-                        sa += imgData[i + 3];
-                        n++;
-                    }
-                }
-            }
-            if (n === 0) continue;
-            points.push(x, y);
-            colors.push(sr / n | 0, sg / n | 0, sb / n | 0);
-            covers.push(sa / n | 0);
-            sizes.push(iStep); // interior sample represents an iStep-pixel cell
+    const alphaOf = (x, y) => {
+        if (x < 0 || y < 0 || x >= size || y >= size) return 0;
+        return imgData[(y * size + x) * 4 + 3];
+    };
+
+    // Single uniform raster grid sampling across the entire emoji (equal density everywhere)
+    for (let y = 0; y < size; y += step) {
+        for (let x = 0; x < size; x += step) {
+            const i = (y * size + x) * 4;
+            const alpha = imgData[i + 3];
+            if (alpha <= alphaThr) continue;
+
+            basePoints.push(x, y);
+            colors.push(imgData[i], imgData[i + 1], imgData[i + 2]);
+            covers.push(alpha);
+            sizes.push(1); // Uniform dot size across all regions
+
+            const isBoundary = alphaOf(x - step, y) <= alphaThr
+                || alphaOf(x + step, y) <= alphaThr
+                || alphaOf(x, y - step) <= alphaThr
+                || alphaOf(x, y + step) <= alphaThr;
+            isEdgeList.push(isBoundary);
+
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
         }
     }
+
+    if (basePoints.length === 0) return null;
 
     const scale = CONFIG.targetWorldWidth / Math.max(maxX - minX, 1);
     const cx = (minX + maxX) / 2;
     const cy = (minY + maxY) / 2;
 
-    // Structured result: flat positions + aligned RGBA (normalized bytes) +
-    // coverage + per-sample cell size, plus how many leading samples are features
-    // (kept first so the budget reduction below can drop interiors before features).
-    const flat = new Float32Array((points.length / 2) * 3);
-    let fi = 0;
-    for (let i = 0; i < points.length; i += 2) {
-        flat[fi++] = (points[i] - cx) * scale;
-        flat[fi++] = (cy - points[i + 1]) * scale;
-        flat[fi++] = 0;
+    const depthRange = CONFIG.emojiDepthRange || 5.0;
+    const halfD = depthRange * 0.5;
+    const baseCount = basePoints.length / 2;
+
+    const outPts = [];
+    const outUVs = [];
+    const outColors = [];
+    const outCovers = [];
+    const outSizes = [];
+
+    // 1. Back Face (z = -halfD, sampled at 4px stride, drawn first behind)
+    for (let i = 0; i < baseCount; i += 4) {
+        const px = basePoints[i * 2], py = basePoints[i * 2 + 1];
+        outPts.push((px - cx) * scale, (cy - py) * scale, -halfD);
+        outUVs.push(px / size, 1.0 - (py / size));
+        outColors.push(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2]);
+        outCovers.push(covers[i]);
+        outSizes.push(1);
     }
+
+    // 2. Extrusion Side Rims (silhouette perimeter pixels along depth)
+    for (let i = 0; i < baseCount; i++) {
+        if (!isEdgeList[i]) continue;
+        const px = basePoints[i * 2], py = basePoints[i * 2 + 1];
+        const r = colors[i * 3], g = colors[i * 3 + 1], b = colors[i * 3 + 2];
+        const a = covers[i];
+        const u = px / size, v = 1.0 - (py / size);
+        const wx = (px - cx) * scale, wy = (cy - py) * scale;
+
+        outPts.push(wx, wy, -halfD * 0.33);
+        outUVs.push(u, v);
+        outColors.push(r, g, b);
+        outCovers.push(a);
+        outSizes.push(1);
+
+        outPts.push(wx, wy, halfD * 0.33);
+        outUVs.push(u, v);
+        outColors.push(r, g, b);
+        outCovers.push(a);
+        outSizes.push(1);
+    }
+
+    // 3. Front Face (z = +halfD, 100% full uniform density, drawn last on top)
+    for (let i = 0; i < baseCount; i++) {
+        const px = basePoints[i * 2], py = basePoints[i * 2 + 1];
+        outPts.push((px - cx) * scale, (cy - py) * scale, halfD);
+        outUVs.push(px / size, 1.0 - (py / size));
+        outColors.push(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2]);
+        outCovers.push(covers[i]);
+        outSizes.push(1);
+    }
+
+    const flat = new Float32Array(outPts);
+    const uvs = new Float32Array(outUVs);
+    const colorsOut = new Uint8Array(outColors);
+    const coversOut = new Uint8Array(outCovers);
+    const sizesOut = new Uint8Array(outSizes);
+
     return {
         flat,
-        colors: new Uint8Array(colors),
-        covers: new Uint8Array(covers),
-        sizes: new Uint8Array(sizes),
-        featureCount: pointCount,
-        bounds: { w: maxX - minX, h: maxY - minY }
+        uvs,
+        colors: colorsOut,
+        covers: coversOut,
+        sizes: sizesOut,
+        featureCount: baseCount,
+        frontCount: baseCount,
+        bounds: { w: maxX - minX, h: maxY - minY },
+        sourceCanvas: canvas
     };
 }
 
@@ -1310,31 +1409,43 @@ async function setupParticles(text, shouldScatter = false) {
     let srcColors = null;   // Uint8Array RGB source colors
     let srcCovers = null;   // Uint8Array source coverage
     let srcSizes = null;    // Uint8Array raster cell size per sample
+    let srcUVs  = null;    // Float32Array UV coords (Approach C)
     if (isSourceMessage) {
         srcColors = sourceData.colors;
         srcCovers = sourceData.covers;
         srcSizes = sourceData.sizes;
-        if (pointCount > maxPoints) {
+        srcUVs   = sourceData.uvs || null;
+        if (pointCount > maxParticles) {
             const keep = [];
-            const featureCount = Math.min(sourceData.featureCount || 0, pointCount);
-            if (featureCount > 0) {
-                const keepFeatures = Math.min(featureCount, Math.floor(maxPoints * 0.6));
-                const featStep = Math.max(1, Math.ceil(featureCount / Math.max(keepFeatures, 1)));
-                for (let i = 0; i < featureCount; i += featStep) keep.push(i);
-            }
-            const interiorBudget = Math.max(0, maxPoints - keep.length);
-            if (interiorBudget > 0) {
-                const interiorCount = pointCount - featureCount;
-                const intStep = Math.max(1, Math.ceil(interiorCount / interiorBudget));
-                for (let i = featureCount; i < pointCount; i += intStep) keep.push(i);
+            const frontCount = sourceData.frontCount || pointCount;
+
+            if (frontCount <= maxParticles) {
+                // Front face fits entirely within budget! Keep 100% of the front face.
+                for (let i = 0; i < frontCount; i++) keep.push(i);
+
+                // Allocate remaining budget to side and back points
+                const remaining = maxParticles - frontCount;
+                const extraCount = pointCount - frontCount;
+                if (remaining > 0 && extraCount > 0) {
+                    const extraStep = Math.max(1, Math.ceil(extraCount / remaining));
+                    for (let i = frontCount; i < pointCount && keep.length < maxParticles; i += extraStep) {
+                        keep.push(i);
+                    }
+                }
+            } else {
+                // Front face itself exceeds budget (e.g. CPU fallback 15k cap on large image).
+                // Use a uniform 2D stride that covers all rows/columns evenly without vertical banding.
+                const step = Math.ceil(frontCount / maxParticles);
+                for (let i = 0; i < frontCount && keep.length < maxParticles; i += step) {
+                    keep.push(i);
+                }
             }
 
             const cFlat = new Float32Array(keep.length * 3);
-            // Compacted arrays keep the sampler's RGB-per-point (3 bytes) layout
-            // plus separate covers/sizes, so the fill loop's i*3 reads stay aligned.
             const cColors = new Uint8Array(keep.length * 3);
             const cCovers = new Uint8Array(keep.length);
             const cSizes = new Uint8Array(keep.length);
+            const cUVs = srcUVs ? new Float32Array(keep.length * 2) : null;
             for (let k = 0; k < keep.length; k++) {
                 const i = keep[k];
                 cFlat[k * 3] = flat[i * 3];
@@ -1345,11 +1456,16 @@ async function setupParticles(text, shouldScatter = false) {
                 cColors[k * 3 + 2] = srcColors[i * 3 + 2];
                 cCovers[k] = srcCovers[i];
                 cSizes[k] = srcSizes[i];
+                if (cUVs && srcUVs) {
+                    cUVs[k * 2]     = srcUVs[i * 2];
+                    cUVs[k * 2 + 1] = srcUVs[i * 2 + 1];
+                }
             }
             flat = cFlat;
             srcColors = cColors;
             srcCovers = cCovers;
             srcSizes = cSizes;
+            srcUVs  = cUVs;
             pointCount = keep.length;
         }
     } else {
@@ -1391,6 +1507,8 @@ async function setupParticles(text, shouldScatter = false) {
     // sampled glyph colors/coverage; text is white/opaque unit-size cells.
     const srcColorArr = new Uint8Array(finalCount * 4);
     const srcSizeArr = new Uint8Array(finalCount);
+    // Approach C: UV attribute buffer (2 floats per particle).
+    const srcUVArr = new Float32Array(finalCount * 2);
 
     // Build fresh double-buffered worker working sets below (after resident buffers
     // are populated), since any prior in-flight slots have been transferred away.
@@ -1448,12 +1566,20 @@ async function setupParticles(text, shouldScatter = false) {
                 srcColorArr[idx * 4 + 2] = srcColors[i * 3 + 2];
                 srcColorArr[idx * 4 + 3] = srcCovers[i];
                 srcSizeArr[idx] = srcSizes[i];
+                // Approach C: copy UV from the source point (density clones share it).
+                if (srcUVs) {
+                    srcUVArr[idx * 2]     = srcUVs[i * 2];
+                    srcUVArr[idx * 2 + 1] = srcUVs[i * 2 + 1];
+                }
             } else {
                 srcColorArr[idx * 4]     = 255;
                 srcColorArr[idx * 4 + 1] = 255;
                 srcColorArr[idx * 4 + 2] = 255;
                 srcColorArr[idx * 4 + 3] = 255;
                 srcSizeArr[idx] = 1;
+                // Text particles: UV is zeroed (uUseSourceTexture will be 0 for text).
+                srcUVArr[idx * 2] = 0;
+                srcUVArr[idx * 2 + 1] = 0;
             }
         }
     }
@@ -1505,6 +1631,8 @@ const posAttr = new BufferAttribute(physics.posLive, 3);
     geo.setAttribute('sourceColor', new BufferAttribute(srcColorArr, 4, true));
     geo.setAttribute('sampleSize', new BufferAttribute(srcSizeArr, 1));
     geo.setAttribute('funnelT', new BufferAttribute(physics.funnelT, 1));
+    // Approach C: UV attribute for source texture sampling.
+    geo.setAttribute('aSourceUV', new BufferAttribute(srcUVArr, 2));
 
     if (isFirstBuild) {
         const mat = new ShaderMaterial({
@@ -1531,6 +1659,25 @@ const posAttr = new BufferAttribute(physics.posLive, 3);
         : (isImageMessage ? CONFIG.imageDepthCue : 0.28);
     render.particles.material.blending = isSourceMessage ? NormalBlending : AdditiveBlending;
     render.particles.material.needsUpdate = true;
+
+    // Approach C: upload the source canvas as a texture and enable texture sampling.
+    // Dispose the previous texture first to prevent GPU memory leaks (the memory
+    // test already tracks textureCount, so this must stay clean across rebuilds).
+    if (uniforms.uSourceTexture.value) {
+        uniforms.uSourceTexture.value.dispose();
+        uniforms.uSourceTexture.value = null;
+    }
+    if (isSourceMessage && sourceData && sourceData.sourceCanvas) {
+        const tex = new CanvasTexture(sourceData.sourceCanvas);
+        tex.minFilter = LinearFilter;
+        tex.magFilter = LinearFilter;
+        tex.needsUpdate = true;
+        uniforms.uSourceTexture.value = tex;
+        uniforms.uUseSourceTexture.value = 1.0;
+    } else {
+        uniforms.uUseSourceTexture.value = 0.0;
+    }
+
     // New layouts always begin face-on so the text itself is not presented at an
     // inherited angle from a previous interaction.
     render.particles.rotation.set(0, 0, 0);
@@ -2224,7 +2371,7 @@ function updateStageLayout() {
         if (state.messageMode === 'image' && state.activeImage) {
             render.targetZ = imageAutoZoom(w, h);
         } else if (state.activeEmoji && CONFIG.emojiOptions.includes(state.currentText)) {
-            render.targetZ = CONFIG.zoomMax;
+            render.targetZ = emojiAutoZoom(w, h);
         } else {
             render.targetZ = CONFIG.textAutoZoom;
         }
@@ -2237,6 +2384,19 @@ function updateStageLayout() {
 // out, and the larger distance wins so both paddings are satisfied. Only the
 // camera distance changes — the raster scale is untouched, so the image's own
 // aspect ratio is preserved exactly.
+function emojiAutoZoom(stageW, stageH) {
+    const tanHalf = Math.tan(CONFIG.cameraAngleDeg * Math.PI / 360);
+    const halfBox = CONFIG.targetWorldWidth / 2;
+    // 16% margins around the emoji so it occupies ~68% of the stage height/width
+    const padX = Math.max(stageW * 0.16, 80);
+    const padY = Math.max(stageH * 0.16, 80);
+    const availW = Math.max(stageW - 2 * padX, 1);
+    const availH = Math.max(stageH - 2 * padY, 1);
+    const zByHeight = halfBox * stageH / (tanHalf * availH);
+    const zByWidth = halfBox * stageH / (tanHalf * availW);
+    return Math.min(CONFIG.zoomMax, Math.max(zByHeight, zByWidth, CONFIG.zoomMin));
+}
+
 function imageAutoZoom(stageW, stageH) {
     const tanHalf = Math.tan(CONFIG.cameraAngleDeg * Math.PI / 360);
     const halfBox = CONFIG.targetWorldWidth / 2;

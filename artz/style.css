@@ -310,17 +310,17 @@ select option {
     transform: translateY(0);
 }
 
-/* Presets Row */
+/* Presets / Animations 2x2 Grid */
 #animations-section {
     border-top: 1px solid rgba(255, 255, 255, 0.05);
     padding-top: 14px;
 }
 
 #presets-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    width: 100%;
 }
 
 .presets-label {
@@ -333,37 +333,49 @@ select option {
 
 .preset-chip {
     background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
     color: var(--text-secondary);
-    padding: 4px 12px;
+    padding: 8px 10px;
+    font: inherit;
     font-size: 12px;
+    font-weight: 500;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     transition: all 0.2s ease;
 }
 
+.preset-chip .chip-icon {
+    font-size: 13px;
+    line-height: 1;
+}
+
 .preset-chip:hover {
-    background: rgba(99, 102, 241, 0.1);
+    background: rgba(99, 102, 241, 0.12);
     border-color: var(--accent);
     color: var(--text-primary);
-    transform: scale(1.05);
+    transform: translateY(-1px);
 }
 
 .preset-chip:active {
-    transform: scale(0.95);
+    transform: translateY(0);
 }
 
 .preset-chip.active {
-    background: #ffffff;
-    border-color: #ffffff;
-    color: #030308;
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.45);
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+    box-shadow: 0 0 14px var(--accent-glow);
     font-weight: 600;
 }
 
 /* Emoji Quick-pick Row */
 #emoji-row {
     display: flex;
+    flex-wrap: wrap;
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;

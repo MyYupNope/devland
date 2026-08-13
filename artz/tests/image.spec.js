@@ -110,7 +110,8 @@ test('uploading an image turns it into a source-colored particle sculpture', asy
     });
 
     // The rebuild rasterizes the image (hundreds of particles, not text density).
-    await page.waitForFunction(() => window.__artzDebug.particleCount > 0);
+    await page.waitForFunction(() => document.getElementById('image-name')?.textContent === 'half-red.png');
+    await page.waitForFunction(() => window.__artzDebug._render().particles.material.uniforms.uEmojiMode.value === 1);
     const result = await page.evaluate(() => {
         const render = window.__artzDebug._render();
         const geo = render.particles.geometry;

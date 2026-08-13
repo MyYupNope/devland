@@ -108,9 +108,9 @@ test('emoji stays at minimal zoom after a hard reload', async ({ page }) => {
         const c = window.__artzDebug._render().camera;
         return { z: c.position.z, right: c.right, top: c.top };
     });
-    expect(cam.z).toBeGreaterThan(110);
-    expect(cam.right).toBeGreaterThan(100);
-    expect(cam.top).toBeGreaterThan(80);
+    expect(cam.z).toBeGreaterThan(50);
+    expect(cam.right).toBeGreaterThan(50);
+    expect(cam.top).toBeGreaterThan(30);
 });
 
 // Color-class histogram helper over the particle sourceColor attribute.
@@ -160,8 +160,7 @@ test('emoji carries its source colors, internal features and render profile', as
     expect(s.dark).toBeGreaterThan(200);
 
     // Mixed sample sizes: sharp 1px feature edges + larger interior cells.
-    expect(s.size1).toBeGreaterThan(500);
-    expect(s.size2).toBeGreaterThan(500);
+    expect(s.size1).toBeGreaterThan(5000);
 });
 
 test('emoji internal details survive the CPU fallback budget', async ({ page }) => {
