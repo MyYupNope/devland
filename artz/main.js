@@ -1,6 +1,6 @@
 import {
     Clock,
-    PerspectiveCamera,
+    OrthographicCamera,
     Scene,
     WebGLRenderer,
     Points,
@@ -8,6 +8,7 @@ import {
     BufferAttribute,
     ShaderMaterial,
     AdditiveBlending,
+    NormalBlending,
     DynamicDrawUsage,
     Vector3,
     Vector2,
@@ -18,11 +19,19 @@ import {
 // ─────────────────────────────────────────────
 // Named Configuration Constants
 // ─────────────────────────────────────────────
+// Frustum angle that mirrors the old perspective camera's framing.
+const CAMERA_ANGLE_DEG = 75;
+
 const CONFIG = {
     // Camera
     initialZ: 35,
+    cameraAngleDeg: CAMERA_ANGLE_DEG, // Orthographic frustum angle that mirrors the old perspective view
     zoomMin: 10,
     zoomMax: 120,
+    // Message-type auto-zoom: emojis render at the farthest zoom (smallest
+    // display), while text fills most of the desktop stage. Both are overridden
+    // once the user zooms manually.
+    textAutoZoom: 45,
     zoomSpeed: 0.8,
     zoomLerp: 0.08,
     rotationStep: 0.03,
@@ -37,10 +46,31 @@ const CONFIG = {
     pixelThreshold: 120,
     targetWorldWidth: 80.0,
 
+    // Emoji MESSAGE options (picked from the UI list). Emojis render at high
+    // resolution with an edge + interior sampling pass so both the silhouette
+    // and inner details (eyes, holes, rings) stay recognizable.
+    emojiOptions: [
+        '😀', '😂', '😍', '🥰', '😎', '🤔', '😭', '😡', '😱', '🥳',
+        '👍', '👎', '👏', '🙏', '👌', '💪', '❤️', '🔥', '✨', '🎉'
+    ],
+    emojiRasterSize: 320,     // canvas edge for a single emoji (px)
+    emojiFontSize: 280,       // glyph size within the emoji raster (px)
+    emojiEdgeStep: 1,         // feature/silhouette edge samples (full density)
+    emojiInteriorStep: 2,     // interior fill samples (halves density, keeps detail)
+    emojiDensityOverride: 1,  // one particle per sampled cell → max detail under the cap
+    emojiColorEdgeThreshold: 64, // max RGB-channel delta that marks an internal color boundary
+    emojiJitterXY: 0.03,      // flatter layout so thin features (tears, eyes) stay continuous
+    emojiJitterZ: 0.6,        // shallow depth band: keeps volume without breaking detail
+    emojiDepthCue: 0.06,      // near-flat depth shading for emoji particles
+    emojiPointSize: 1.6,      // sprite base size covering interior sample cells
+    emojiMotionMix: 0.35,     // how much of the explosion heat palette blends into emoji colors
+
     // Particles
     density: 8,
     jitterXY: 0.08,
-    jitterZ: 2.5, // Increased slightly from 1.6 for more dramatic Z-depth!
+    jitterZ: 2.5, // Depth thickness. Safe with the orthographic camera: parallel
+                  // projection has no keystone shear, so edge glyphs stay straight
+                  // while the sculpture still has 3D volume.
 
     // Explosion speeds
     explosionSpeedMin: 0.4,
@@ -50,7 +80,7 @@ const CONFIG = {
     // heatDistance: world distance at which a particle is fully "hot" (red).
     // Computed as 1/3 of the visible screen height at the default camera depth:
     // (1/3) * 2 * initialZ * tan(fov/2), where fov = 75 and initialZ = 35.
-    heatDistance: (2 / 3) * 35 * Math.tan(75 * Math.PI / 360),
+    heatDistance: (2 / 3) * 35 * Math.tan(CAMERA_ANGLE_DEG * Math.PI / 360),
     // maxContractionVelocity: recovery duration = distance / velocity, so bigger
     // explosions take proportionally longer to recover (world units per second).
     maxContractionVelocity: 7,
@@ -107,15 +137,25 @@ const CONFIG = {
         }
     },
 
-    // Unique preset configurations for custom particle physics and Web Audio properties
+    // Unique preset configurations for custom particle physics and Web Audio properties.
+    // Pattern styles: 0 = uniform sphere (Explode), 1 = tangential vortex (Galaxy),
+    // 2 = coherent wind gust (Breeze), 3 = crisp starburst rays (Kinetic).
     presets: {
         KINETIC: {
             theme: 'neon',
             font: 'Fira Code',
-            expansionDuration: 0.7,
+            expansionDuration: 1.1,
             contractionDuration: 1.8,
             explosionMaxDistMultiplier: 25.0,
-            motionStyle: 4, // starburst rays
+            motionStyle: 3, // starburst rays
+            spokes: 12,
+            spokeJitter: 0.03,
+            trailStrength: 0.6,
+            heat: {
+                cold: [0.85, 0.9, 1.0],
+                warm: [1.0, 0.95, 0.8],
+                hot: [1.0, 1.0, 1.0]
+            },
             emberBudget: 90,
             soundPitch: 190,
             soundDuration: 0.9,
@@ -127,7 +167,15 @@ const CONFIG = {
             expansionDuration: 3.5,
             contractionDuration: 6.0,
             explosionMaxDistMultiplier: 12.0,
-            motionStyle: 1, // vortex
+            motionStyle: 1, // tangential vortex
+            spinSpeed: 2.0,
+            diskFlatten: 0.25,
+            trailStrength: 0.35,
+            heat: {
+                cold: [0.05, 0.15, 0.55],
+                warm: [0.25, 0.65, 1.0],
+                hot: [0.85, 0.95, 1.0]
+            },
             emberBudget: 70,
             soundPitch: 85,
             soundDuration: 2.4,
@@ -139,7 +187,16 @@ const CONFIG = {
             expansionDuration: 4.0,
             contractionDuration: 5.0,
             explosionMaxDistMultiplier: 6.5,
-            motionStyle: 3, // gentle cluster
+            motionStyle: 2, // coherent wind gust
+            gustCoherence: 0.75,
+            swayAmp: 0.35,
+            swayFreq: 0.5,
+            trailStrength: 0.08,
+            heat: {
+                cold: [0.05, 0.35, 0.2],
+                warm: [0.45, 0.85, 0.35],
+                hot: [0.85, 1.0, 0.6]
+            },
             emberBudget: 40,
             soundPitch: 155,
             soundDuration: 2.0,
@@ -151,7 +208,13 @@ const CONFIG = {
             expansionDuration: 1.1,
             contractionDuration: 3.8,
             explosionMaxDistMultiplier: 36.0,
-            motionStyle: 0, // spherical chaos
+            motionStyle: 0, // uniform sphere
+            trailStrength: 0.3,
+            heat: {
+                cold: [0.45, 0.05, 0.05],
+                warm: [1.0, 0.45, 0.08],
+                hot: [1.0, 0.85, 0.4]
+            },
             emberBudget: 140,
             soundPitch: 110,
             soundDuration: 1.6,
@@ -162,6 +225,19 @@ const CONFIG = {
             contractionDuration: 4.0,
             explosionMaxDistMultiplier: 15.0,
             motionStyle: -1, // random per blast
+            spokes: 12,
+            spokeJitter: 0.03,
+            spinSpeed: 0,
+            diskFlatten: 0,
+            gustCoherence: 0,
+            swayAmp: 0,
+            swayFreq: 0,
+            trailStrength: 0.25,
+            heat: {
+                cold: [0.1, 0.4, 1.0],
+                warm: [1.0, 1.0, 0.1],
+                hot: [1.0, 0.1, 0.1]
+            },
             soundPitch: 140,
             soundDuration: 1.5,
             soundType: 'sine'
@@ -182,6 +258,11 @@ window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',
 // ─────────────────────────────────────────────
 let physicsWorker = null;
 
+// Number of leading particles whose generated blast directions are echoed back from
+// the worker to the main thread (and kept by the CPU fallback) for the pattern
+// regression tests. Deterministic pattern verification with zero timing sensitivity.
+const DIRECTIONS_VERIFY = 384;
+
 // Tracks the actual travel radius in the CPU-fallback path (worker path uses its own).
 let fallbackMaxTravelSq = 0;
 
@@ -193,6 +274,8 @@ uniform vec3 uMouse;
 uniform float uMouseInfluence;
 uniform float uPointSize;
 uniform float uPixelRatio;
+uniform float uPointScale;
+uniform float uDepthCue;
 uniform vec3 uColorHot;
 uniform vec3 uColorWarm;
 uniform vec3 uColorCold;
@@ -206,17 +289,26 @@ uniform float uAudioBass;
 uniform float uAudioMid;
 uniform float uAudioHigh;
 uniform float uAudioEnvelope;
+uniform float uEmojiMode;
+uniform float uEmojiMotionMix;
 
 attribute vec3 homePosition;
+attribute vec4 sourceColor;
+attribute float sampleSize;
 
 varying vec3 vColor;
+varying float vCoverage;
 
 void main() {
     // Smooth heatmap based on mouse proximity and dynamic colors (used while idle).
     float r = clamp(distance(uMouse, position) / uMouseInfluence, 0.0, 1.0);
-    vec3 baseColor = (r < 0.5)
+    vec3 themeColor = (r < 0.5)
         ? mix(uColorHot, uColorWarm, r * 2.0)
         : mix(uColorWarm, uColorCold, (r - 0.5) * 2.0);
+
+    // Emoji mode keeps the sampled glyph color (eyes, tears, mouth, hearts stay
+    // readable); text mode keeps the theme heatmap exactly as before.
+    vec3 baseColor = mix(themeColor, sourceColor.rgb, uEmojiMode);
 
     // Movement heatmap: cooler (blue) near the particle's OWN initial position, hotter
     // (red) the further it has been displaced, with yellow in between. Independent of
@@ -228,21 +320,35 @@ void main() {
         ? mix(uHeatCold, uHeatWarm, heat * 2.0)
         : mix(uHeatWarm, uHeatHot, (heat - 0.5) * 2.0);
 
-    // During an explosion every particle is colored purely by displacement (no idle
-    // theme/mouse white bleeding in); uExplosionActive blends from 1 down to 0 over
-    // a short afterglow after the blast so colors ease back to the idle heatmap.
-    vColor = mix(baseColor, movementColor, uExplosionActive);
+    // During an explosion every particle is colored by displacement. Emojis blend
+    // the motion palette into their source color (uEmojiMotionMix) instead of
+    // replacing it, so the glyph stays recognizable while the blast reads as heat.
+    vec3 motionColor = mix(movementColor, sourceColor.rgb, uEmojiMode * uEmojiMotionMix);
+    vColor = mix(baseColor, motionColor, uExplosionActive);
 
     // Audio-reactive brightness: mid/high energy brighten the particles, the envelope
     // gives a broad pulse while the blast is sounding.
     float audioBright = 1.0 + 0.35 * uAudioMid + 0.25 * uAudioHigh;
     vColor *= audioBright * (0.85 + 0.30 * uAudioEnvelope);
 
+    // Depth cue: nearer particles (positive z depth) read slightly larger and
+    // brighter, so the face-on sculpture still reads volumetric under the
+    // orthographic projection. Emojis use a near-flat depth cue so small internal
+    // details keep a consistent size/brightness.
+    float depthCue = 1.0 + uDepthCue * homePosition.z;
+    vColor *= depthCue;
+
+    vCoverage = sourceColor.a;
+
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mvPosition;
 
-    // Size attenuation - corrected for device pixel ratio
-    gl_PointSize = uPointSize * uPixelRatio * (${CONFIG.pointSizeAttenuationScale.toFixed(1)} / -mvPosition.z);
+    // Size attenuation - corrected for device pixel ratio. Under the orthographic
+    // projection mvPosition.z is constant, so the perspective divisor is replaced
+    // by the per-frame uPointScale uniform (same visual size at every zoom level).
+    // Each particle is sized by the source raster cell it represents, so interior
+    // cells (sampleSize 2) cover their grid and feature edges stay sharp (size 1).
+    gl_PointSize = uPointSize * uPixelRatio * uPointScale * depthCue * sampleSize;
     // Hotter (more displaced) particles grow slightly to emphasize the leading edge;
     // high-frequency audio sparkle also nudges size up.
     gl_PointSize *= (1.0 + 0.5 * heat * uExplosionActive + 0.2 * uAudioHigh);
@@ -250,7 +356,9 @@ void main() {
 `;
 
 const fragmentShader = `
+uniform float uEmojiMode;
 varying vec3 vColor;
+varying float vCoverage;
 
 void main() {
     // Soft circular falloff so points look smooth without MSAA (antialias: false).
@@ -258,6 +366,9 @@ void main() {
     float r = dot(cxy, cxy);
     if (r > 1.0) discard;
     float alpha = 0.9 * (1.0 - smoothstep(0.0, 1.0, r));
+    // Emoji particles fade with their source coverage, keeping anti-aliased glyph
+    // edges soft; text particles stay fully opaque as before.
+    alpha *= mix(1.0, vCoverage, uEmojiMode);
     gl_FragColor = vec4(vColor, alpha);
 }
 `;
@@ -272,6 +383,7 @@ uniform float uHeatDistance;
 uniform float uPointSize;
 uniform float uPointSizeTrail;
 uniform float uPixelRatio;
+uniform float uPointScale;
 uniform float uTrailStrength;
 
 attribute vec3 homePosition;
@@ -292,11 +404,12 @@ void main() {
 
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mv;
-    gl_PointSize = uPointSizeTrail * uPixelRatio * (${CONFIG.pointSizeAttenuationScale.toFixed(1)} / -mv.z) * (0.5 + 1.4 * vSpeed);
+    gl_PointSize = uPointSizeTrail * uPixelRatio * uPointScale * (0.5 + 1.4 * vSpeed);
 }
 `;
 
 const trailFragmentShader = `
+uniform float uTrailStrength;
 varying vec3 vColor;
 varying float vSpeed;
 
@@ -304,7 +417,7 @@ void main() {
     vec2 cxy = 2.0 * gl_PointCoord - 1.0;
     float r = dot(cxy, cxy);
     if (r > 1.0) discard;
-    float alpha = (1.0 - smoothstep(0.0, 1.0, r)) * vSpeed * vSpeed;
+    float alpha = (1.0 - smoothstep(0.0, 1.0, r)) * vSpeed * vSpeed * uTrailStrength;
     gl_FragColor = vec4(vColor, alpha);
 }
 `;
@@ -343,6 +456,7 @@ const state = {
     currentTheme: 'ember',
     currentFont: 'Outfit',
     activePreset: null,  // Tracks which preset chip is currently selected
+    activeEmoji: null,   // Set when an emoji is picked from the list; cleared by typing
 
     // Dynamic per-explosion properties
     expansionDuration: CONFIG.presets.DEFAULT.expansionDuration,
@@ -359,6 +473,21 @@ const state = {
     soundPitch: CONFIG.presets.DEFAULT.soundPitch,
     soundDuration: CONFIG.presets.DEFAULT.soundDuration,
     soundType: CONFIG.presets.DEFAULT.soundType,
+    trailStrength: CONFIG.presets.DEFAULT.trailStrength,
+    // Per-preset explosion pattern tuning (used by generation + the time-dependent
+    // spin/sway applied in both physics paths).
+    pattern: {
+        spokes: CONFIG.presets.DEFAULT.spokes,
+        spokeJitter: CONFIG.presets.DEFAULT.spokeJitter,
+        spinSpeed: CONFIG.presets.DEFAULT.spinSpeed,
+        diskFlatten: CONFIG.presets.DEFAULT.diskFlatten,
+        gustCoherence: CONFIG.presets.DEFAULT.gustCoherence,
+        swayAmp: CONFIG.presets.DEFAULT.swayAmp,
+        swayFreq: CONFIG.presets.DEFAULT.swayFreq
+    },
+    heatCold: [0.1, 0.4, 1.0],
+    heatWarm: [1.0, 1.0, 0.1],
+    heatHot: [1.0, 0.1, 0.1],
 
     get totalExplosionDuration() {
         const exp = this.activeExpansionDuration || this.expansionDuration;
@@ -386,6 +515,7 @@ const render = {
     emberPosAttr: null,
     emberLifeAttr: null,
     targetZ: CONFIG.initialZ,
+    autoFit: true, // Keeps the full message fitting the stage until the user zooms manually
     prevTime: 0,
     prevDt: 0,
     prevKFrame: 0,
@@ -396,6 +526,7 @@ const render = {
 const physics = {
     posHome: null,      // Rest positions
     posLive: null,      // Resident geometry buffer (never transferred)
+    explosionOrigin: null, // Per-particle position at the start of the current blast
     springDisp: null,   // Spring displacement
     springVel: null,    // Spring velocity
     randomDir: null,    // Explosion direction per particle
@@ -403,9 +534,12 @@ const physics = {
     slots: [],          // Double-buffered working sets transferred to the worker
     sendQueue: [],      // FIFO of slots currently in flight at the worker
     seq: 0,             // Monotonic token echoed by the worker to pair replies
+    sourceGeneration: 0, // Reject worker results from an older text layout
+    motionToken: 0,     // Reject worker results from an older blast/recovery phase
     explosionStartTime: -1,
     positionsDirty: false, // true when a fresh worker result (or fallback step) moved particles
     usingFallback: false,  // true when the CPU fallback replaces a dead/unavailable worker
+    randomized: null,      // { dirs, style } echo of the active blast's generated directions
 };
 
 // Particle budget: full density with the worker, a reduced cap for the main-thread
@@ -440,6 +574,8 @@ const uniforms = {
     uMouseInfluence: { value: CONFIG.mouseInfluence },
     uPointSize: { value: CONFIG.pointSize },
     uPixelRatio: { value: 1.0 },
+    uPointScale: { value: CONFIG.pointSizeAttenuationScale / CONFIG.initialZ },
+    uDepthCue: { value: 0.28 },
     uColorHot: { value: new Vector3(1.0, 0.0, 0.0) },
     uColorWarm: { value: new Vector3(1.0, 1.0, 0.0) },
     uColorCold: { value: new Vector3(1.0, 1.0, 1.0) },
@@ -447,7 +583,8 @@ const uniforms = {
     uExplosionActive: { value: 0.0 },
     // Fixed motion-heat distance for every preset (red = 1/3 screen height at rest).
     uHeatDistance: { value: CONFIG.heatDistance },
-    // Fixed motion heatmap used by every preset: cold = blue, mid = yellow, hot = red.
+    // Per-preset motion heatmap (cold = far, mid = mid, hot = leading edge).
+    // The active preset's palette is applied on selection via applyPresetPhysics().
     uHeatCold: { value: new Vector3(0.1, 0.4, 1.0) },
     uHeatWarm: { value: new Vector3(1.0, 1.0, 0.1) },
     uHeatHot: { value: new Vector3(1.0, 0.1, 0.1) },
@@ -458,7 +595,10 @@ const uniforms = {
     uAudioEnvelope: { value: 0.0 },
     // Trail renderer uniforms.
     uPointSizeTrail: { value: 0.4 },
-    uTrailStrength: { value: 0.25 }
+    uTrailStrength: { value: 0.25 },
+    // Emoji source-color mode (0 = theme/heat palette, 1 = sampled glyph colors).
+    uEmojiMode: { value: 0 },
+    uEmojiMotionMix: { value: CONFIG.emojiMotionMix }
 };
 
 // ─────────────────────────────────────────────
@@ -799,6 +939,149 @@ function sampleTextPoints(text) {
 }
 
 // ─────────────────────────────────────────────
+// Emoji Rasterization (high-detail two-pass sampling)
+// ─────────────────────────────────────────────
+let emojiCanvas = null;
+let emojiCtx = null;
+
+function sampleEmojiPoints(emoji) {
+    if (!emojiCanvas) {
+        emojiCanvas = document.createElement('canvas');
+        emojiCtx = emojiCanvas.getContext('2d', { willReadFrequently: true });
+    }
+    const canvas = emojiCanvas;
+    const ctx = emojiCtx;
+
+    const size = CONFIG.emojiRasterSize;
+    canvas.width = size;
+    canvas.height = size;
+    // Transparent background: the glyph's own alpha becomes the occupancy mask,
+    // and the sampled RGB keeps the emoji's real colors (black eyes/mouth are
+    // then real features instead of holes in an opaque black canvas). Color emoji
+    // ignore fillStyle; monochrome fallback glyphs render white instead of black.
+    ctx.clearRect(0, 0, size, size);
+    ctx.fillStyle = 'white';
+    ctx.font = `${CONFIG.emojiFontSize}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(emoji, size / 2, size / 2 + size * 0.02);
+
+    const imgData = ctx.getImageData(0, 0, size, size).data;
+    const iStep = CONFIG.emojiInteriorStep;
+    const eStep = CONFIG.emojiEdgeStep;
+    const alphaThr = CONFIG.pixelThreshold;     // coverage mask (0-255)
+    const colorThr = CONFIG.emojiColorEdgeThreshold; // RGB channel delta for internal color edges
+
+    // Coverage of a pixel: alpha > threshold counts as filled; anti-aliased edge
+    // pixels keep their partial alpha as coverage data for the fragment shader.
+    const alphaOf = (x, y) => imgData[(y * size + x) * 4 + 3];
+    const filled = (x, y) => alphaOf(x, y) > alphaThr;
+    const isEdge = (x, y) => {
+        if ((x > 0 && !filled(x - 1, y)) || (x < size - 1 && !filled(x + 1, y))) return true;
+        if ((y > 0 && !filled(x, y - 1)) || (y < size - 1 && !filled(x, y + 1))) return true;
+        return false;
+    };
+    // Internal color boundary: an adjacent filled pixel whose color differs enough
+    // (e.g. blue tears against a yellow face, dark pupil against skin).
+    const isColorEdge = (x, y) => {
+        const i = (y * size + x) * 4;
+        const r = imgData[i], g = imgData[i + 1], b = imgData[i + 2];
+        const neighbor = (nx, ny) => {
+            if (nx < 0 || ny < 0 || nx >= size || ny >= size) return false;
+            if (!filled(nx, ny)) return false;
+            const j = (ny * size + nx) * 4;
+            const dr = Math.abs(r - imgData[j]);
+            const dg = Math.abs(g - imgData[j + 1]);
+            const db = Math.abs(b - imgData[j + 2]);
+            return dr > colorThr || dg > colorThr || db > colorThr;
+        };
+        return neighbor(x - 1, y) || neighbor(x + 1, y) || neighbor(x, y - 1) || neighbor(x, y + 1);
+    };
+
+    // Pass 1 (features): silhouette edges AND internal color boundaries at full
+    // density, retaining their true RGB and partial coverage.
+    const points = [];
+    const colors = [];
+    const covers = [];
+    const sizes = [];
+    const edgeSet = new Set();
+    let minX = Infinity, maxX = -Infinity;
+    let minY = Infinity, maxY = -Infinity;
+    for (let y = 0; y < size; y += eStep) {
+        for (let x = 0; x < size; x += eStep) {
+            if (filled(x, y)) {
+                if (isEdge(x, y) || isColorEdge(x, y)) {
+                    const i = (y * size + x) * 4;
+                    points.push(x, y);
+                    colors.push(imgData[i], imgData[i + 1], imgData[i + 2]);
+                    covers.push(alphaOf(x, y));
+                    sizes.push(1); // 1-raster-pixel feature sample
+                    edgeSet.add(y * size + x);
+                }
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+            }
+        }
+    }
+    if (points.length === 0) return null;
+
+    // Pass 2 (content): interior cells at reduced resolution, averaging the cell's
+    // RGBA so flat color regions stay faithful without noisy single-pixel samples.
+    const pointCount = points.length / 2;
+    for (let y = 0; y < size; y += iStep) {
+        for (let x = 0; x < size; x += iStep) {
+            if (edgeSet.has(y * size + x)) continue;
+            if (!filled(x, y)) continue;
+            const x1 = Math.min(x + iStep - 1, size - 1);
+            const y1 = Math.min(y + iStep - 1, size - 1);
+            let sr = 0, sg = 0, sb = 0, sa = 0, n = 0;
+            for (let cy = y; cy <= y1; cy++) {
+                for (let cx = x; cx <= x1; cx++) {
+                    const i = (cy * size + cx) * 4;
+                    if (imgData[i + 3] > alphaThr) {
+                        sr += imgData[i];
+                        sg += imgData[i + 1];
+                        sb += imgData[i + 2];
+                        sa += imgData[i + 3];
+                        n++;
+                    }
+                }
+            }
+            if (n === 0) continue;
+            points.push(x, y);
+            colors.push(sr / n | 0, sg / n | 0, sb / n | 0);
+            covers.push(sa / n | 0);
+            sizes.push(iStep); // interior sample represents an iStep-pixel cell
+        }
+    }
+
+    const scale = CONFIG.targetWorldWidth / Math.max(maxX - minX, 1);
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+
+    // Structured result: flat positions + aligned RGBA (normalized bytes) +
+    // coverage + per-sample cell size, plus how many leading samples are features
+    // (kept first so the budget reduction below can drop interiors before features).
+    const flat = new Float32Array((points.length / 2) * 3);
+    let fi = 0;
+    for (let i = 0; i < points.length; i += 2) {
+        flat[fi++] = (points[i] - cx) * scale;
+        flat[fi++] = (cy - points[i + 1]) * scale;
+        flat[fi++] = 0;
+    }
+    return {
+        flat,
+        colors: new Uint8Array(colors),
+        covers: new Uint8Array(covers),
+        sizes: new Uint8Array(sizes),
+        featureCount: pointCount,
+        bounds: { w: maxX - minX, h: maxY - minY }
+    };
+}
+
+// ─────────────────────────────────────────────
 // Particle Setup (Font Check + Capped Count + Worker Sync)
 // ─────────────────────────────────────────────
 let setupRequestId = 0;
@@ -820,6 +1103,9 @@ async function setupParticles(text, shouldScatter = false) {
 
     // If another setup request started while waiting for fonts, drop this stale execution
     if (currentRequestId !== setupRequestId) return;
+    physics.sourceGeneration++;
+    physics.motionToken++;
+    physics.randomized = null;
 
     // Living-morph support: capture the current rendered positions so that (when the
     // particle count is unchanged) the particles can flow from the old message into
@@ -831,22 +1117,77 @@ async function setupParticles(text, shouldScatter = false) {
         oldLive = pa ? pa.array : null;
     }
 
-    const points = sampleTextPoints(text);
+    // Emojis picked from the list render through the high-detail emoji rasterizer;
+    // anything typed (or loaded) as regular text keeps the standard text path.
+    const isEmojiMessage = state.activeEmoji === text && CONFIG.emojiOptions.includes(text);
+    const emojiData = isEmojiMessage ? sampleEmojiPoints(text) : null;
+    const points = emojiData ? emojiData.flat : sampleTextPoints(text);
     if (!points) {
         showToast('Text must contain at least one visible character!');
         return;
     }
 
-    const { density, jitterXY, jitterZ, explosionSpeedMin, explosionSpeedRange } = CONFIG;
-    const pointCount = points.length / 3;
-    let count = pointCount * density;
+    // One particle per sampled cell for emojis (max recognizable detail under the
+    // particle cap) instead of the text path's density-clone stacking.
+    const { jitterXY, jitterZ, explosionSpeedMin, explosionSpeedRange } = CONFIG;
+    const density = isEmojiMessage ? CONFIG.emojiDensityOverride : CONFIG.density;
+    let pointCount = points.length / 3;
     let step = 1;
 
-    // Subsample points if overall particle count budget is exceeded
+    // Subsample points if overall particle count budget is exceeded. Emojis use a
+    // feature-aware reduction: silhouette/color-boundary samples are kept first,
+    // and only interior fill is strided, so narrow tears/eyes/mouth survive the cap.
     const maxParticles = currentParticleCap();
-    if (count > maxParticles) {
-        const targetPoints = Math.floor(maxParticles / density);
-        step = Math.max(1, Math.ceil(pointCount / targetPoints));
+    const maxPoints = Math.floor(maxParticles / density);
+    let flat = points;
+    let srcColors = null;   // Uint8Array RGBA (emoji) — normalized byte colors
+    let srcCovers = null;   // Uint8Array source coverage
+    let srcSizes = null;    // Uint8Array raster cell size per sample (1 edge / 2 interior)
+    if (isEmojiMessage) {
+        srcColors = emojiData.colors;
+        srcCovers = emojiData.covers;
+        srcSizes = emojiData.sizes;
+        if (pointCount > maxPoints) {
+            const keep = [];
+            const featureCount = emojiData.featureCount;
+            const keepFeatures = Math.min(featureCount, Math.floor(maxPoints * 0.6));
+            const featStep = Math.max(1, Math.ceil(featureCount / keepFeatures));
+            for (let i = 0; i < featureCount; i += featStep) keep.push(i);
+            const interiorBudget = Math.max(0, maxPoints - keep.length);
+            if (interiorBudget > 0) {
+                const interiorCount = pointCount - featureCount;
+                const intStep = Math.max(1, Math.ceil(interiorCount / interiorBudget));
+                for (let i = featureCount; i < pointCount; i += intStep) keep.push(i);
+            }
+
+            const cFlat = new Float32Array(keep.length * 3);
+            // Compacted arrays keep the sampler's RGB-per-point (3 bytes) layout
+            // plus separate covers/sizes, so the fill loop's i*3 reads stay aligned.
+            const cColors = new Uint8Array(keep.length * 3);
+            const cCovers = new Uint8Array(keep.length);
+            const cSizes = new Uint8Array(keep.length);
+            for (let k = 0; k < keep.length; k++) {
+                const i = keep[k];
+                cFlat[k * 3] = flat[i * 3];
+                cFlat[k * 3 + 1] = flat[i * 3 + 1];
+                cFlat[k * 3 + 2] = flat[i * 3 + 2];
+                cColors[k * 3] = srcColors[i * 3];
+                cColors[k * 3 + 1] = srcColors[i * 3 + 1];
+                cColors[k * 3 + 2] = srcColors[i * 3 + 2];
+                cCovers[k] = srcCovers[i];
+                cSizes[k] = srcSizes[i];
+            }
+            flat = cFlat;
+            srcColors = cColors;
+            srcCovers = cCovers;
+            srcSizes = cSizes;
+            pointCount = keep.length;
+        }
+    } else {
+        const count = pointCount * density;
+        if (count > maxParticles) {
+            step = Math.max(1, Math.ceil(pointCount / maxPoints));
+        }
     }
 
     const sampledCount = Math.ceil(pointCount / step);
@@ -854,24 +1195,35 @@ async function setupParticles(text, shouldScatter = false) {
 
     physics.posHome    = new Float32Array(finalCount * 3);
     physics.posLive    = new Float32Array(finalCount * 3);
+    physics.explosionOrigin = new Float32Array(finalCount * 3);
     physics.springDisp = new Float32Array(finalCount * 3);
     physics.springVel  = new Float32Array(finalCount * 3);
     physics.randomDir  = new Float32Array(finalCount * 3);
     physics.randomSpeed = new Float32Array(finalCount);
 
+    // Per-particle source appearance: RGBA + raster-cell size. Emojis carry their
+    // sampled glyph colors/coverage; text is white/opaque unit-size cells.
+    const srcColorArr = new Uint8Array(finalCount * 4);
+    const srcSizeArr = new Uint8Array(finalCount);
+
     // Build fresh double-buffered worker working sets below (after resident buffers
     // are populated), since any prior in-flight slots have been transferred away.
 
+    // Emojis keep their 2D glyph continuity: much lower XY/Z jitter than text so
+    // thin internal details (tears, eyes, mouth lines) stay continuous.
+    const jx = isEmojiMessage ? CONFIG.emojiJitterXY : jitterXY;
+    const jz = isEmojiMessage ? CONFIG.emojiJitterZ : jitterZ;
+
     let si = 0;
     for (let i = 0; i < pointCount; i += step, si++) {
-        const px = points[i * 3], py = points[i * 3 + 1], pz = points[i * 3 + 2];
+        const px = flat[i * 3], py = flat[i * 3 + 1], pz = flat[i * 3 + 2];
         for (let d = 0; d < density; d++) {
             const idx = si * density + d;
             const ix = idx * 3, iy = ix + 1, iz = ix + 2;
 
-            const hx = px + (Math.random() - 0.5) * jitterXY;
-            const hy = py + (Math.random() - 0.5) * jitterXY;
-            const hz = pz + (Math.random() - 0.5) * jitterZ;
+            const hx = px + (Math.random() - 0.5) * jx;
+            const hy = py + (Math.random() - 0.5) * jx;
+            const hz = pz + (Math.random() - 0.5) * jz;
 
             physics.posHome[ix] = hx;
             physics.posHome[iy] = hy;
@@ -898,8 +1250,28 @@ async function setupParticles(text, shouldScatter = false) {
             physics.randomDir[iz] = Math.cos(phi);
 
             physics.randomSpeed[idx] = explosionSpeedMin + Math.random() * explosionSpeedRange;
+
+            // Source appearance aligned with this particle (density clones share it).
+            // srcColors is RGB-per-point (3 bytes); the shader attribute is RGBA (4).
+            if (srcColors) {
+                srcColorArr[idx * 4]     = srcColors[i * 3];
+                srcColorArr[idx * 4 + 1] = srcColors[i * 3 + 1];
+                srcColorArr[idx * 4 + 2] = srcColors[i * 3 + 2];
+                srcColorArr[idx * 4 + 3] = srcCovers[i];
+                srcSizeArr[idx] = srcSizes[i];
+            } else {
+                srcColorArr[idx * 4]     = 255;
+                srcColorArr[idx * 4 + 1] = 255;
+                srcColorArr[idx * 4 + 2] = 255;
+                srcColorArr[idx * 4 + 3] = 255;
+                srcSizeArr[idx] = 1;
+            }
         }
     }
+
+    // Refit the camera to the new content: message changes re-zoom to the
+    // message type's level (emoji smallest / text stage-filling), pre-user-zoom.
+    if (render.autoFit) updateStageLayout();
 
     // Morph transition: when particle counts match, start particles at their OLD
     // positions so the spring pulls them smoothly into the new glyph. Otherwise use
@@ -909,6 +1281,7 @@ async function setupParticles(text, shouldScatter = false) {
         physics.springDisp.fill(0);
         physics.springVel.fill(0);
     }
+    physics.explosionOrigin.set(physics.posLive);
 
     // Rebuild double-buffered worker working sets ("slots") to match the current arrays.
     physics.slots = [];
@@ -918,7 +1291,8 @@ async function setupParticles(text, shouldScatter = false) {
             posLive: new Float32Array(finalCount * 3),
             springDisp: new Float32Array(finalCount * 3),
             springVel: new Float32Array(finalCount * 3),
-            inFlight: false
+            inFlight: false,
+            needsReset: false
         };
         slot.posLive.set(physics.posLive);
         slot.springDisp.set(physics.springDisp);
@@ -932,11 +1306,15 @@ async function setupParticles(text, shouldScatter = false) {
         ? new BufferGeometry()
         : render.particles.geometry;
 
-    const posAttr = new BufferAttribute(physics.posLive, 3);
+const posAttr = new BufferAttribute(physics.posLive, 3);
     posAttr.setUsage(DynamicDrawUsage);
     geo.setAttribute('position', posAttr);
     // Per-particle rest/glyph positions, used by the shader to color by displacement.
     geo.setAttribute('homePosition', new BufferAttribute(physics.posHome, 3));
+    // Source appearance: emoji glyph colors + coverage (normalized bytes) and the
+    // raster-cell size each particle represents (drives sprite size).
+    geo.setAttribute('sourceColor', new BufferAttribute(srcColorArr, 4, true));
+    geo.setAttribute('sampleSize', new BufferAttribute(srcSizeArr, 1));
 
     if (isFirstBuild) {
         const mat = new ShaderMaterial({
@@ -951,6 +1329,18 @@ async function setupParticles(text, shouldScatter = false) {
         render.scene.add(render.particles);
     }
 
+    // Emoji layout uses the sampled glyph colors with normal alpha blending (so
+    // dark pupils/mouth render) and a crisp, low-jitter, low-depth-cue profile.
+    // Text keeps the theme/heat additive style unchanged.
+    uniforms.uEmojiMode.value = isEmojiMessage ? 1 : 0;
+    uniforms.uPointSize.value = isEmojiMessage ? CONFIG.emojiPointSize : CONFIG.pointSize;
+    uniforms.uDepthCue.value = isEmojiMessage ? CONFIG.emojiDepthCue : 0.28;
+    render.particles.material.blending = isEmojiMessage ? NormalBlending : AdditiveBlending;
+    render.particles.material.needsUpdate = true;
+    // New layouts always begin face-on so the text itself is not presented at an
+    // inherited angle from a previous interaction.
+    render.particles.rotation.set(0, 0, 0);
+
     // Sync initialized positions to the Web Worker. Pass CLONED copies so the worker
     // owns its arrays and the main-thread arrays stay attached for the resident
     // geometry attributes (homePosition) and the CPU fallback (never transferred).
@@ -959,8 +1349,10 @@ async function setupParticles(text, shouldScatter = false) {
             type: 'init',
             data: {
                 posHome: physics.posHome.slice(),
+                explosionOrigin: physics.explosionOrigin.slice(),
                 randomDir: physics.randomDir.slice(),
-                randomSpeed: physics.randomSpeed.slice()
+                randomSpeed: physics.randomSpeed.slice(),
+                sourceGeneration: physics.sourceGeneration
             }
         });
     }
@@ -1077,7 +1469,7 @@ function spawnEmbers() {
     const budget = preset ? (preset.emberBudget || 90) : 90;
     const E = Math.min(render.emberCount, budget);
     const pos = render.particles.geometry.attributes.position.array;
-    const home = physics.posHome;
+    const home = physics.explosionOrigin || physics.posHome;
     const n3 = pos.length;
 
     // Choose source particles on the outer shell of the explosion (displaced from home).
@@ -1145,11 +1537,20 @@ const _vec = new Vector3();
 const _dir = new Vector3();
 
 function updateMouse(clientX, clientY) {
-    _vec.set(
-        (clientX / window.innerWidth) * 2 - 1,
-        -(clientY / window.innerHeight) * 2 + 1,
-        0.5
-    ).unproject(render.camera);
+    const rect = render.renderer.domElement.getBoundingClientRect();
+    const nx = ((clientX - rect.left) / rect.width) * 2 - 1;
+    const ny = -((clientY - rect.top) / rect.height) * 2 + 1;
+
+    if (render.camera.isOrthographicCamera) {
+        // Orthographic cameras project along parallel rays: unprojecting the
+        // NDC point lands directly on the world z=0 plane of the sculpture.
+        _vec.set(nx, ny, 0).unproject(render.camera);
+        interaction.mouseWorld.copy(_vec);
+        interaction.mouseWorld.z = 0;
+        return;
+    }
+
+    _vec.set(nx, ny, 0.5).unproject(render.camera);
     _dir.copy(_vec).sub(render.camera.position).normalize();
     interaction.mouseWorld.copy(render.camera.position)
         .add(_dir.multiplyScalar(-render.camera.position.z / _dir.z));
@@ -1162,64 +1563,96 @@ function randomizeExplosionVectors() {
     if (!physics.randomDir || !physics.randomSpeed) return;
     const count = physics.randomSpeed.length;
     const { explosionSpeedMin, explosionSpeedRange } = CONFIG;
+    const pattern = state.pattern;
+    const home = physics.posHome;
 
-    // Pick a randomized explosion pattern for this blast (0: Spherical Chaos,
-    // 1: Vortex Swirl, 2: Directional Blast, 3: Cluster Burst, 4: Starburst Rays).
+    // Pick a randomized explosion pattern for this blast. Pattern styles:
+    // 0: uniform sphere (Explode), 1: tangential vortex (Galaxy),
+    // 2: coherent wind gust (Breeze), 3: crisp starburst rays (Kinetic).
     // Respect a pinned preset style when one is active.
     const style = (typeof state.motionStyle === 'number' && state.motionStyle >= 0)
         ? state.motionStyle
-        : Math.floor(Math.random() * 5);
-    const biasX = (Math.random() - 0.5) * 2;
-    const biasY = (Math.random() - 0.5) * 2;
-    const biasZ = (Math.random() - 0.5) * 2;
-    const swirlPower = (Math.random() - 0.5) * 2.5;
+        : Math.floor(Math.random() * 4);
+
+    // Shared gust direction for style 2 (mostly horizontal, slight vertical drift).
+    const gustAngle = Math.random() * Math.PI * 2;
+    let gx = Math.cos(gustAngle);
+    let gy = Math.sin(gustAngle);
+    let gz = (Math.random() - 0.5) * 0.4;
+    const glen = Math.sqrt(gx * gx + gy * gy + gz * gz) || 1;
+    gx /= glen; gy /= glen; gz /= glen;
+
+    // Fibonacci-sphere spoke lattice for style 3 (deterministic per spoke index).
+    const spokes = Math.max(2, pattern.spokes || 12);
+    const jitter = (pattern.spokeJitter != null) ? pattern.spokeJitter : 0.03;
+    const golden = Math.PI * (3 - Math.sqrt(5));
 
     for (let i = 0; i < count; i++) {
         const ix = i * 3, iy = ix + 1, iz = ix + 2;
 
-        let theta = Math.random() * Math.PI * 2;
-        let phi   = Math.acos((Math.random() * 2) - 1);
-
-        let rx = Math.sin(phi) * Math.cos(theta);
-        let ry = Math.sin(phi) * Math.sin(theta);
-        let rz = Math.cos(phi);
+        let rx, ry, rz;
 
         if (style === 1) {
-            // Vortex Swirl pattern around Z axis
-            const currentAngle = Math.atan2(ry, rx) + swirlPower;
-            const radius = Math.sqrt(rx * rx + ry * ry);
-            rx = Math.cos(currentAngle) * radius;
-            ry = Math.sin(currentAngle) * radius;
+            // Tangential vortex: velocity follows the tangent of the particle's own
+            // home position, so the field circulates around the message centre.
+            const hx = home[ix], hy = home[iy];
+            const r2 = hx * hx + hy * hy;
+            let tx, ty;
+            if (r2 > 1e-6) {
+                const inv = 1 / Math.sqrt(r2);
+                tx = -hy * inv;
+                ty =  hx * inv;
+            } else {
+                const a = Math.random() * Math.PI * 2;
+                tx = Math.cos(a); ty = Math.sin(a);
+            }
+            const sign = Math.random() < 0.5 ? 1 : -1;
+            const flatten = pattern.diskFlatten || 0;
+            rx = tx * sign;
+            ry = ty * sign;
+            rz = home[iz] * flatten;
+            // Small tangential wobble so the disk feels alive.
+            rx += (Math.random() - 0.5) * 0.2;
+            ry += (Math.random() - 0.5) * 0.2;
         } else if (style === 2) {
-            // Directional Blast pattern
-            rx = rx * 0.35 + biasX * 0.65;
-            ry = ry * 0.35 + biasY * 0.65;
-            rz = rz * 0.35 + biasZ * 0.65;
-            const len = Math.sqrt(rx * rx + ry * ry + rz * rz) || 1;
-            rx /= len; ry /= len; rz /= len;
+            // Coherent gust: the shared gust direction blended with per-particle
+            // randomness — the whole sculpture visibly flows one way.
+            const coherence = pattern.gustCoherence || 0;
+            const rand = 1 - coherence;
+            rx = gx * coherence + (Math.random() * 2 - 1) * rand;
+            ry = gy * coherence + (Math.random() * 2 - 1) * rand;
+            rz = gz * coherence + (Math.random() * 2 - 1) * rand;
         } else if (style === 3) {
-            // Cluster Burst pattern
-            const cluster = 0.5 + 0.5 * Math.sin(i * 0.08);
-            physics.randomSpeed[i] = (explosionSpeedMin + Math.random() * explosionSpeedRange) * (0.4 + cluster);
-        } else if (style === 4) {
-            // Starburst Rays pattern
-            const spokes = 10;
+            // Starburst rays: each particle snaps onto one of `spokes` crisp 3D
+            // directions with tiny angular jitter, so the blast reads as rays.
             const sp = i % spokes;
-            const sa = (sp / spokes) * Math.PI * 2;
-            const sb = 0.5 + (((sp * 0.618) % 1.0) + 0.2) * 0.9;
+            const sa = sp * golden;
+            const sb = Math.acos(Math.max(-1, Math.min(1, 1 - 2 * (sp + 0.5) / spokes)));
             const sx = Math.sin(sb) * Math.cos(sa);
             const sy = Math.sin(sb) * Math.sin(sa);
             const sz = Math.cos(sb);
-            const j = 0.16;
-            rx = sx + (Math.random() - 0.5) * 2 * j;
-            ry = sy + (Math.random() - 0.5) * 2 * j;
-            rz = sz + (Math.random() - 0.5) * 2 * j;
-            const blen = Math.sqrt(rx * rx + ry * ry + rz * rz) || 1;
-            rx /= blen; ry /= blen; rz /= blen;
-            physics.randomSpeed[i] = (explosionSpeedMin + Math.random() * explosionSpeedRange) * (1.5 + Math.random() * 0.7);
+            rx = sx + (Math.random() - 0.5) * 2 * jitter;
+            ry = sy + (Math.random() - 0.5) * 2 * jitter;
+            rz = sz + (Math.random() - 0.5) * 2 * jitter;
+        } else {
+            // Uniform sphere (style 0): fully symmetric explosion.
+            const theta = Math.random() * Math.PI * 2;
+            const phi   = Math.acos((Math.random() * 2) - 1);
+            rx = Math.sin(phi) * Math.cos(theta);
+            ry = Math.sin(phi) * Math.sin(theta);
+            rz = Math.cos(phi);
         }
 
-        if (style !== 3 && style !== 4) {
+        const len = Math.sqrt(rx * rx + ry * ry + rz * rz) || 1;
+        rx /= len; ry /= len; rz /= len;
+
+        if (style === 2) {
+            // Wind speeds are soft and varied so the gust feels like a breeze.
+            physics.randomSpeed[i] = (explosionSpeedMin + Math.random() * explosionSpeedRange) * (0.8 + Math.random() * 0.4);
+        } else if (style === 3) {
+            // Rays travel fast and uniformly so the spokes stay crisp.
+            physics.randomSpeed[i] = (explosionSpeedMin + Math.random() * explosionSpeedRange) * (1.5 + Math.random() * 0.7);
+        } else {
             const speedVar = 0.75 + Math.random() * 0.55;
             physics.randomSpeed[i] = (explosionSpeedMin + Math.random() * explosionSpeedRange) * speedVar;
         }
@@ -1228,10 +1661,47 @@ function randomizeExplosionVectors() {
         physics.randomDir[iy] = ry;
         physics.randomDir[iz] = rz;
     }
+
+    // Echo a leading slice of the generated directions for the pattern tests.
+    physics.randomized = {
+        dirs: physics.randomDir.slice(0, DIRECTIONS_VERIFY * 3),
+        style
+    };
+}
+
+function captureExplosionOrigin() {
+    if (!render.particles || !physics.explosionOrigin) return;
+    const current = render.particles.geometry.attributes.position.array;
+    if (current.length !== physics.explosionOrigin.length) return;
+
+    physics.explosionOrigin.set(current);
+    physics.posLive.set(current);
+    physics.springDisp.fill(0);
+    physics.springVel.fill(0);
+    physics.motionToken++;
+
+    // The worker's double-buffered slots also hold the previous state (e.g. preset
+    // scatter spring displacement). Reset free slots now; flag in-flight ones (their
+    // buffers are detached while at the worker) so the dispatch loop resets them. This
+    // prevents one slot leaking scatter-scale spring motion into the new blast.
+    for (const slot of physics.slots) {
+        if (slot.inFlight) {
+            slot.needsReset = true;
+        } else {
+            slot.posLive.set(current);
+            slot.springDisp.fill(0);
+            slot.springVel.fill(0);
+            slot.needsReset = false;
+        }
+    }
 }
 
 function triggerExplosion() {
     if (physics.explosionStartTime >= 0) return;
+
+    // Every particle explodes from the position the user actually sees, not from
+    // the screen center or its eventual text position.
+    captureExplosionOrigin();
 
     // Reset per-blast state
     state.actualTravelRadius = 0;
@@ -1260,7 +1730,11 @@ function triggerExplosion() {
             data: {
                 explosionSpeedMin: CONFIG.explosionSpeedMin,
                 explosionSpeedRange: CONFIG.explosionSpeedRange,
-                motionStyle: state.motionStyle
+                motionStyle: state.motionStyle,
+                pattern: state.pattern,
+                explosionOrigin: physics.explosionOrigin.slice(),
+                motionToken: physics.motionToken,
+                sourceGeneration: physics.sourceGeneration
             }
         });
     } else {
@@ -1271,6 +1745,13 @@ function triggerExplosion() {
     flashImpact();
     playExplosionSound(estimatedRecovery);
     announceToScreenReader(`Explosion triggered for "${state.currentText}"`);
+}
+
+function explosionAnchorWeight(elapsed, expansionDuration, contractionDuration) {
+    if (elapsed <= 0) return 0;
+    if (elapsed < expansionDuration) return 1;
+    const t = Math.min(1, (elapsed - expansionDuration) / contractionDuration);
+    return Math.max(0, 1 - t * t * t);
 }
 
 // ─────────────────────────────────────────────
@@ -1291,8 +1772,9 @@ function updateURLParams(text, theme, font, shouldPush = true) {
 // ─────────────────────────────────────────────
 // Custom UI Event Handlers
 // ─────────────────────────────────────────────
-function resetToDefaultExplosion() {
-    const preset = CONFIG.presets.DEFAULT;
+// Copy a preset's explosion physics/pattern/visual tuning into state and apply the
+// explosion-only visual uniforms. The user's theme/font always stay untouched.
+function applyPresetPhysics(preset) {
     state.expansionDuration = preset.expansionDuration;
     state.contractionDuration = preset.contractionDuration;
     state.explosionMaxDistMultiplier = preset.explosionMaxDistMultiplier;
@@ -1300,6 +1782,30 @@ function resetToDefaultExplosion() {
     state.soundPitch = preset.soundPitch;
     state.soundDuration = preset.soundDuration;
     state.soundType = preset.soundType;
+    state.trailStrength = (preset.trailStrength != null) ? preset.trailStrength : 0.25;
+
+    state.pattern = {
+        spokes:       (preset.spokes != null)       ? preset.spokes       : 12,
+        spokeJitter:  (preset.spokeJitter != null)  ? preset.spokeJitter  : 0.03,
+        spinSpeed:    (preset.spinSpeed != null)    ? preset.spinSpeed    : 0,
+        diskFlatten:  (preset.diskFlatten != null)  ? preset.diskFlatten  : 0,
+        gustCoherence:(preset.gustCoherence != null)? preset.gustCoherence: 0,
+        swayAmp:      (preset.swayAmp != null)      ? preset.swayAmp      : 0,
+        swayFreq:     (preset.swayFreq != null)     ? preset.swayFreq     : 0
+    };
+
+    state.heatCold = preset.heat ? preset.heat.cold : [0.1, 0.4, 1.0];
+    state.heatWarm = preset.heat ? preset.heat.warm : [1.0, 1.0, 0.1];
+    state.heatHot  = preset.heat ? preset.heat.hot  : [1.0, 0.1, 0.1];
+
+    uniforms.uHeatCold.value.set(...state.heatCold);
+    uniforms.uHeatWarm.value.set(...state.heatWarm);
+    uniforms.uHeatHot.value.set(...state.heatHot);
+    uniforms.uTrailStrength.value = state.trailStrength;
+}
+
+function resetToDefaultExplosion() {
+    applyPresetPhysics(CONFIG.presets.DEFAULT);
 }
 
 // Apply active preset's settings, or pick a random preset if none is selected.
@@ -1312,14 +1818,7 @@ function applyActiveOrRandomPreset() {
     // No preset selected: pick a random named preset (exclude DEFAULT).
     const namedPresets = Object.keys(CONFIG.presets).filter(k => k !== 'DEFAULT');
     const pick = namedPresets[Math.floor(Math.random() * namedPresets.length)];
-    const preset = CONFIG.presets[pick];
-    state.expansionDuration = preset.expansionDuration;
-    state.contractionDuration = preset.contractionDuration;
-    state.explosionMaxDistMultiplier = preset.explosionMaxDistMultiplier;
-    state.motionStyle = (preset.motionStyle != null) ? preset.motionStyle : -1;
-    state.soundPitch = preset.soundPitch;
-    state.soundDuration = preset.soundDuration;
-    state.soundType = preset.soundType;
+    applyPresetPhysics(CONFIG.presets[pick]);
 }
 
 function selectTheme(themeName, shouldPush = true) {
@@ -1360,7 +1859,9 @@ function updateCharCounter(text) {
     const counter = document.getElementById('char-counter');
     if (!counter) return;
 
-    const len = text.length;
+    // Count Unicode code points so a single emoji reads as 1/25 (its UTF-16 pair
+    // would otherwise count as 2).
+    const len = [...text].length;
     counter.textContent = `${len}/25`;
 
     counter.classList.remove('warning', 'danger');
@@ -1373,15 +1874,7 @@ function updateCharCounter(text) {
 
 // Set explosion custom physics + sound parameters per preset
 async function applyPresetExplosion(presetName, shouldScatter = true) {
-    const preset = CONFIG.presets[presetName] || CONFIG.presets.DEFAULT;
-    
-    state.expansionDuration = preset.expansionDuration;
-    state.contractionDuration = preset.contractionDuration;
-    state.explosionMaxDistMultiplier = preset.explosionMaxDistMultiplier;
-    state.motionStyle = (preset.motionStyle != null) ? preset.motionStyle : -1;
-    state.soundPitch = preset.soundPitch;
-    state.soundDuration = preset.soundDuration;
-    state.soundType = preset.soundType;
+    applyPresetPhysics(CONFIG.presets[presetName] || CONFIG.presets.DEFAULT);
 
     // Presets drive explosion behaviour only — theme and font stay as the user set them.
     await setupParticles(state.currentText, shouldScatter);
@@ -1440,7 +1933,10 @@ function onTouchMove(e) {
         const dx = e.touches[0].clientX - e.touches[1].clientX;
         const dy = e.touches[0].clientY - e.touches[1].clientY;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (interaction.lastPinchDist) render.targetZ -= (dist - interaction.lastPinchDist) * 0.15;
+        if (interaction.lastPinchDist) {
+            render.targetZ -= (dist - interaction.lastPinchDist) * 0.15;
+            render.autoFit = false;
+        }
         interaction.lastPinchDist = dist;
 
         const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
@@ -1465,13 +1961,37 @@ function onTouchEnd() {
     interaction.lastGestureEndTime = performance.now();
 }
 
-function onResize() {
-    render.camera.aspect = window.innerWidth / window.innerHeight;
+// Stage sizing + camera framing relative to the space not occupied by the menu.
+function updateStageLayout() {
+    const stage = document.getElementById('stage');
+    const w = Math.max(stage.clientWidth, 1);
+    const h = Math.max(stage.clientHeight, 1);
+    render.camera.aspect = w / h;
+
+    // Recompute the frustum from the current camera depth (matches animate(), so
+    // the aspect is kept in sync even before the next frame).
+    const halfHeight = render.camera.position.z * Math.tan(CONFIG.cameraAngleDeg * Math.PI / 360);
+    const halfWidth  = halfHeight * render.camera.aspect;
+    render.camera.left   = -halfWidth;
+    render.camera.right  =  halfWidth;
+    render.camera.top    =  halfHeight;
+    render.camera.bottom = -halfHeight;
     render.camera.updateProjectionMatrix();
-    render.renderer.setSize(window.innerWidth, window.innerHeight);
+
+    render.renderer.setSize(w, h, false); // CSS (stage) controls the element size
     const dpr = Math.min(window.devicePixelRatio, CONFIG.maxPixelRatio);
     render.renderer.setPixelRatio(dpr);
     uniforms.uPixelRatio.value = dpr;
+
+    // Auto-zoom by message type, until the user zooms manually: emojis render at
+    // the farthest zoom (smallest display), text fills most of the desktop stage.
+    if (render.autoFit && stage.getBoundingClientRect().left > 0) {
+        if (state.activeEmoji && CONFIG.emojiOptions.includes(state.currentText)) {
+            render.targetZ = CONFIG.zoomMax;
+        } else {
+            render.targetZ = CONFIG.textAutoZoom;
+        }
+    }
 }
 
 // Highlight the active preset button, clear others
@@ -1496,6 +2016,14 @@ function clearActivePresets() {
     });
 }
 
+// Highlight the picked emoji chip (or clear all when null)
+function setEmojiActive(emoji) {
+    const chips = document.querySelectorAll('.emoji-chip');
+    chips.forEach(chip => {
+        chip.classList.toggle('active', chip.getAttribute('data-emoji') === emoji);
+    });
+}
+
 // ─────────────────────────────────────────────
 // UI Setup
 // ─────────────────────────────────────────────
@@ -1512,6 +2040,8 @@ function setupUI() {
 
         textInput.addEventListener('input', () => {
             clearActivePresets(); // Typing clears preset active marks
+            state.activeEmoji = null; // Typing reverts to the regular text path
+            setEmojiActive(null);
             resetToDefaultExplosion(); // Typing resets preset physics details
             updateCharCounter(textInput.value);
             clearTimeout(interaction.inputDebounceTimer);
@@ -1570,6 +2100,29 @@ function setupUI() {
             
             // Trigger the unique explosion
             triggerExplosion();
+        });
+    });
+
+    // Emoji quick-picks: substitute the MESSAGE with a high-detail emoji sculpture
+    const emojiChips = document.querySelectorAll('.emoji-chip');
+    emojiChips.forEach(chip => {
+        chip.addEventListener('click', async () => {
+            const emoji = chip.getAttribute('data-emoji');
+            if (!emoji) return;
+
+            clearActivePresets();
+            resetToDefaultExplosion();
+            state.activeEmoji = emoji;
+            setEmojiActive(emoji);
+
+            const textInput = document.getElementById('text-input');
+            if (textInput) {
+                textInput.value = emoji;
+                updateCharCounter(emoji);
+            }
+
+            // Quiet morph rebuild (no forced explosion) that updates the share URL.
+            await updateText(emoji);
         });
     });
 }
@@ -1655,10 +2208,29 @@ function animate() {
     }
 
     // Zoom controls
-    if (keys['+'] || keys['=']) render.targetZ -= CONFIG.zoomSpeed;
-    if (keys['-']) render.targetZ += CONFIG.zoomSpeed;
+    if (keys['+'] || keys['=']) {
+        render.targetZ -= CONFIG.zoomSpeed;
+        render.autoFit = false;
+    }
+    if (keys['-']) {
+        render.targetZ += CONFIG.zoomSpeed;
+        render.autoFit = false;
+    }
     render.targetZ = MathUtils.clamp(render.targetZ, CONFIG.zoomMin, CONFIG.zoomMax);
     camera.position.z = MathUtils.lerp(camera.position.z, render.targetZ, CONFIG.zoomLerp);
+
+    // Orthographic framing: keep the exact view scale the perspective camera had by
+    // deriving the frustum height from the camera depth. This eliminates the
+    // perspective keystone shear that used to lean off-center glyphs toward the
+    // screen center, so true z-depth renders without distortion at any zoom.
+    const halfHeight = camera.position.z * Math.tan(CONFIG.cameraAngleDeg * Math.PI / 360);
+    const halfWidth  = halfHeight * camera.aspect;
+    camera.left   = -halfWidth;
+    camera.right  =  halfWidth;
+    camera.top    =  halfHeight;
+    camera.bottom = -halfHeight;
+    camera.updateProjectionMatrix();
+    uniforms.uPointScale.value = CONFIG.pointSizeAttenuationScale / camera.position.z;
 
     if (!particles) {
         render.renderer.render(render.scene, camera);
@@ -1692,7 +2264,7 @@ function animate() {
     const posAttr = particles.geometry.attributes.position;
     const pos = posAttr.array;
     const count = posAttr.count;
-    const { posHome, springDisp, springVel, randomDir, randomSpeed } = physics;
+    const { posHome, explosionOrigin, springDisp, springVel, randomDir, randomSpeed } = physics;
     const mouseInfluence  = CONFIG.mouseInfluence;
     const mouseInfluence2 = mouseInfluence * mouseInfluence;
     const repulsionStr    = CONFIG.repulsionStrength;
@@ -1723,6 +2295,9 @@ function animate() {
         if (elapsed > state.totalExplosionDuration) {
             // Blast fully finished -> begin the afterglow fade back to idle colors.
             physics.explosionStartTime = -1;
+            physics.motionToken++;
+            springDisp.fill(0);
+            springVel.fill(0);
             state.afterglowStartTime = time;
             elapsed = -1;
         } else {
@@ -1778,6 +2353,12 @@ function animate() {
             if (!s.inFlight) { slot = s; break; }
         }
         if (slot) {
+            if (slot.needsReset) {
+                slot.posLive.set(physics.explosionOrigin);
+                slot.springDisp.fill(0);
+                slot.springVel.fill(0);
+                slot.needsReset = false;
+            }
             slot.inFlight = true;
             slot.seq = physics.seq++;
             physics.sendQueue.push(slot);
@@ -1795,27 +2376,44 @@ function animate() {
                     contractionDuration: activeContrDuration,
                     explosionMaxDistMultiplier: activeMaxDistMult,
                     mouseInfluence,
-                    repulsionStr
+                    repulsionStr,
+                    sourceGeneration: physics.sourceGeneration,
+                    motionToken: physics.motionToken
                 },
                 seq: slot.seq
             }, [slot.posLive.buffer, slot.springDisp.buffer, slot.springVel.buffer]);
         }
     } else {
         // Local CPU Fallback (Main Thread)
+        // Per-frame rotation of the pattern's base directions: Galaxy spins around Z,
+        // Breeze sways gently. One sin/cos pair per frame, then cheap per-particle math.
+        const pat = state.pattern;
+        const spinAngle = (elapsed > 0 && pat.spinSpeed) ? elapsed * pat.spinSpeed : 0;
+        const swayAngle = (elapsed > 0 && pat.swayAmp) ? pat.swayAmp * Math.sin(elapsed * pat.swayFreq) : 0;
+        const spinCos = Math.cos(spinAngle), spinSin = Math.sin(spinAngle);
+        const swayCos = Math.cos(swayAngle), swaySin = Math.sin(swayAngle);
         for (let i = 0; i < count; i++) {
             const ix = i * 3, iy = ix + 1, iz = ix + 2;
-            let bx = posHome[ix], by = posHome[iy], bz = posHome[iz];
-
-            if (!isMotionReduced) {
-                const breathingScale = time * 1.3 + i * 0.005;
-                bx += Math.sin(breathingScale) * 0.12;
-                by += Math.cos(breathingScale * 0.8) * 0.08;
-                bz += Math.sin(breathingScale * 0.5) * 0.15;
-            }
+            const anchor = elapsed > 0
+                ? explosionAnchorWeight(elapsed, activeExpDuration, activeContrDuration)
+                : 0;
+            const origin = explosionOrigin || posHome;
+            let bx = posHome[ix] + (origin[ix] - posHome[ix]) * anchor;
+            let by = posHome[iy] + (origin[iy] - posHome[iy]) * anchor;
+            let bz = posHome[iz] + (origin[iz] - posHome[iz]) * anchor;
 
             if (elapsed > 0.0) {
                 const maxDist = randomSpeed[i] * activeMaxDistMult;
-                const rx = randomDir[ix], ry = randomDir[iy], rz = randomDir[iz];
+                let rx = randomDir[ix], ry = randomDir[iy], rz = randomDir[iz];
+                if (state.motionStyle === 1) {
+                    const nrx = rx * spinCos - ry * spinSin;
+                    const nry = rx * spinSin + ry * spinCos;
+                    rx = nrx; ry = nry;
+                } else if (state.motionStyle === 2) {
+                    const nrx = rx * swayCos - ry * swaySin;
+                    const nry = rx * swaySin + ry * swayCos;
+                    rx = nrx; ry = nry;
+                }
                 let dist;
                 if (elapsed < activeExpDuration) {
                     const t = elapsed / activeExpDuration;
@@ -1859,9 +2457,9 @@ function animate() {
             pos[iz] = bz + springDisp[iz];
 
             if (elapsed > 0.0) {
-                const tx = pos[ix] - posHome[ix];
-                const ty = pos[iy] - posHome[iy];
-                const tz = pos[iz] - posHome[iz];
+                const tx = pos[ix] - origin[ix];
+                const ty = pos[iy] - origin[iy];
+                const tz = pos[iz] - origin[iz];
                 const td2 = tx * tx + ty * ty + tz * tz;
                 if (td2 > fallbackMaxTravelSq) fallbackMaxTravelSq = td2;
             }
@@ -1886,7 +2484,7 @@ function animate() {
 // ─────────────────────────────────────────────
 async function init() {
     render.scene  = new Scene();
-    render.camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    render.camera = new OrthographicCamera(-1, 1, 1, -1, -600, 600);
     render.camera.position.z = render.targetZ;
 
     const dpr = Math.min(window.devicePixelRatio, CONFIG.maxPixelRatio);
@@ -1901,14 +2499,15 @@ async function init() {
         preserveDrawingBuffer: false
     });
     render.renderer.setClearColor(CONFIG.clearColor, 1);
-    render.renderer.setSize(window.innerWidth, window.innerHeight);
-    render.renderer.setPixelRatio(dpr);
-    uniforms.uPixelRatio.value = dpr;
 
     const canvas = render.renderer.domElement;
     canvas.setAttribute('role', 'img');
     canvas.setAttribute('aria-label', 'Kinetic particle sculpture — interactive particle animation');
-    document.body.appendChild(canvas);
+    document.getElementById('stage').appendChild(canvas);
+
+    // Size the renderer/camera to the stage (space excluding the menu) and apply
+    // the initial auto-fit zoom before the sculpture is built.
+    updateStageLayout();
 
     // Initialize physics Web Worker. `?noworker=1` forces the CPU fallback so the
     // fallback path can be exercised by the browser test suite.
@@ -1919,7 +2518,24 @@ async function init() {
                 type: 'module'
             });
         physicsWorker.onmessage = function (e) {
-            const { type, seq, posLive, springDisp, springVel, travelRadius } = e.data;
+            const {
+                type,
+                seq,
+                posLive,
+                springDisp,
+                springVel,
+                travelRadius,
+                sourceGeneration,
+                motionToken
+            } = e.data;
+            if (type === 'randomized') {
+                // The worker echoes a slice of the blast directions it generated so the
+                // pattern regression tests can verify them without timing sensitivity.
+                if (e.data.style === state.motionStyle) {
+                    physics.randomized = { dirs: e.data.dirs, style: e.data.style };
+                }
+                return;
+            }
             if (type === 'update') {
                 // Pair the reply with the matching in-flight slot via its sequence token.
                 // Stale replies (e.g. from a buffer set invalidated by a text change) are
@@ -1935,6 +2551,12 @@ async function init() {
                 slot.posLive = posLive;
                 slot.springDisp = springDisp;
                 slot.springVel = springVel;
+
+                // Results from an older layout or blast phase must never overwrite
+                // the current geometry after a rebuild or a new explosion.
+                if (sourceGeneration !== physics.sourceGeneration || motionToken !== physics.motionToken) {
+                    return;
+                }
 
                 // Track the actual distance particles travelled (used for recovery).
                 if (typeof travelRadius === 'number' && travelRadius > 0) {
@@ -1980,6 +2602,9 @@ async function init() {
     state.currentTheme = initialTheme;
     state.currentFont = initialFont;
 
+    // A shared URL whose message is a list emoji keeps the high-detail rendering.
+    if (CONFIG.emojiOptions.includes(initialText)) state.activeEmoji = initialText;
+
     // Apply initial state & check if text matches a preset
     const upperText = initialText.toUpperCase();
     if (CONFIG.presets[upperText] && upperText !== 'DEFAULT') {
@@ -2017,7 +2642,7 @@ async function init() {
     window.addEventListener('touchstart', onTouchStart, { passive: false });
     window.addEventListener('touchmove', onTouchMove, { passive: false });
     window.addEventListener('touchend', onTouchEnd);
-    window.addEventListener('resize', onResize);
+    window.addEventListener('resize', updateStageLayout);
     
     window.addEventListener('keydown', e => {
         interaction.keys[e.key] = true;
@@ -2041,6 +2666,7 @@ async function init() {
         state.currentText = t;
         state.currentTheme = theme;
         state.currentFont = font;
+        state.activeEmoji = CONFIG.emojiOptions.includes(t) ? t : null;
 
         const textInput = document.getElementById('text-input');
         if (textInput) {
@@ -2058,6 +2684,7 @@ async function init() {
         } else {
             clearActivePresets();
         }
+        setEmojiActive(state.activeEmoji);
     });
 
     // URL debug auto-explode parameter
@@ -2085,6 +2712,31 @@ window.__artzDebug = {
     },
     get renderCalls() {
         return render.renderer ? render.renderer.info.render.calls : -1;
+    },
+    snapshot(limit = 96) {
+        const position = render.particles?.geometry.attributes.position.array;
+        const home = physics.posHome;
+        const origin = physics.explosionOrigin;
+        const count = Math.min(limit * 3, position?.length || 0);
+        return {
+            position: position ? Array.from(position.slice(0, count)) : [],
+            home: home ? Array.from(home.slice(0, count)) : [],
+            explosionOrigin: origin ? Array.from(origin.slice(0, count)) : [],
+            rotation: render.particles
+                ? [render.particles.rotation.x, render.particles.rotation.y, render.particles.rotation.z]
+                : [0, 0, 0],
+            sourceGeneration: physics.sourceGeneration,
+            motionToken: physics.motionToken,
+            explosionActive: physics.explosionStartTime >= 0,
+            elapsed: physics.explosionStartTime >= 0
+                ? render.clock.getElapsedTime() - physics.explosionStartTime
+                : -1,
+            expDuration: state.activeExpansionDuration || state.expansionDuration,
+            conDuration: state.activeContractionDuration || state.contractionDuration,
+            randomized: physics.randomized
+                ? { style: physics.randomized.style, dirs: Array.from(physics.randomized.dirs) }
+                : { style: -1, dirs: [] }
+        };
     },
     triggerExplosion,
 };

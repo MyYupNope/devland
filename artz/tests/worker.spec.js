@@ -16,7 +16,8 @@ test('?noworker=1 forces a working CPU fallback', async ({ page }) => {
 
     expect(await page.evaluate(() => window.__artzDebug.usingWorker)).toBe(false);
 
-    // Fallback path must still produce motion from valid (non-detached) arrays.
+    // Fallback path must still produce explosion motion from valid (non-detached) arrays.
+    await page.evaluate(() => window.__artzDebug.triggerExplosion());
     const a = await samplePositions(page, 24);
     await page.waitForTimeout(300);
     const b = await samplePositions(page, 24);

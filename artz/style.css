@@ -24,8 +24,17 @@ body {
 canvas {
     display: block;
     position: absolute;
-    top: 0;
-    left: 0;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* Stage: the space reserved for the sculpture, excluding the control panel.
+   Default (small screens) is the full viewport with the panel on top. */
+#stage {
+    position: absolute;
+    inset: 0;
     z-index: 1;
 }
 
@@ -247,6 +256,48 @@ select option {
     font-weight: 600;
 }
 
+/* Emoji Quick-pick Row */
+#emoji-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 12px;
+}
+
+.emoji-chip {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    width: 42px;
+    height: 42px;
+    font-size: 22px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.emoji-chip:hover {
+    background: rgba(99, 102, 241, 0.1);
+    border-color: var(--accent);
+    transform: scale(1.08);
+}
+
+.emoji-chip:active {
+    transform: scale(0.95);
+}
+
+.emoji-chip.active {
+    background: #ffffff;
+    border-color: #ffffff;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.45);
+}
+
 /* Instructions Overlay */
 #overlay {
     position: absolute;
@@ -268,6 +319,39 @@ select option {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     width: auto;
     white-space: nowrap;
+}
+
+/* Desktop: dock the control panel on the left as a compact card and shift the
+   stage right so the sculpture stays centered in the remaining space. */
+@media (min-width: 769px) {
+    #control-panel {
+        left: 20px;
+        top: 20px;
+        transform: none;
+        width: 320px;
+        max-width: none;
+        max-height: calc(100vh - 40px);
+        overflow-y: auto;
+    }
+
+    .control-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    #presets-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    #capture-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    #stage {
+        left: 360px;
+    }
 }
 
 /* Mobile Responsiveness */
@@ -304,6 +388,19 @@ select option {
         gap: 6px;
     }
 
+    #emoji-row {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .emoji-chip {
+        flex: 0 0 auto;
+        width: 40px;
+        height: 40px;
+    }
+
     #overlay {
         font-size: 9px;
         letter-spacing: 1px;
@@ -318,6 +415,7 @@ select option {
 /* Accessibility Focus States */
 #capture-btn:focus-visible,
 .preset-chip:focus-visible,
+.emoji-chip:focus-visible,
 input[type="text"]:focus-visible,
 select:focus-visible {
     outline: 2px solid var(--accent);

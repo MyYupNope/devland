@@ -34,7 +34,7 @@
     <div id="control-panel">
         <div class="control-row">
             <div class="control-group">
-                <label for="text-input">Text</label>
+                <label for="text-input">Message</label>
                 <div class="input-wrapper">
                     <input type="text" id="text-input" value="Bring your message!" maxlength="25" autocomplete="off">
                     <span id="char-counter">0/25</span>
@@ -61,25 +61,49 @@
                     <option value="Playfair Display">Playfair Display</option>
                 </select>
             </div>
+        </div>
 
-            <button id="capture-btn" title="Capture Screenshot">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    style="margin-right: 2px;">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                    <circle cx="12" cy="13" r="4"></circle>
-                </svg>
-                Capture
-            </button>
+        <div id="emoji-row" aria-label="Emoji message options">
+            <span class="presets-label">Emojis:</span>
+            <button class="emoji-chip" data-emoji="😀" title="😀 Grinning Face">😀</button>
+            <button class="emoji-chip" data-emoji="😂" title="😂 Tears of Joy">😂</button>
+            <button class="emoji-chip" data-emoji="😍" title="😍 Heart Eyes">😍</button>
+            <button class="emoji-chip" data-emoji="🥰" title="🥰 Smiling with Hearts">🥰</button>
+            <button class="emoji-chip" data-emoji="😎" title="😎 Cool Shades">😎</button>
+            <button class="emoji-chip" data-emoji="🤔" title="🤔 Thinking Face">🤔</button>
+            <button class="emoji-chip" data-emoji="😭" title="😭 Loudly Crying">😭</button>
+            <button class="emoji-chip" data-emoji="😡" title="😡 Angry Face">😡</button>
+            <button class="emoji-chip" data-emoji="😱" title="😱 Screaming">😱</button>
+            <button class="emoji-chip" data-emoji="🥳" title="🥳 Partying">🥳</button>
+            <button class="emoji-chip" data-emoji="👍" title="👍 Thumbs Up">👍</button>
+            <button class="emoji-chip" data-emoji="👎" title="👎 Thumbs Down">👎</button>
+            <button class="emoji-chip" data-emoji="👏" title="👏 Clapping">👏</button>
+            <button class="emoji-chip" data-emoji="🙏" title="🙏 Folded Hands">🙏</button>
+            <button class="emoji-chip" data-emoji="👌" title="👌 OK Hand">👌</button>
+            <button class="emoji-chip" data-emoji="💪" title="💪 Flexed Biceps">💪</button>
+            <button class="emoji-chip" data-emoji="❤️" title="❤️ Red Heart">❤️</button>
+            <button class="emoji-chip" data-emoji="🔥" title="🔥 Fire">🔥</button>
+            <button class="emoji-chip" data-emoji="✨" title="✨ Sparkles">✨</button>
+            <button class="emoji-chip" data-emoji="🎉" title="🎉 Party Popper">🎉</button>
         </div>
 
         <div id="presets-row">
-            <span class="presets-label">Presets:</span>
+            <span class="presets-label">Animations:</span>
             <button class="preset-chip" data-text="KINETIC">Kinetic</button>
             <button class="preset-chip" data-text="GALAXY">Galaxy</button>
             <button class="preset-chip" data-text="BREEZE">Breeze</button>
             <button class="preset-chip" data-text="EXPLODE">Explode</button>
         </div>
+
+        <button id="capture-btn" title="Capture Screenshot">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                style="margin-right: 2px;">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+            Capture
+        </button>
     </div>
 
     <!-- [4.3] Empty text Toast alert element -->
@@ -88,10 +112,14 @@
     <!-- [3.2] Screen Reader Live Announcements -->
     <div id="sr-announce" class="sr-only" aria-live="polite"></div>
 
-    <!-- Procedural impact flash overlay for explosions -->
-    <div id="flash" aria-hidden="true"></div>
+    <!-- Stage: canvas container that excludes the menu area, so the sculpture
+         stays centered in the space not occupied by the control panel. -->
+    <div id="stage">
+        <!-- Procedural impact flash overlay for explosions -->
+        <div id="flash" aria-hidden="true"></div>
 
-    <div id="overlay">Arrows / 2-Finger Slide to rotate • +/- / Pinch to zoom • Dbl-click or Space to Explode</div>
+        <div id="overlay">Arrows / 2-Finger Slide to rotate • +/- / Pinch to zoom • Dbl-click or Space to Explode</div>
+    </div>
 
     <script type="module" src="./main.js"></script>
 </body>

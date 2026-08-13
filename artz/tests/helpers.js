@@ -18,6 +18,15 @@ export async function waitForRender(page) {
 export const particleCount = (page) =>
     page.evaluate(() => window.__artzDebug.particleCount);
 
+// Wait until the camera depth has settled on its target (e.g. after auto-fit or
+// zoom), so frustum reads and pointer probes are not racing the zoom lerp.
+export async function waitForCameraSettle(page) {
+    await page.waitForFunction(() => {
+        const r = window.__artzDebug._render();
+        return r && r.camera && Math.abs(r.camera.position.z - r.targetZ) < 0.001;
+    });
+}
+
 export const geometryCount = (page) =>
     page.evaluate(() => window.__artzDebug.geometryCount);
 
