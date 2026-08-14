@@ -166,6 +166,7 @@ const CONFIG = {
     presets: {
         KINETIC: {
             expansionDuration: 1.1,
+            driftDuration: 3.0,
             contractionDuration: 1.8,
             explosionMaxDistMultiplier: 25.0,
             motionStyle: 3, // starburst rays
@@ -208,32 +209,34 @@ const CONFIG = {
             soundDuration: 2.4,
             soundType: 'sine'
         },
-        BREEZE: {
-            expansionDuration: 4.0,
-            contractionDuration: 5.0,
-            explosionMaxDistMultiplier: 11.0,
-            motionStyle: 2, // strong coherent wind gust
-            gustCoherence: 0.9,
-            swayAmp: 0.5,
-            swayFreq: 0.5,
-            gustAmp: 0.35,
-            gustFreq: 2.2,
-            windDrift: 4.0,
-            turbulence: 0.12,
-            trailStrength: 0.08,
+                                                                        BREEZE: {
+            expansionDuration: 1.8,
+            contractionDuration: 2.2,
+            explosionMaxDistMultiplier: 42.0,
+            motionStyle: 2, // Smooth, laminar 3D silk breeze with off-screen flow & zero-G turnaround
+            gustCoherence: 0.94,
+            windSpeed: 28.0,
+            billowAmp1: 9.0,
+            billowAmp2: 4.0,
+            peakAmp: 16.0,
+            creaseAmp: 7.0,
+            depthAmp: 14.0,
+            turbAmp: 4.0,
+            trailStrength: 0.70,
             heat: {
-                cold: [0.05, 0.35, 0.2],
-                warm: [0.45, 0.85, 0.35],
-                hot: [0.85, 1.0, 0.6]
+                cold: [0.38, 0.08, 0.58],  // Deep luminous purple
+                warm: [0.85, 0.28, 0.85],  // Radiant orchid / magenta
+                hot: [1.0, 0.94, 1.0]      // Pure white-pink glowing crest highlight
             },
-            emberBudget: 40,
-            soundPitch: 155,
-            soundDuration: 2.0,
-            soundType: 'triangle'
+            emberBudget: 0,
+            soundPitch: 95,
+            soundDuration: 2.2,
+            soundType: 'sine'
         },
         EXPLODE: {
-            expansionDuration: 1.1,
-            contractionDuration: 3.8,
+            expansionDuration: 1.2,
+            driftDuration: 3.0,
+            contractionDuration: 1.8,
             explosionMaxDistMultiplier: 36.0,
             motionStyle: 0, // uniform sphere
             trailStrength: 0.3,
@@ -248,8 +251,9 @@ const CONFIG = {
             soundType: 'sine'
         },
         DEFAULT: {
-            expansionDuration: 2.0,
-            contractionDuration: 4.0,
+            expansionDuration: 1.2,
+            driftDuration: 3.0,
+            contractionDuration: 1.8,
             explosionMaxDistMultiplier: 15.0,
             motionStyle: -1, // random per blast
             spokes: 12,
@@ -305,8 +309,10 @@ const DIRECTIONS_VERIFY = 384;
 // Tracks the actual travel radius in the CPU-fallback path (worker path uses its own).
 let fallbackMaxTravelSq = 0;
 
-// Shared gust direction for the current Breeze blast, reused each frame for the
-// wind follow-through drift. Set when style 2 directions are generated.
+// Shared gust direction and perpendicular plane for Breeze wave undulations
+let gustX = 1, gustY = 0, gustZ = 0;
+let activeBreezeConfig = null;
+let gustPerpX = 0, gustPerpY = 1, gustPerpZ = 0;
 let activeGustX = 1, activeGustY = 0;
 
 // ─────────────────────────────────────────────
@@ -548,6 +554,7 @@ const state = {
 
     // Dynamic per-explosion properties
     expansionDuration: CONFIG.presets.DEFAULT.expansionDuration,
+    driftDuration: CONFIG.presets.DEFAULT.driftDuration || 3.0,
     contractionDuration: CONFIG.presets.DEFAULT.contractionDuration,
     explosionMaxDistMultiplier: CONFIG.presets.DEFAULT.explosionMaxDistMultiplier,
     motionStyle: CONFIG.presets.DEFAULT.motionStyle,
@@ -592,7 +599,9 @@ const state = {
     get totalExplosionDuration() {
         const exp = this.activeExpansionDuration || this.expansionDuration;
         const con = this.activeContractionDuration || this.contractionDuration;
-        return exp + con;
+        const style = (physics && physics.activeStyle >= 0) ? physics.activeStyle : this.motionStyle;
+        const drift = (style === 0 || style === 3 || style === -1) ? 3.0 : 0.0;
+        return exp + drift + con;
     }
 };
 
@@ -841,6 +850,68 @@ function playExplosionSound(recoveryEstimate = 0) {
         lowCut.connect(master);
 
         const toDisconnect = [master, lowCut];
+
+                if (state.motionStyle === 1) {
+            // Swirling cyclone wind vortex howl (sweeping dual bandpass noise filters, no explosive boom)
+            const wind = audioCtx.createBufferSource();
+            wind.buffer = createNoiseBuffer(audioCtx);
+            wind.loop = true;
+            const windFilt = audioCtx.createBiquadFilter();
+            windFilt.type = 'bandpass';
+            windFilt.frequency.setValueAtTime(140, now);
+            windFilt.frequency.linearRampToValueAtTime(440, now + dur * 0.4);
+            windFilt.frequency.exponentialRampToValueAtTime(90, now + dur);
+            windFilt.Q.value = 2.2;
+            const windGain = audioCtx.createGain();
+            windGain.gain.setValueAtTime(0.0001, now);
+            windGain.gain.exponentialRampToValueAtTime(0.32, now + dur * 0.3);
+            windGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+            wind.connect(windFilt);
+            windFilt.connect(windGain);
+            windGain.connect(master);
+            wind.start(now);
+            wind.stop(now + dur + 0.05);
+            setTimeout(() => {
+                try {
+                    wind.disconnect();
+                    windFilt.disconnect();
+                    windGain.disconnect();
+                    master.disconnect();
+                } catch (_) {}
+            }, (dur + 0.2) * 1000);
+            return;
+        }
+
+        if (state.motionStyle === 2) {
+            // Gentle, tranquil wind breeze whisper (soft ambient bandpass noise swell)
+            const wind = audioCtx.createBufferSource();
+            wind.buffer = createNoiseBuffer(audioCtx);
+            wind.loop = true;
+            const windFilt = audioCtx.createBiquadFilter();
+            windFilt.type = 'bandpass';
+            windFilt.frequency.setValueAtTime(180, now);
+            windFilt.frequency.linearRampToValueAtTime(360, now + dur * 0.38);
+            windFilt.frequency.exponentialRampToValueAtTime(110, now + dur);
+            windFilt.Q.value = 0.95;
+            const windGain = audioCtx.createGain();
+            windGain.gain.setValueAtTime(0.0001, now);
+            windGain.gain.exponentialRampToValueAtTime(0.24, now + dur * 0.35);
+            windGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+            wind.connect(windFilt);
+            windFilt.connect(windGain);
+            windGain.connect(master);
+            wind.start(now);
+            wind.stop(now + dur + 0.05);
+            setTimeout(() => {
+                try {
+                    wind.disconnect();
+                    windFilt.disconnect();
+                    windGain.disconnect();
+                    master.disconnect();
+                } catch (_) {}
+            }, (dur + 0.2) * 1000);
+            return;
+        }
 
         // ── 1) Sub thump: the low "boom" that gives the blast weight. ──────────────
         const subFreq = Math.max(26, pitch * 0.5);
@@ -1494,13 +1565,13 @@ async function setupParticles(text, shouldScatter = false) {
     // narrow tail remains a sparse, fading stream rather than a dense stem.
     const goldenAngle = Math.PI * (3 - Math.sqrt(5));
     for (let i = 0; i < finalCount; i++) {
+        // Distribute particles across height with dense sampling along the conical vortex
         const verticalSeed = (i * 0.6180339887498949 + 0.5) % 1;
-        const radialSeed = (i * 0.7548776662466927 + 0.17) % 1;
-        const radius = Math.sqrt(radialSeed);
-        const angle = i * goldenAngle;
-        physics.funnelT[i] = Math.pow(verticalSeed, 0.78);
-        physics.funnelRadialX[i] = Math.cos(angle) * radius;
-        physics.funnelRadialZ[i] = Math.sin(angle) * radius;
+        const shellDist = 0.75 + 0.3 * ((i * 0.7548776662466927 + 0.17) % 1);
+        const angle = (i * goldenAngle) % (Math.PI * 2);
+        physics.funnelT[i] = Math.pow(verticalSeed, 0.85);
+        physics.funnelRadialX[i] = Math.cos(angle) * shellDist;
+        physics.funnelRadialZ[i] = Math.sin(angle) * shellDist;
     }
 
     // Per-particle source appearance: RGBA + raster-cell size. Emojis carry their
@@ -1911,13 +1982,39 @@ function randomizeExplosionVectors() {
         ? state.motionStyle
         : Math.floor(Math.random() * 4);
 
-    // Shared gust direction for style 2 (mostly horizontal, slight vertical drift).
-    const gustAngle = Math.random() * Math.PI * 2;
-    let gx = Math.cos(gustAngle);
-    let gy = Math.sin(gustAngle);
-    let gz = (Math.random() - 0.5) * 0.4;
+    // Procedural randomized 3D silk wave landscape configuration for Breeze (style 2)
+    const blowFromLeft = Math.random() < 0.5;
+    const dirX = blowFromLeft ? 1.0 : -1.0;
+    let gx = dirX;
+    let gy = (Math.random() - 0.5) * 0.08;
+    let gz = (Math.random() - 0.5) * 0.05;
     const glen = Math.sqrt(gx * gx + gy * gy + gz * gz) || 1;
     gx /= glen; gy /= glen; gz /= glen;
+    gustX = gx; gustY = gy; gustZ = gz;
+    gustPerpX = 0; gustPerpY = 1.0; gustPerpZ = 0;
+
+    activeBreezeConfig = {
+        blowDir: dirX,
+        windAngleY: (Math.random() - 0.5) * 0.22,
+        windAngleZ: (Math.random() - 0.5) * 0.12,
+        strengthMult: 0.58 + Math.random() * 0.44, // Randomized gentle strength per activation (0.58 - 1.02)
+        easePower: 1.45 + Math.random() * 0.40,    // Soft non-linear onset curve
+        seedXi: Math.random() * 100.0,
+        peakX: (Math.random() - 0.5) * 22.0,
+        peakY: 3.5 + Math.random() * 5.0,
+        peakAmp: 16.0 + Math.random() * 7.0,
+        peakWidthX: 0.065 + Math.random() * 0.025,
+        peakWidthY: 0.11 + Math.random() * 0.035,
+        creaseY: -(3.5 + Math.random() * 4.0),
+        creaseAmp: 6.5 + Math.random() * 3.0,
+        creaseFreq: 0.11 + Math.random() * 0.04,
+        billowAmp1: 7.5 + Math.random() * 3.0,
+        billowAmp2: 3.0 + Math.random() * 2.0,
+        depthAmp: 13.0 + Math.random() * 4.5,
+        turbAmp: 3.0 + Math.random() * 1.8,
+        shearMult: 0.22 + Math.random() * 0.18
+    };
+    physics.breeze = activeBreezeConfig;
 
     // Fibonacci-sphere spoke lattice for style 3 (deterministic per spoke index).
     const spokes = Math.max(2, pattern.spokes || 12);
@@ -1949,15 +2046,20 @@ function randomizeExplosionVectors() {
             ry = 0.72 + (Math.random() - 0.5) * 0.12;
             rz = tz * spinSign + (Math.random() - 0.5) * 0.15;
         } else if (style === 2) {
-            // Strong coherent gust: the shared gust direction blended with a little
-            // per-particle randomness — the whole sculpture visibly flows one way.
-            const coherence = pattern.gustCoherence || 0;
-            const rand = 1 - coherence;
-            rx = gx * coherence + (Math.random() * 2 - 1) * rand;
-            ry = gy * coherence + (Math.random() * 2 - 1) * rand;
-            rz = gz * coherence + (Math.random() * 2 - 1) * rand;
+            // Traveling horizontal wind gust: strictly Left-to-Right or Right-to-Left
+            const dirSign = Math.random() < 0.5 ? 1 : -1;
+            gx = dirSign;
+            gy = (Math.random() - 0.5) * 0.04;
+            gz = (Math.random() - 0.5) * 0.04;
+            const gLen = Math.hypot(gx, gy, gz) || 1;
+            gx /= gLen; gy /= gLen; gz /= gLen;
+
+            rx = gx * 0.92 + (Math.random() * 2 - 1) * 0.08;
+            ry = (Math.random() * 2 - 1) * 0.12;
+            rz = (Math.random() * 2 - 1) * 0.12;
             activeGustX = gx;
             activeGustY = gy;
+            gustX = gx; gustY = gy; gustZ = gz;
         } else if (style === 3) {
             // Starburst rays: each particle snaps onto one of `spokes` crisp 3D
             // directions with tiny angular jitter, so the blast reads as rays.
@@ -2025,6 +2127,11 @@ function captureExplosionOrigin() {
         if (slot.inFlight) {
             slot.needsReset = true;
         } else {
+            if (!slot.posLive || !slot.posLive.buffer || slot.posLive.buffer.byteLength === 0) {
+                slot.posLive = new Float32Array(current.length);
+                slot.springDisp = new Float32Array(current.length);
+                slot.springVel = new Float32Array(current.length);
+            }
             slot.posLive.set(current);
             slot.springDisp.fill(0);
             slot.springVel.fill(0);
@@ -2069,6 +2176,7 @@ function triggerExplosion() {
                 explosionSpeedRange: CONFIG.explosionSpeedRange,
                 motionStyle: state.motionStyle,
                 pattern: state.pattern,
+                breeze: activeBreezeConfig,
                 explosionOrigin: physics.explosionOrigin.slice(),
                 motionToken: physics.motionToken,
                 sourceGeneration: physics.sourceGeneration
@@ -2079,7 +2187,9 @@ function triggerExplosion() {
     }
 
     physics.explosionStartTime = render.clock.getElapsedTime();
-    flashImpact();
+    if (state.motionStyle !== 2 && state.motionStyle !== 1) {
+        flashImpact();
+    }
     playExplosionSound(estimatedRecovery);
     announceToScreenReader(`Explosion triggered for "${state.currentText}"`);
 }
@@ -2089,6 +2199,81 @@ function explosionAnchorWeight(elapsed, expansionDuration, contractionDuration) 
     if (elapsed < expansionDuration) return 1;
     const t = Math.min(1, (elapsed - expansionDuration) / contractionDuration);
     return Math.max(0, 1 - t * t * t);
+}
+
+// Divergence-free 3D Curl-Noise fluid flow field (∇ · V_fluid ≡ 0).
+// Simulates authentic Navier-Stokes vortex shedding, Kelvin-Helmholtz billows, and laminar shear.
+// Parametric 3D Silk Wave Curtain Manifold (Image 1).
+// Maps 2D particle topologies onto an undulating, continuous fluid fabric sheet with traveling crests,
+// a prominent mountain-billow peak, and a hyper-luminous folded edge crease.
+function silkCurtainBreeze(hx, hy, hz, elapsed, breezeProg, maxDist, pat, gustX, gustY) {
+    const gx = gustX || 1.0, gy = gustY || 0.0;
+    const px = -gy, py = gx; // Perpendicular lateral axis
+
+    // Project particle home coordinate onto wind and lateral axes
+    const s0 = hx * gx + hy * gy;
+    const p0 = hx * px + hy * py;
+
+    // Primary wind drift with lateral velocity shear
+    const windSpeed = (pat.windSpeed || 24.0) * (maxDist / 20.0);
+    const deltaS = windSpeed * breezeProg * (1.0 + 0.2 * Math.sin(p0 * 0.12));
+    const xi = s0 + deltaS * 0.7; // Effective downwind coordinate for traveling wave sampling
+
+    // Harmonic traveling billow waves
+    const bAmp1 = pat.billowAmp1 || 14.0;
+    const bAmp2 = pat.billowAmp2 || 6.0;
+    const w1 = bAmp1 * Math.sin(0.11 * xi - 2.6 * elapsed) * (1.0 + 0.25 * Math.cos(0.14 * p0));
+    const w2 = bAmp2 * Math.sin(0.22 * xi - 4.0 * elapsed + 0.3 * p0);
+
+    // Prominent Gaussian billow peak (the sweeping mountain crest in Image 1)
+    const peakX = ((elapsed * 7.0) % 100.0) - 50.0;
+    const distSq = (xi - peakX) * (xi - peakX) + (p0 - 6.0) * (p0 - 6.0);
+    const peakAmp = pat.peakAmp || 18.0;
+    const peak = peakAmp * Math.exp(-distSq / (2.0 * 14.0 * 14.0));
+
+    // Luminous folded edge crease (sharp illuminated foreground ribbon in Image 1)
+    const creaseAmp = pat.creaseAmp || 10.0;
+    const crease = creaseAmp * Math.pow(Math.sin(0.16 * xi - 3.0 * elapsed), 2) * Math.exp(-(p0 + 10.0) * (p0 + 10.0) / (2.0 * 7.0 * 7.0));
+
+    // Combined lateral wave offset
+    const deltaP = (w1 + w2 + peak - crease);
+
+    // 3D Depth draping & perspective tilt
+    const dAmp = pat.depthAmp || 16.0;
+    const deltaZ = (dAmp * Math.sin(0.13 * xi - 2.2 * elapsed) * Math.cos(0.12 * p0) + 0.45 * p0);
+
+    return {
+        x: hx + (gx * deltaS + px * deltaP * breezeProg) * breezeProg,
+        y: hy + (gy * deltaS + py * deltaP * breezeProg) * breezeProg,
+        z: hz + (deltaZ * breezeProg) * breezeProg
+    };
+}
+
+function curlNoiseFluid(px, py, pz, time, scale, intensity) {
+    const s1 = scale * 0.08, s2 = scale * 0.16, s3 = scale * 0.32;
+    const t1 = time * 1.8, t2 = time * 2.4, t3 = time * 3.2;
+
+    const c1x = Math.cos(px * s1 + t1), s1x = Math.sin(px * s1 + t1);
+    const c1y = Math.cos(py * s1 - t2), s1y = Math.sin(py * s1 - t2);
+    const c1z = Math.cos(pz * s1 + t3), s1z = Math.sin(pz * s1 + t3);
+
+    const c2x = Math.cos(px * s2 - t2), s2x = Math.sin(px * s2 - t2);
+    const c2y = Math.cos(py * s2 + t3), s2y = Math.sin(py * s2 + t3);
+    const c2z = Math.cos(pz * s2 - t1), s2z = Math.sin(pz * s2 - t1);
+
+    const c3x = Math.cos(px * s3 + t3), s3x = Math.sin(px * s3 + t3);
+    const c3y = Math.cos(py * s3 - t1), s3y = Math.sin(py * s3 - t1);
+    const c3z = Math.cos(pz * s3 + t2), s3z = Math.sin(pz * s3 + t2);
+
+    const vx = (-s1x * s1y - c1z * c1x) * 1.0 + (-s2x * s2y - c2z * c2x) * 0.5 + (-s3x * s3y - c3z * c3x) * 0.25;
+    const vy = (-s1y * s1z - c1x * c1y) * 1.0 + (-s2y * s2z - c2x * c2y) * 0.5 + (-s3y * s3z - c3x * c3y) * 0.25;
+    const vz = (-s1z * s1x - c1y * c1z) * 1.0 + (-s2z * s2x - c2y * c2z) * 0.5 + (-s3z * s3x - c3y * c3z) * 0.25;
+
+    return {
+        x: vx * intensity,
+        y: vy * intensity,
+        z: vz * intensity
+    };
 }
 
 function tornadoEnvelope(elapsed, expansionDuration, contractionDuration) {
@@ -2101,23 +2286,22 @@ function tornadoEnvelope(elapsed, expansionDuration, contractionDuration) {
     return Math.max(0, 1 - t * t * t);
 }
 
-function tornadoRadius(t, pattern) {
-    const waistT = Math.max(0.001, Math.min(0.999, pattern.funnelWaistT || 0.42));
-    const crownT = Math.max(waistT + 0.001, Math.min(1, pattern.funnelCrownT || 0.78));
-    const tail = pattern.funnelTailRadius || 0;
-    const waist = pattern.funnelWaistRadius || tail;
-    const crown = pattern.funnelCrownRadius || waist;
-    const smooth = value => value * value * (3 - 2 * value);
+function tornadoRadius(u, p) {
+    const bottom = p.funnelBottom || -20;
+    const height = p.funnelHeight || 40;
+    const waistU = (p.funnelWaistT != null) ? p.funnelWaistT : (p.funnelWaistU || 0.42);
+    const rTail = (p.funnelTailRadius != null) ? p.funnelTailRadius : 0.8;
+    const rWaist = (p.funnelWaistRadius != null) ? p.funnelWaistRadius : 3.5;
+    const rCrown = (p.funnelCrownRadius != null) ? p.funnelCrownRadius : 22.0;
+    const crownExp = p.funnelCrownExp || 1.4;
 
-    if (t < waistT) {
-        const u = smooth(Math.max(0, Math.min(1, t / waistT)));
-        return tail + (waist - tail) * u;
+    if (u <= waistU) {
+        const t = u / Math.max(0.01, waistU);
+        return rTail + (rWaist - rTail) * (t * t);
+    } else {
+        const t = (u - waistU) / Math.max(0.01, 1 - waistU);
+        return rWaist + (rCrown - rWaist) * Math.pow(t, crownExp);
     }
-    if (t < crownT) {
-        const u = smooth(Math.max(0, Math.min(1, (t - waistT) / (crownT - waistT))));
-        return waist + (crown - waist) * u;
-    }
-    return crown;
 }
 
 // ─────────────────────────────────────────────
@@ -2142,6 +2326,7 @@ function updateURLParams(text, theme, font, shouldPush = true) {
 // explosion-only visual uniforms. The user's theme/font always stay untouched.
 function applyPresetPhysics(preset) {
     state.expansionDuration = preset.expansionDuration;
+    state.driftDuration = preset.driftDuration !== undefined ? preset.driftDuration : 0;
     state.contractionDuration = preset.contractionDuration;
     state.explosionMaxDistMultiplier = preset.explosionMaxDistMultiplier;
     state.motionStyle = (preset.motionStyle != null) ? preset.motionStyle : -1;
@@ -2254,11 +2439,13 @@ function updateCharCounter(text) {
 }
 
 // Set explosion custom physics + sound parameters per preset
-async function applyPresetExplosion(presetName, shouldScatter = true) {
+async function applyPresetExplosion(presetName, shouldScatter = false) {
     applyPresetPhysics(CONFIG.presets[presetName] || CONFIG.presets.DEFAULT);
 
-    // Presets drive explosion behaviour only — theme and font stay as the user set them.
-    await setupParticles(state.currentText, shouldScatter);
+    // If particle positions need a full rebuild, do so; otherwise keep the formed sculpture
+    if (shouldScatter) {
+        await setupParticles(state.currentText, true);
+    }
 }
 
 // ─────────────────────────────────────────────
@@ -2788,6 +2975,7 @@ function animate() {
     // Explosion calculations & progress interpolation
     let elapsed = -1;
     let progress = 0.0;
+    const activeStyle = physics.activeStyle >= 0 ? physics.activeStyle : state.motionStyle;
     const activeExpDuration = state.activeExpansionDuration || state.expansionDuration;
     const activeContrDuration = state.activeContractionDuration || state.contractionDuration;
     const activeMaxDistMult = state.activeMaxDist || state.explosionMaxDistMultiplier;
@@ -2802,14 +2990,24 @@ function animate() {
             springVel.fill(0);
             state.afterglowStartTime = time;
             elapsed = -1;
+            if (pos && posHome) {
+                pos.set(posHome);
+                posAttr.needsUpdate = true;
+            }
+            clearActivePresets();
         } else {
             // At peak, lock the contraction duration to the ACTUAL distance travelled
             // so recovery genuinely reflects how far particles flew.
-            if (elapsed >= activeExpDuration && !state.travelApplied) {
+            const tDrift = (activeStyle === 0 || activeStyle === 3 || activeStyle === -1) ? 3.0 : 0.0;
+            if (elapsed >= (activeExpDuration + tDrift) && !state.travelApplied) {
                 const travel = state.actualTravelRadius;
-                state.activeContractionDuration = Math.max(
-                    travel / CONFIG.maxContractionVelocity,
-                    CONFIG.contractionDurationFloor
+                const baseContr = state.contractionDuration || 2.0;
+                state.activeContractionDuration = Math.min(
+                    baseContr * 1.25,
+                    Math.max(
+                        travel / CONFIG.maxContractionVelocity,
+                        CONFIG.contractionDurationFloor
+                    )
                 );
                 state.travelApplied = true;
                 scheduleContractionRumble(state.activeContractionDuration);
@@ -2874,10 +3072,12 @@ function animate() {
                     mouseLocal: { x: ml.x, y: ml.y, z: ml.z },
                     kFrame, dampFrame,
                     expansionDuration: activeExpDuration,
+                    driftDuration: (activeStyle === 0 || activeStyle === 3 || activeStyle === -1) ? 3.0 : 0.0,
                     contractionDuration: activeContrDuration,
                     explosionMaxDistMultiplier: activeMaxDistMult,
                     mouseInfluence,
                     repulsionStr,
+                    breeze: activeBreezeConfig,
                     sourceGeneration: physics.sourceGeneration,
                     motionToken: physics.motionToken
                 },
@@ -2891,7 +3091,6 @@ function animate() {
         // via a gust envelope, sways the cloud, adds turbulence, and carries the
         // return with a decaying wind drift. All sin/cos pairs computed once/frame.
         const pat = state.pattern;
-        const activeStyle = physics.activeStyle >= 0 ? physics.activeStyle : state.motionStyle;
         let spinAngle = 0, swayAngle = 0, gust = 1, drift = 0, turbAngle = 0;
         // Tornado: the shape morphs into a vertical funnel whose cross-sections
         // rotate around Y. Its target and the captured origin share one envelope,
@@ -2932,50 +3131,147 @@ function animate() {
 
 if (elapsed > 0.0) {
                 if (isTornado) {
-                    const t = funnelT[i];
-                    const radius = tornadoRadius(t, pat);
-                    const funnelX = funnelRadialX[i] * radius;
-                    const funnelZ = funnelRadialZ[i] * radius;
-                    const targetX = funnelX * spinCos - funnelZ * spinSin;
-                    const targetZ = funnelX * spinSin + funnelZ * spinCos;
-                    const targetY = (pat.funnelBottom || 0) + (pat.funnelHeight || 0) * t;
+                    const u = funnelT[i];
+                    const radius = tornadoRadius(u, pat);
+                    const shellX = funnelRadialX[i];
+                    const shellZ = funnelRadialZ[i];
+                    const shellDist = Math.hypot(shellX, shellZ) || 1.0;
+                    const baseAngle = Math.atan2(shellZ, shellX);
+                    // Differential horizontal orbit spin (apex orbits faster than crown)
+                    const spinSpeed = (pat.spinSpeed || 6.2) * (1.45 - 0.5 * u) / Math.sqrt(shellDist);
+                    const currentAngle = baseAngle + elapsed * spinSpeed;
+                    const targetX = Math.cos(currentAngle) * (radius * shellDist);
+                    const targetZ = Math.sin(currentAngle) * (radius * shellDist);
+                    const depProg = elapsed > activeExpDuration
+                        ? Math.min(1, (elapsed - activeExpDuration) / activeContrDuration)
+                        : 0;
+                    const depLift = (pat.departureLift || 16.0) * depProg * (1.0 - depProg);
+                    const targetY = (pat.funnelBottom || -20) + (pat.funnelHeight || 40) * u + depLift;
 
-                    // The same progress drives the origin anchor and target offset:
-                    // home + (origin - home)q + (target - origin)q reaches target at
-                    // the peak and returns exactly to home when q reaches zero.
-                    bx += (targetX - origin[ix]) * funnelProgress;
-                    by += (targetY - origin[iy]) * funnelProgress;
-                    bz += (targetZ - origin[iz]) * funnelProgress;
+                    bx = (1 - funnelProgress) * posHome[ix] + funnelProgress * targetX;
+                    by = (1 - funnelProgress) * posHome[iy] + funnelProgress * targetY;
+                    bz = (1 - funnelProgress) * posHome[iz] + funnelProgress * targetZ;
+                } else if (activeStyle === 2) {
+                    // Procedural 3D Silk Wave Landscape: mountain peaks, valleys, glowing folded creases & multi-layer depth
+                    const b = activeBreezeConfig || {
+                        blowDir: gustX >= 0 ? 1.0 : -1.0,
+                        windAngleY: 0,
+                        windAngleZ: 0,
+                        seedXi: 0,
+                        peakX: 0,
+                        peakY: 5.0,
+                        peakAmp: 20.0,
+                        peakWidthX: 0.07,
+                        peakWidthY: 0.12,
+                        creaseY: -5.0,
+                        creaseAmp: 8.5,
+                        creaseFreq: 0.12,
+                        billowAmp1: 9.0,
+                        billowAmp2: 4.0,
+                        depthAmp: 15.0,
+                        turbAmp: 4.0,
+                        shearMult: 0.28
+                    };
+
+                    const hx = posHome[ix], hy = posHome[iy], hz = posHome[iz];
+                    const gx = b.blowDir;
+                    const cd = (randomSpeed ? randomSpeed[i] : 1.0) * 0.45 + 0.8;
+
+                    let uWind = 0;
+                    const str = b.strengthMult || 0.85;
+                    const power = b.easePower || 1.5;
+                    if (elapsed < activeExpDuration) {
+                        const tau = elapsed / activeExpDuration;
+                        const baseU = (1.0 - Math.cos(tau * Math.PI)) * 0.5;
+                        uWind = Math.pow(baseU, power) * str;
+                    } else {
+                        const v = Math.min(1.0, (elapsed - activeExpDuration) / activeContrDuration);
+                        const baseU = (1.0 + Math.cos(v * Math.PI)) * 0.5;
+                        uWind = baseU * str;
+                    }
+
+                    if (uWind > 0.000001) {
+                        // Differential longitudinal streamline stretching (breaks uniform clump into elegant ribbons)
+                        const shear = 1.0 + b.shearMult * Math.sin((hy - b.peakY) * 0.12 + (hx - b.peakX) * 0.08);
+                        const dx = activeMaxDistMult * cd * uWind * shear;
+                        const deltaX = gx * dx;
+                        const deltaWindY = b.windAngleY * dx * 0.32;
+                        const deltaWindZ = b.windAngleZ * dx * 0.22;
+
+                        // Aerodynamic plume spread
+                        const funnelSpread = 1.0 + 0.026 * dx;
+                        const yFunnel = hy * funnelSpread + deltaWindY;
+                        const zFunnel = hz * funnelSpread + deltaWindZ;
+
+                        // Traveling silk wave manifold phase
+                        const xi = (hx + deltaX) * 0.09 + elapsed * 2.6 + b.seedXi;
+                        const p0 = hy * 0.14;
+
+                        // Traveling harmonic billows
+                        const w1 = b.billowAmp1 * Math.sin(0.09 * xi - 1.5 * elapsed) * (1.0 + 0.22 * Math.cos(0.14 * p0));
+                        const w2 = b.billowAmp2 * Math.sin(0.18 * xi - 2.2 * elapsed + 0.30 * p0);
+
+                        // Mountain peak crest arching across upper boundary (Image 1)
+                        const peakDistSq = Math.pow((hx + deltaX - b.peakX) * b.peakWidthX, 2) + Math.pow((hy - b.peakY) * b.peakWidthY, 2);
+                        const peak = b.peakAmp * Math.exp(-peakDistSq * 1.3);
+
+                        // Hyper-luminous folded edge crease along lower boundary (Image 1)
+                        const creaseFold = Math.sin(b.creaseFreq * xi - 1.6 * elapsed);
+                        const creaseDistSq = Math.pow((hy - b.creaseY + 2.4 * creaseFold) * 0.20, 2);
+                        const crease = b.creaseAmp * Math.exp(-creaseDistSq * 2.2) * Math.pow(Math.sin(0.14 * xi - 1.3 * elapsed), 2);
+
+                        // Multi-layer sheer Z-depth separation with overlapping veil ribbons
+                        const layerSeed = ((i * 37.119) % 10.0) - 5.0;
+                        const layerPhase = layerSeed > 0 ? 0.35 : -0.35;
+                        const deltaZ = (b.depthAmp * Math.sin(0.10 * xi - 1.3 * elapsed + layerPhase) * Math.cos(0.11 * p0) + 0.28 * p0 + layerSeed * 0.55);
+
+                        // Delicate per-particle flutter within the airy breeze envelope
+                        const pPhase = ((i * 19.417) % 100.0) - 50.0;
+                        const tAmp = b.turbAmp * uWind;
+                        const eddyY = Math.sin(elapsed * 2.0 + xi * 1.1 + pPhase) * (tAmp * 0.35);
+                        const eddyZ = Math.cos(elapsed * 1.8 + xi * 0.9 - pPhase) * (tAmp * 0.35);
+                        const eddyX = Math.sin(elapsed * 2.2 + pPhase) * (tAmp * 0.15);
+
+                        const targetX = hx + deltaX + eddyX;
+                        const targetY = yFunnel + (w1 + w2 + peak - crease) * uWind + eddyY;
+                        const targetZ = zFunnel + deltaZ * uWind + eddyZ;
+
+                        bx = (1 - uWind) * hx + uWind * targetX;
+                        by = (1 - uWind) * hy + uWind * targetY;
+                        bz = (1 - uWind) * hz + uWind * targetZ;
+                    }
                 } else {
                     const maxDist = randomSpeed[i] * activeMaxDistMult;
-let rx = randomDir[ix], ry = randomDir[iy], rz = randomDir[iz];
-                if (activeStyle === 2) {
-                    if (swayAngle !== 0) {
-                        const nrx = rx * swayCos - ry * swaySin;
-                        const nry = rx * swaySin + ry * swayCos;
-                        rx = nrx; ry = nry;
+                    let rx = randomDir[ix], ry = randomDir[iy], rz = randomDir[iz];
+                    let dist;
+                    const expDur = activeExpDuration;
+                    const contrDur = activeContrDuration;
+                    const tDrift = (activeStyle === 0 || activeStyle === 3 || activeStyle === -1) ? 3.0 : 0.0;
+                    const peakProg = (1.0 - Math.exp(-2.8)) * 0.82 + 0.18;
+                    // Exact latest expansion speed at the transition (C1 continuous matching)
+                    const vLatest = (2.8 * Math.exp(-2.8) * 0.82 + 0.18) / Math.max(0.1, expDur);
+                    const driftPeakProg = peakProg + vLatest * tDrift * 0.78;
+
+                    if (elapsed < expDur) {
+                        // Phase 1: Outward explosion and continuous deceleration
+                        const u = elapsed / expDur;
+                        const expansionProg = (1.0 - Math.exp(-2.8 * u)) * 0.82 + 0.18 * u;
+                        dist = maxDist * expansionProg;
+                    } else if (elapsed < expDur + tDrift) {
+                        // Phase 2: Seamlessly continues at the latest expansion speed for 3 full seconds (no bump, fluid flow)
+                        const dtDrift = elapsed - expDur;
+                        const tau = dtDrift / tDrift;
+                        const driftProg = peakProg + vLatest * dtDrift * (1.0 - 0.22 * tau);
+                        dist = maxDist * driftProg;
+                    } else {
+                        // Phase 3: Accelerating inward return towards getting back to initial position
+                        const v = Math.min(1.0, (elapsed - (expDur + tDrift)) / contrDur);
+                        const returnProg = 1.0 - (0.35 * v + 0.65 * Math.pow(v, 2.2));
+                        dist = maxDist * driftPeakProg * Math.max(0, returnProg);
                     }
-                    if (turbAngle !== 0) {
-                        const nrx = rx * turbCos - ry * turbSin;
-                        const nry = rx * turbSin + ry * turbCos;
-                        rx = nrx; ry = nry;
-                    }
-                }
-                let dist;
-                if (elapsed < activeExpDuration) {
-                    const t = elapsed / activeExpDuration;
-                    dist = maxDist * t * (2.0 - t);
-                } else {
-                    const t = (elapsed - activeExpDuration) / activeContrDuration;
-                    dist = maxDist * (1.0 - t * t * t);
-                }
-                bx += rx * dist * gust;
-                by += ry * dist * gust;
-                bz += rz * dist * gust;
-                // Wind follow-through: keep drifting downwind while returning, so the
-                // clouds is carried home by the breeze. Decays to zero by recovery.
-                bx += activeGustX * drift;
-                by += activeGustY * drift;
+                    bx += rx * dist;
+                    by += ry * dist;
+                    bz += rz * dist;
                 }
             }
 
@@ -2996,13 +3292,22 @@ let rx = randomDir[ix], ry = randomDir[iy], rz = randomDir[iz];
                 tdz = ddz * invD * push;
             }
 
-            springVel[ix] = (springVel[ix] + (tdx - springDisp[ix]) * kFrame) * dampFrame;
-            springVel[iy] = (springVel[iy] + (tdy - springDisp[iy]) * kFrame) * dampFrame;
-            springVel[iz] = (springVel[iz] + (tdz - springDisp[iz]) * kFrame) * dampFrame;
+            if (elapsed <= 0 && d2 >= mouseInfluence2) {
+                springVel[ix] = 0;
+                springVel[iy] = 0;
+                springVel[iz] = 0;
+                springDisp[ix] = 0;
+                springDisp[iy] = 0;
+                springDisp[iz] = 0;
+            } else {
+                springVel[ix] = (springVel[ix] + (tdx - springDisp[ix]) * kFrame) * dampFrame;
+                springVel[iy] = (springVel[iy] + (tdy - springDisp[iy]) * kFrame) * dampFrame;
+                springVel[iz] = (springVel[iz] + (tdz - springDisp[iz]) * kFrame) * dampFrame;
 
-            springDisp[ix] += springVel[ix];
-            springDisp[iy] += springVel[iy];
-            springDisp[iz] += springVel[iz];
+                springDisp[ix] += springVel[ix];
+                springDisp[iy] += springVel[iy];
+                springDisp[iz] += springVel[iz];
+            }
 
             pos[ix] = bx + springDisp[ix];
             pos[iy] = by + springDisp[iy];
@@ -3259,6 +3564,7 @@ async function init() {
 // ─────────────────────────────────────────────
 window.__artzDebug = {
     _render: () => render,
+    triggerExplosion,
     get particleCount() { return physics.posLive ? physics.posLive.length / 3 : 0; },
     get usingWorker() { return !!physicsWorker; },
     get geometryCount() {

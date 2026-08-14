@@ -147,3 +147,28 @@ test('TORNADO funnel shape has a broad crown over a waist over a fading tail @sl
 test('BREEZE preset flows in one coherent horizontal direction', async ({ page }) => {
     assertBreeze((await getPattern(page, '/', 'BREEZE', 2)).dirs);
 });
+test('BREEZE triggers cleanly on Web Worker without console errors and recovers promptly', async ({ page }) => {
+    const consoleErrors = [];
+    const pageErrors = [];
+    page.on('console', msg => {
+        if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', err => pageErrors.push(String(err)));
+
+    await page.goto('/');
+    await waitForRender(page);
+
+    // Trigger Breeze preset
+    await page.click('[data-text="BREEZE"]');
+    
+    // Assert physics worker remains active without error fallback
+    expect(await page.evaluate(() => window.__artzDebug.usingWorker)).toBe(true);
+
+    // Wait for breeze cycle to complete within prompt time window
+    await page.waitForFunction(() => !window.__artzDebug.snapshot(1).explosionActive, null, {
+        timeout: 12_000
+    });
+
+    expect(consoleErrors).toEqual([]);
+    expect(pageErrors).toEqual([]);
+});
