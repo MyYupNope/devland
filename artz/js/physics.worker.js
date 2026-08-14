@@ -9,6 +9,7 @@ import {
     tornadoRadius,
     evaluateTornadoParticle,
     evaluateBreezeParticle,
+    evaluateKineticParticle,
     evaluateExplosionParticle
 } from './physics-math.js';
 
@@ -26,6 +27,7 @@ let maxTravelSq = 0;            // Peak squared displacement measured during the
 let lastMotionToken = -1;       // Generation tracker for distinct blast phases
 
 const DIRECTIONS_VERIFY = 384;
+const _workerRes = { x: 0, y: 0, z: 0 };
 
 self.onmessage = function (e) {
     const { type, data, seq } = e.data;
@@ -187,34 +189,43 @@ self.onmessage = function (e) {
             && funnelRadialX
             && funnelRadialZ;
 
+        const dt60 = dt * 60;
+
         for (let i = 0; i < count; i++) {
             const ix = i * 3, iy = ix + 1, iz = ix + 2;
             let bx, by, bz;
 
             if (isExploding) {
                 if (activeStyle === 1 && isTornado) {
-                    const res = evaluateTornadoParticle(
+                    evaluateTornadoParticle(
                         i, posHome[ix], posHome[iy], posHome[iz],
                         funnelT[i], funnelRadialX[i], funnelRadialZ[i],
                         (randomSpeed ? randomSpeed[i] : 1.0) * 0.35 + 0.85,
-                        elapsed, pattern
+                        elapsed, pattern, _workerRes
                     );
-                    bx = res.x; by = res.y; bz = res.z;
+                    bx = _workerRes.x; by = _workerRes.y; bz = _workerRes.z;
                 } else if (activeStyle === 2) {
-                    const res = evaluateBreezeParticle(
+                    evaluateBreezeParticle(
                         i, posHome[ix], posHome[iy], posHome[iz],
                         (randomSpeed ? randomSpeed[i] : 1.0) * 0.35 + 0.85,
-                        elapsed, data.breeze || activeWorkerBreeze
+                        elapsed, data.breeze || activeWorkerBreeze, _workerRes
                     );
-                    bx = res.x; by = res.y; bz = res.z;
+                    bx = _workerRes.x; by = _workerRes.y; bz = _workerRes.z;
+                } else if (activeStyle === 3) {
+                    evaluateKineticParticle(
+                        i, posHome[ix], posHome[iy], posHome[iz],
+                        (randomSpeed ? randomSpeed[i] : 1.0) * 0.35 + 0.85,
+                        elapsed, pattern, _workerRes
+                    );
+                    bx = _workerRes.x; by = _workerRes.y; bz = _workerRes.z;
                 } else {
                     const maxDist = randomSpeed[i] * explosionMaxDistMultiplier;
-                    const res = evaluateExplosionParticle(
+                    evaluateExplosionParticle(
                         origin[ix], origin[iy], origin[iz],
                         randomDir[ix], randomDir[iy], randomDir[iz],
-                        maxDist, expansionDuration, driftDuration || 3.0, contractionDuration, elapsed
+                        maxDist, expansionDuration, driftDuration || 3.0, contractionDuration, elapsed, _workerRes
                     );
-                    bx = res.x; by = res.y; bz = res.z;
+                    bx = _workerRes.x; by = _workerRes.y; bz = _workerRes.z;
                 }
 
                 const dxFromOrigin = bx - origin[ix];
@@ -250,9 +261,9 @@ self.onmessage = function (e) {
             springVel[iy] = (springVel[iy] - springDisp[iy] * kFrame) * dampFrame;
             springVel[iz] = (springVel[iz] - springDisp[iz] * kFrame) * dampFrame;
 
-            springDisp[ix] += springVel[ix] * (dt * 60);
-            springDisp[iy] += springVel[iy] * (dt * 60);
-            springDisp[iz] += springVel[iz] * (dt * 60);
+            springDisp[ix] += springVel[ix] * dt60;
+            springDisp[iy] += springVel[iy] * dt60;
+            springDisp[iz] += springVel[iz] * dt60;
 
             posLive[ix] = bx + springDisp[ix];
             posLive[iy] = by + springDisp[iy];

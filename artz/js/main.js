@@ -1,19 +1,17 @@
 import {
-    particleVertexShader,
-    particleFragmentShader,
     trailVertexShader,
     trailFragmentShader,
     emberVertexShader,
     emberFragmentShader
 } from './shaders.js';
 import {
-    playExplosionSound,
-    playContractionRumble
+    playExplosionSound
 } from './audio.js';
 import {
     tornadoRadius,
     evaluateTornadoParticle,
     evaluateBreezeParticle,
+    evaluateKineticParticle,
     evaluateExplosionParticle
 } from './physics-math.js';
 import {
@@ -183,23 +181,20 @@ const CONFIG = {
     // (Tornado), 2 = coherent wind gust (Breeze), 3 = crisp starburst rays (Kinetic).
     presets: {
         KINETIC: {
-            expansionDuration: 1.1,
-            driftDuration: 3.0,
-            contractionDuration: 1.8,
-            explosionMaxDistMultiplier: 25.0,
-            motionStyle: 3, // starburst rays
-            spokes: 12,
-            spokeJitter: 0.03,
-            trailStrength: 0.6,
+            expansionDuration: 3.75,
+            contractionDuration: 3.75,
+            explosionMaxDistMultiplier: 22.0,
+            motionStyle: 3, // Cinematic 3D Surf Wave: 3/4 Perspective Glide + Spatial Audio + Luminous Crest
+            trailStrength: 0.70,
             heat: {
-                cold: [0.85, 0.9, 1.0],
-                warm: [1.0, 0.95, 0.8],
-                hot: [1.0, 1.0, 1.0]
+                cold: [0.08, 0.22, 0.52], // Deep oceanic blue in troughs & shadows
+                warm: [0.25, 0.78, 0.88], // Radiant aquamarine surf on wave face
+                hot: [1.0, 0.98, 0.88]    // Luminous sunlight crest & sparkling foam peak
             },
-            emberBudget: 90,
-            soundPitch: 190,
-            soundDuration: 0.9,
-            soundType: 'sawtooth'
+            emberBudget: 0,
+            soundPitch: 45,
+            soundDuration: 7.5,
+            soundType: 'sine'
         },
         TORNADO: {
             expansionDuration: 3.5,
@@ -548,9 +543,13 @@ const state = {
             // 4-Phase Breeze: Straight Fall (1.0s) + Ground Pause (2.0s) + Forward Breeze (3.6s) + Reverse Breeze (3.6s) + Elevation (1.6s) = 11.8s
             return 11.8;
         }
+        if (style === 3) {
+            // Clean Continuous Surf Wave (7.5s)
+            return 7.5;
+        }
         const exp = this.activeExpansionDuration || this.expansionDuration;
         const con = this.activeContractionDuration || this.contractionDuration;
-        const drift = (style === 0 || style === 3 || style === -1) ? 3.0 : 0.0;
+        const drift = (style === 0 || style === -1) ? 3.0 : 0.0;
         return exp + drift + con;
     }
 };
@@ -713,18 +712,6 @@ let audioMaster = null;    // Shared output gain (all layers route through this)
 let audioAnalyser = null;  // Analyser for audio-reactive visuals
 let audioFreqData = null;
 // Cached broadband noise buffer shared by every explosion's body/crackle layers.
-let noiseBuffer = null;
-function createNoiseBuffer(ctx) {
-    if (noiseBuffer) return noiseBuffer;
-    const length = ctx.sampleRate * 2;
-    noiseBuffer = ctx.createBuffer(1, length, ctx.sampleRate);
-    const data = noiseBuffer.getChannelData(0);
-    for (let i = 0; i < length; i++) {
-        data[i] = Math.random() * 2 - 1;
-    }
-    return noiseBuffer;
-}
-
 // Lazily build the shared audio graph: master gain -> analyser -> destination.
 function ensureAudioGraph() {
     if (audioCtx && audioMaster) return;
@@ -741,6 +728,14 @@ function ensureAudioGraph() {
     audioFreqData = new Uint8Array(audioAnalyser.frequencyBinCount);
 }
 
+function computeAudioFreqBand(freqData, from, to, n) {
+    let s = 0, c = 0;
+    const a = Math.max(0, Math.floor(from * n));
+    const b = Math.min(n, Math.floor(to * n));
+    for (let i = a; i < b; i++) { s += freqData[i] / 255; c++; }
+    return c ? s / c : 0;
+}
+
 // Read coarse frequency bands each frame and expose them as shader uniforms so the
 // sculpture visually reacts to the sound it generates.
 function updateAudioReactive() {
@@ -751,16 +746,9 @@ function updateAudioReactive() {
     }
     audioAnalyser.getByteFrequencyData(audioFreqData);
     const n = audioFreqData.length;
-    function band(from, to) {
-        let s = 0, c = 0;
-        const a = Math.max(0, Math.floor(from * n));
-        const b = Math.min(n, Math.floor(to * n));
-        for (let i = a; i < b; i++) { s += audioFreqData[i] / 255; c++; }
-        return c ? s / c : 0;
-    }
-    const bass = band(0.02, 0.25);
-    const mid  = band(0.25, 0.55);
-    const high = band(0.55, 0.92);
+    const bass = computeAudioFreqBand(audioFreqData, 0.02, 0.25, n);
+    const mid  = computeAudioFreqBand(audioFreqData, 0.25, 0.55, n);
+    const high = computeAudioFreqBand(audioFreqData, 0.55, 0.92, n);
     // Smooth each band toward its target.
     uniforms.uAudioMid.value  += (mid  - uniforms.uAudioMid.value)  * 0.5;
     uniforms.uAudioHigh.value += (high - uniforms.uAudioHigh.value) * 0.5;
@@ -1629,10 +1617,22 @@ function updateTrails() {
     if (isMotionReduced && render.trailPoints) { render.trailPoints.visible = false; return; }
     if (render.trailPoints) render.trailPoints.visible = true;
 
-    // Skip the full-buffer chase when no fresh physics result moved the particles this
-    // frame (positions unchanged => trails have already converged). This avoids scanning
-    // and uploading both full-size trail attributes every single frame while idle.
-    if (!physics.positionsDirty) return;
+    // State-based idle settling gate: when no active explosion, dragging or mouse
+    // movement occurs, allow ~20 frames of decay for trails to smoothly converge to rest,
+    // then completely bypass the 90,000 float loop and GPU buffer uploads during idle.
+    const isActivelyMoving = physics.positionsDirty
+        || (physics.explosionStartTime >= 0)
+        || (interaction.isDragging)
+        || (interaction.mouseLocal && interaction.mouseLocal.x > -500);
+
+    if (!isActivelyMoving) {
+        if (render.trailSettleFrames >= 20) {
+            return;
+        }
+        render.trailSettleFrames = (render.trailSettleFrames || 0) + 1;
+    } else {
+        render.trailSettleFrames = 0;
+    }
     physics.positionsDirty = false;
 
     const pos = render.particles.geometry.attributes.position.array;
@@ -1701,22 +1701,27 @@ function updateEmbers(dt) {
     if (render.emberPoints) render.emberPoints.visible = true;
 
     const E = render.emberCount;
+    const drag = Math.pow(0.02, dt);
+    let activeCount = 0;
     for (let i = 0; i < E; i++) {
         if (render.emberLife[i] <= 0) continue;
+        activeCount++;
         const i3 = i * 3;
         render.emberData[i3]     += render.emberVel[i3] * dt;
         render.emberData[i3 + 1] += render.emberVel[i3 + 1] * dt;
         render.emberData[i3 + 2] += render.emberVel[i3 + 2] * dt;
         // Gently pull embers toward gravity/down + drag.
         render.emberVel[i3 + 1] -= 8 * dt;
-        render.emberVel[i3]     *= Math.pow(0.02, dt);
-        render.emberVel[i3 + 1] *= Math.pow(0.02, dt);
-        render.emberVel[i3 + 2] *= Math.pow(0.02, dt);
+        render.emberVel[i3]     *= drag;
+        render.emberVel[i3 + 1] *= drag;
+        render.emberVel[i3 + 2] *= drag;
         render.emberLife[i] -= dt;
         if (render.emberLife[i] <= 0) render.emberLife[i] = 0;
     }
-    render.emberPosAttr.needsUpdate = true;
-    render.emberLifeAttr.needsUpdate = true;
+    if (activeCount > 0) {
+        render.emberPosAttr.needsUpdate = true;
+        render.emberLifeAttr.needsUpdate = true;
+    }
 }
 
 // ─────────────────────────────────────────────
@@ -1962,104 +1967,13 @@ function triggerExplosion(force = false) {
     }
 
     physics.explosionStartTime = render.clock.getElapsedTime();
-    if (state.motionStyle !== 2 && state.motionStyle !== 1) {
+    if (state.motionStyle === 0 || state.motionStyle === -1) {
         flashImpact();
     }
-    playExplosionSound(estimatedRecovery);
+    playExplosionSound(state, estimatedRecovery);
     announceToScreenReader(`Explosion triggered for "${state.currentText}"`);
 }
 
-function explosionAnchorWeight(elapsed, expansionDuration, contractionDuration) {
-    if (elapsed <= 0) return 0;
-    if (elapsed < expansionDuration) return 1;
-    const t = Math.min(1, (elapsed - expansionDuration) / contractionDuration);
-    return Math.max(0, 1 - t * t * t);
-}
-
-// Divergence-free 3D Curl-Noise fluid flow field (∇ · V_fluid ≡ 0).
-// Simulates authentic Navier-Stokes vortex shedding, Kelvin-Helmholtz billows, and laminar shear.
-// Parametric 3D Silk Wave Curtain Manifold (Image 1).
-// Maps 2D particle topologies onto an undulating, continuous fluid fabric sheet with traveling crests,
-// a prominent mountain-billow peak, and a hyper-luminous folded edge crease.
-function silkCurtainBreeze(hx, hy, hz, elapsed, breezeProg, maxDist, pat, gustX, gustY) {
-    const gx = gustX || 1.0, gy = gustY || 0.0;
-    const px = -gy, py = gx; // Perpendicular lateral axis
-
-    // Project particle home coordinate onto wind and lateral axes
-    const s0 = hx * gx + hy * gy;
-    const p0 = hx * px + hy * py;
-
-    // Primary wind drift with lateral velocity shear
-    const windSpeed = (pat.windSpeed || 24.0) * (maxDist / 20.0);
-    const deltaS = windSpeed * breezeProg * (1.0 + 0.2 * Math.sin(p0 * 0.12));
-    const xi = s0 + deltaS * 0.7; // Effective downwind coordinate for traveling wave sampling
-
-    // Harmonic traveling billow waves
-    const bAmp1 = pat.billowAmp1 || 14.0;
-    const bAmp2 = pat.billowAmp2 || 6.0;
-    const w1 = bAmp1 * Math.sin(0.11 * xi - 2.6 * elapsed) * (1.0 + 0.25 * Math.cos(0.14 * p0));
-    const w2 = bAmp2 * Math.sin(0.22 * xi - 4.0 * elapsed + 0.3 * p0);
-
-    // Prominent Gaussian billow peak (the sweeping mountain crest in Image 1)
-    const peakX = ((elapsed * 7.0) % 100.0) - 50.0;
-    const distSq = (xi - peakX) * (xi - peakX) + (p0 - 6.0) * (p0 - 6.0);
-    const peakAmp = pat.peakAmp || 18.0;
-    const peak = peakAmp * Math.exp(-distSq / (2.0 * 14.0 * 14.0));
-
-    // Luminous folded edge crease (sharp illuminated foreground ribbon in Image 1)
-    const creaseAmp = pat.creaseAmp || 10.0;
-    const crease = creaseAmp * Math.pow(Math.sin(0.16 * xi - 3.0 * elapsed), 2) * Math.exp(-(p0 + 10.0) * (p0 + 10.0) / (2.0 * 7.0 * 7.0));
-
-    // Combined lateral wave offset
-    const deltaP = (w1 + w2 + peak - crease);
-
-    // 3D Depth draping & perspective tilt
-    const dAmp = pat.depthAmp || 16.0;
-    const deltaZ = (dAmp * Math.sin(0.13 * xi - 2.2 * elapsed) * Math.cos(0.12 * p0) + 0.45 * p0);
-
-    return {
-        x: hx + (gx * deltaS + px * deltaP * breezeProg) * breezeProg,
-        y: hy + (gy * deltaS + py * deltaP * breezeProg) * breezeProg,
-        z: hz + (deltaZ * breezeProg) * breezeProg
-    };
-}
-
-function curlNoiseFluid(px, py, pz, time, scale, intensity) {
-    const s1 = scale * 0.08, s2 = scale * 0.16, s3 = scale * 0.32;
-    const t1 = time * 1.8, t2 = time * 2.4, t3 = time * 3.2;
-
-    const c1x = Math.cos(px * s1 + t1), s1x = Math.sin(px * s1 + t1);
-    const c1y = Math.cos(py * s1 - t2), s1y = Math.sin(py * s1 - t2);
-    const c1z = Math.cos(pz * s1 + t3), s1z = Math.sin(pz * s1 + t3);
-
-    const c2x = Math.cos(px * s2 - t2), s2x = Math.sin(px * s2 - t2);
-    const c2y = Math.cos(py * s2 + t3), s2y = Math.sin(py * s2 + t3);
-    const c2z = Math.cos(pz * s2 - t1), s2z = Math.sin(pz * s2 - t1);
-
-    const c3x = Math.cos(px * s3 + t3), s3x = Math.sin(px * s3 + t3);
-    const c3y = Math.cos(py * s3 - t1), s3y = Math.sin(py * s3 - t1);
-    const c3z = Math.cos(pz * s3 + t2), s3z = Math.sin(pz * s3 + t2);
-
-    const vx = (-s1x * s1y - c1z * c1x) * 1.0 + (-s2x * s2y - c2z * c2x) * 0.5 + (-s3x * s3y - c3z * c3x) * 0.25;
-    const vy = (-s1y * s1z - c1x * c1y) * 1.0 + (-s2y * s2z - c2x * c2y) * 0.5 + (-s3y * s3z - c3x * c3y) * 0.25;
-    const vz = (-s1z * s1x - c1y * c1z) * 1.0 + (-s2z * s2x - c2y * c2z) * 0.5 + (-s3z * s3x - c3y * c3z) * 0.25;
-
-    return {
-        x: vx * intensity,
-        y: vy * intensity,
-        z: vz * intensity
-    };
-}
-
-function tornadoEnvelope(elapsed, expansionDuration, contractionDuration) {
-    if (elapsed <= 0) return 0;
-    if (elapsed < expansionDuration) {
-        const t = elapsed / expansionDuration;
-        return t * (2 - t);
-    }
-    const t = Math.min(1, (elapsed - expansionDuration) / contractionDuration);
-    return Math.max(0, 1 - t * t * t);
-}
 
 // ─────────────────────────────────────────────
 // URL Parameter Synchronisation (Undo/Redo Support)
@@ -2741,7 +2655,7 @@ function animate() {
     const activeContrDuration = state.activeContractionDuration || state.contractionDuration;
     const activeMaxDistMult = state.activeMaxDist || state.explosionMaxDistMultiplier;
 
-    if (physics.explosionStartTime > 0) {
+    if (physics.explosionStartTime >= 0) {
         elapsed = time - physics.explosionStartTime;
         if (elapsed > state.totalExplosionDuration) {
             // Blast fully finished -> begin the afterglow fade back to idle colors.
@@ -2806,6 +2720,31 @@ function animate() {
         render.particles.frustumCulled = (progress === 0.0);
     }
 
+    // Option 1: Cinematic 3D Camera / Perspective Glide for Kinetic Wave
+    if (render.particles && !interaction.isDragging) {
+        if (physics.explosionStartTime >= 0 && activeStyle === 3 && elapsed >= 0 && elapsed <= 7.5) {
+            const pTilt = elapsed / 7.5;
+            const tiltEnv = Math.pow(Math.sin(Math.PI * pTilt), 1.2);
+            const targetRotX = 0.26 * tiltEnv;
+            const targetRotY = -0.36 * tiltEnv;
+            render.particles.rotation.x = targetRotX;
+            render.particles.rotation.y = targetRotY;
+            if (render.trailPoints) {
+                render.trailPoints.rotation.x = targetRotX;
+                render.trailPoints.rotation.y = targetRotY;
+            }
+        } else if (physics.explosionStartTime < 0 && render.particles.rotation.x !== 0) {
+            render.particles.rotation.x *= 0.92;
+            render.particles.rotation.y *= 0.92;
+            if (Math.abs(render.particles.rotation.x) < 0.001) render.particles.rotation.x = 0;
+            if (Math.abs(render.particles.rotation.y) < 0.001) render.particles.rotation.y = 0;
+            if (render.trailPoints) {
+                render.trailPoints.rotation.x = render.particles.rotation.x;
+                render.trailPoints.rotation.y = render.particles.rotation.y;
+            }
+        }
+    }
+
     // Offload dense spring calculation loop to Web Worker (with CPU Fallback).
     // Double-buffered dispatch: send any free slot (no busy-wait), so a momentarily
     // slow worker never drops or freezes the simulation — it simply falls a frame
@@ -2849,193 +2788,57 @@ function animate() {
         }
     } else {
         // Local CPU Fallback (Main Thread)
-        // Per-frame time evolution of the pattern's base directions. Tornado morphs
-        // into a screen-space funnel, fading back to rest. Breeze surges
-        // via a gust envelope, sways the cloud, adds turbulence, and carries the
-        // return with a decaying wind drift. All sin/cos pairs computed once/frame.
         const pat = state.pattern;
-        let spinAngle = 0, swayAngle = 0, gust = 1, drift = 0, turbAngle = 0;
-        // Tornado: the shape morphs into a vertical funnel whose cross-sections
-        // rotate around Y. Its target and the captured origin share one envelope,
-        // which guarantees exact recovery at the end of contraction.
+        const _fallbackRes = { x: 0, y: 0, z: 0 };
         const isTornado = activeStyle === 1
             && pat.funnelHeight
             && funnelT
             && funnelRadialX
             && funnelRadialZ;
-        if (elapsed > 0 && isTornado) {
-            spinAngle = elapsed * pat.spinSpeed;
-        } else if (elapsed > 0 && activeStyle === 2) {
-            const gustAmp = pat.gustAmp || 0;
-            const gustFreq = pat.gustFreq || 0;
-            if (gustFreq) gust = 1 + gustAmp * Math.sin(elapsed * gustFreq);
-            if (pat.swayAmp) swayAngle = pat.swayAmp * Math.sin(elapsed * (pat.swayFreq || 0));
-            if (pat.turbulence) turbAngle = pat.turbulence * Math.sin(elapsed * 8);
-            const windDrift = pat.windDrift || 0;
-            if (windDrift) drift = elapsed < activeExpDuration
-                ? windDrift
-                : windDrift * (1 - Math.pow(Math.min(1, (elapsed - activeExpDuration) / activeContrDuration), 3));
-        }
-        const spinCos = Math.cos(spinAngle), spinSin = Math.sin(spinAngle);
-        const swayCos = Math.cos(swayAngle), swaySin = Math.sin(swayAngle);
-        const turbCos = Math.cos(turbAngle), turbSin = Math.sin(turbAngle);
-        const funnelProgress = isTornado
-            ? tornadoEnvelope(elapsed, activeExpDuration, activeContrDuration)
-            : 0;
+
+        const origin = explosionOrigin || posHome;
+        const tDrift = (activeStyle === 0 || activeStyle === 3 || activeStyle === -1) ? 3.0 : 0.0;
+
         for (let i = 0; i < count; i++) {
             const ix = i * 3, iy = ix + 1, iz = ix + 2;
-            const anchor = elapsed > 0
-                ? explosionAnchorWeight(elapsed, activeExpDuration, activeContrDuration)
-                : 0;
-            const origin = explosionOrigin || posHome;
-            let bx = posHome[ix] + (origin[ix] - posHome[ix]) * anchor;
-            let by = posHome[iy] + (origin[iy] - posHome[iy]) * anchor;
-            let bz = posHome[iz] + (origin[iz] - posHome[iz]) * anchor;
+            let bx, by, bz;
 
-if (elapsed > 0.0) {
-                if (isTornado) {
-                    const u = funnelT[i];
-                    const radius = tornadoRadius(u, pat);
-                    const shellX = funnelRadialX[i];
-                    const shellZ = funnelRadialZ[i];
-                    const shellDist = Math.hypot(shellX, shellZ) || 1.0;
-                    const baseAngle = Math.atan2(shellZ, shellX);
-                    // Differential horizontal orbit spin (apex orbits faster than crown)
-                    const spinSpeed = (pat.spinSpeed || 6.2) * (1.45 - 0.5 * u) / Math.sqrt(shellDist);
-                    const currentAngle = baseAngle + elapsed * spinSpeed;
-                    const targetX = Math.cos(currentAngle) * (radius * shellDist);
-                    const targetZ = Math.sin(currentAngle) * (radius * shellDist);
-                    const depProg = elapsed > activeExpDuration
-                        ? Math.min(1, (elapsed - activeExpDuration) / activeContrDuration)
-                        : 0;
-                    const depLift = (pat.departureLift || 16.0) * depProg * (1.0 - depProg);
-                    const targetY = (pat.funnelBottom || -20) + (pat.funnelHeight || 40) * u + depLift;
-
-                    bx = (1 - funnelProgress) * posHome[ix] + funnelProgress * targetX;
-                    by = (1 - funnelProgress) * posHome[iy] + funnelProgress * targetY;
-                    bz = (1 - funnelProgress) * posHome[iz] + funnelProgress * targetZ;
+            if (elapsed >= 0.0) {
+                if (activeStyle === 1 && isTornado) {
+                    evaluateTornadoParticle(
+                        i, posHome[ix], posHome[iy], posHome[iz],
+                        funnelT[i], funnelRadialX[i], funnelRadialZ[i],
+                        (randomSpeed ? randomSpeed[i] : 1.0) * 0.35 + 0.85,
+                        elapsed, pat, _fallbackRes
+                    );
+                    bx = _fallbackRes.x; by = _fallbackRes.y; bz = _fallbackRes.z;
                 } else if (activeStyle === 2) {
-                    // Procedural 3D Silk Wave Landscape: mountain peaks, valleys, glowing folded creases & multi-layer depth
-                    const b = activeBreezeConfig || {
-                        blowDir: gustX >= 0 ? 1.0 : -1.0,
-                        windAngleY: 0,
-                        windAngleZ: 0,
-                        seedXi: 0,
-                        peakX: 0,
-                        peakY: 5.0,
-                        peakAmp: 20.0,
-                        peakWidthX: 0.07,
-                        peakWidthY: 0.12,
-                        creaseY: -5.0,
-                        creaseAmp: 8.5,
-                        creaseFreq: 0.12,
-                        billowAmp1: 9.0,
-                        billowAmp2: 4.0,
-                        depthAmp: 15.0,
-                        turbAmp: 4.0,
-                        shearMult: 0.28
-                    };
-
-                    const hx = posHome[ix], hy = posHome[iy], hz = posHome[iz];
-                    const gx = b.blowDir;
-                    const cd = (randomSpeed ? randomSpeed[i] : 1.0) * 0.45 + 0.8;
-
-                    let uWind = 0;
-                    const str = b.strengthMult || 0.85;
-                    const power = b.easePower || 1.5;
-                    if (elapsed < activeExpDuration) {
-                        const tau = elapsed / activeExpDuration;
-                        const baseU = (1.0 - Math.cos(tau * Math.PI)) * 0.5;
-                        uWind = Math.pow(baseU, power) * str;
-                    } else {
-                        const v = Math.min(1.0, (elapsed - activeExpDuration) / activeContrDuration);
-                        const baseU = (1.0 + Math.cos(v * Math.PI)) * 0.5;
-                        uWind = baseU * str;
-                    }
-
-                    if (uWind > 0.000001) {
-                        // Differential longitudinal streamline stretching (breaks uniform clump into elegant ribbons)
-                        const shear = 1.0 + b.shearMult * Math.sin((hy - b.peakY) * 0.12 + (hx - b.peakX) * 0.08);
-                        const dx = activeMaxDistMult * cd * uWind * shear;
-                        const deltaX = gx * dx;
-                        const deltaWindY = b.windAngleY * dx * 0.32;
-                        const deltaWindZ = b.windAngleZ * dx * 0.22;
-
-                        // Aerodynamic plume spread
-                        const funnelSpread = 1.0 + 0.026 * dx;
-                        const yFunnel = hy * funnelSpread + deltaWindY;
-                        const zFunnel = hz * funnelSpread + deltaWindZ;
-
-                        // Traveling silk wave manifold phase
-                        const xi = (hx + deltaX) * 0.09 + elapsed * 2.6 + b.seedXi;
-                        const p0 = hy * 0.14;
-
-                        // Traveling harmonic billows
-                        const w1 = b.billowAmp1 * Math.sin(0.09 * xi - 1.5 * elapsed) * (1.0 + 0.22 * Math.cos(0.14 * p0));
-                        const w2 = b.billowAmp2 * Math.sin(0.18 * xi - 2.2 * elapsed + 0.30 * p0);
-
-                        // Mountain peak crest arching across upper boundary (Image 1)
-                        const peakDistSq = Math.pow((hx + deltaX - b.peakX) * b.peakWidthX, 2) + Math.pow((hy - b.peakY) * b.peakWidthY, 2);
-                        const peak = b.peakAmp * Math.exp(-peakDistSq * 1.3);
-
-                        // Hyper-luminous folded edge crease along lower boundary (Image 1)
-                        const creaseFold = Math.sin(b.creaseFreq * xi - 1.6 * elapsed);
-                        const creaseDistSq = Math.pow((hy - b.creaseY + 2.4 * creaseFold) * 0.20, 2);
-                        const crease = b.creaseAmp * Math.exp(-creaseDistSq * 2.2) * Math.pow(Math.sin(0.14 * xi - 1.3 * elapsed), 2);
-
-                        // Multi-layer sheer Z-depth separation with overlapping veil ribbons
-                        const layerSeed = ((i * 37.119) % 10.0) - 5.0;
-                        const layerPhase = layerSeed > 0 ? 0.35 : -0.35;
-                        const deltaZ = (b.depthAmp * Math.sin(0.10 * xi - 1.3 * elapsed + layerPhase) * Math.cos(0.11 * p0) + 0.28 * p0 + layerSeed * 0.55);
-
-                        // Delicate per-particle flutter within the airy breeze envelope
-                        const pPhase = ((i * 19.417) % 100.0) - 50.0;
-                        const tAmp = b.turbAmp * uWind;
-                        const eddyY = Math.sin(elapsed * 2.0 + xi * 1.1 + pPhase) * (tAmp * 0.35);
-                        const eddyZ = Math.cos(elapsed * 1.8 + xi * 0.9 - pPhase) * (tAmp * 0.35);
-                        const eddyX = Math.sin(elapsed * 2.2 + pPhase) * (tAmp * 0.15);
-
-                        const targetX = hx + deltaX + eddyX;
-                        const targetY = yFunnel + (w1 + w2 + peak - crease) * uWind + eddyY;
-                        const targetZ = zFunnel + deltaZ * uWind + eddyZ;
-
-                        bx = (1 - uWind) * hx + uWind * targetX;
-                        by = (1 - uWind) * hy + uWind * targetY;
-                        bz = (1 - uWind) * hz + uWind * targetZ;
-                    }
+                    evaluateBreezeParticle(
+                        i, posHome[ix], posHome[iy], posHome[iz],
+                        (randomSpeed ? randomSpeed[i] : 1.0) * 0.35 + 0.85,
+                        elapsed, activeBreezeConfig, _fallbackRes
+                    );
+                    bx = _fallbackRes.x; by = _fallbackRes.y; bz = _fallbackRes.z;
+                } else if (activeStyle === 3) {
+                    evaluateKineticParticle(
+                        i, posHome[ix], posHome[iy], posHome[iz],
+                        (randomSpeed ? randomSpeed[i] : 1.0) * 0.35 + 0.85,
+                        elapsed, pat, _fallbackRes
+                    );
+                    bx = _fallbackRes.x; by = _fallbackRes.y; bz = _fallbackRes.z;
                 } else {
                     const maxDist = randomSpeed[i] * activeMaxDistMult;
-                    let rx = randomDir[ix], ry = randomDir[iy], rz = randomDir[iz];
-                    let dist;
-                    const expDur = activeExpDuration;
-                    const contrDur = activeContrDuration;
-                    const tDrift = (activeStyle === 0 || activeStyle === 3 || activeStyle === -1) ? 3.0 : 0.0;
-                    const peakProg = (1.0 - Math.exp(-2.8)) * 0.82 + 0.18;
-                    // Exact latest expansion speed at the transition (C1 continuous matching)
-                    const vLatest = (2.8 * Math.exp(-2.8) * 0.82 + 0.18) / Math.max(0.1, expDur);
-                    const driftPeakProg = peakProg + vLatest * tDrift * 0.78;
-
-                    if (elapsed < expDur) {
-                        // Phase 1: Outward explosion and continuous deceleration
-                        const u = elapsed / expDur;
-                        const expansionProg = (1.0 - Math.exp(-2.8 * u)) * 0.82 + 0.18 * u;
-                        dist = maxDist * expansionProg;
-                    } else if (elapsed < expDur + tDrift) {
-                        // Phase 2: Seamlessly continues at the latest expansion speed for 3 full seconds (no bump, fluid flow)
-                        const dtDrift = elapsed - expDur;
-                        const tau = dtDrift / tDrift;
-                        const driftProg = peakProg + vLatest * dtDrift * (1.0 - 0.22 * tau);
-                        dist = maxDist * driftProg;
-                    } else {
-                        // Phase 3: Accelerating inward return towards getting back to initial position
-                        const v = Math.min(1.0, (elapsed - (expDur + tDrift)) / contrDur);
-                        const returnProg = 1.0 - (0.35 * v + 0.65 * Math.pow(v, 2.2));
-                        dist = maxDist * driftPeakProg * Math.max(0, returnProg);
-                    }
-                    bx += rx * dist;
-                    by += ry * dist;
-                    bz += rz * dist;
+                    evaluateExplosionParticle(
+                        origin[ix], origin[iy], origin[iz],
+                        randomDir[ix], randomDir[iy], randomDir[iz],
+                        maxDist, activeExpDuration, tDrift, activeContrDuration, elapsed, _fallbackRes
+                    );
+                    bx = _fallbackRes.x; by = _fallbackRes.y; bz = _fallbackRes.z;
                 }
+            } else {
+                bx = posHome[ix];
+                by = posHome[iy];
+                bz = posHome[iz];
             }
 
             const cur_x = pos[ix], cur_y = pos[iy], cur_z = pos[iz];
@@ -3055,7 +2858,7 @@ if (elapsed > 0.0) {
                 tdz = ddz * invD * push;
             }
 
-            if (elapsed <= 0 && d2 >= mouseInfluence2) {
+            if (elapsed < 0 && d2 >= mouseInfluence2) {
                 springVel[ix] = 0;
                 springVel[iy] = 0;
                 springVel[iz] = 0;
@@ -3076,7 +2879,7 @@ if (elapsed > 0.0) {
             pos[iy] = by + springDisp[iy];
             pos[iz] = bz + springDisp[iz];
 
-            if (elapsed > 0.0) {
+            if (elapsed >= 0.0) {
                 const tx = pos[ix] - origin[ix];
                 const ty = pos[iy] - origin[iy];
                 const tz = pos[iz] - origin[iz];

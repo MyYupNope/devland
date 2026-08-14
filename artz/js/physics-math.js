@@ -22,10 +22,12 @@ export function tornadoRadius(u, p) {
     }
 }
 
-export function evaluateTornadoParticle(i, hx, hy, hz, u, fx, fz, cd, elapsed, pattern) {
+const EXP_NEG_2_8 = 0.06081006264583979; // Math.exp(-2.8)
+
+export function evaluateTornadoParticle(i, hx, hy, hz, u, fx, fz, cd, elapsed, pattern, out) {
     const radiusFunnel = tornadoRadius(u, pattern);
     const baseAngle = Math.atan2(fz, fx);
-    const r0 = Math.hypot(hx, hz);
+    const r0 = Math.sqrt(hx * hx + hz * hz);
 
     const t1 = 3.5;                              // Phase 1: Generation & Ground Accretion (0 -> 3.5s)
     const t2 = pattern.vortexDuration || 4.5;    // Phase 2: Organic Ascent & Funnel Growth (3.5 -> 8.0s)
@@ -42,71 +44,78 @@ export function evaluateTornadoParticle(i, hx, hy, hz, u, fx, fz, cd, elapsed, p
     const ripple3 = 0.06 * Math.sin(elapsed * 7.5 + i * 0.03);
     const sheathRipple = 1.0 + ripple1 + ripple2 + ripple3;
 
+    const diffSpin = (4.0 + 15.0 / (r0 + 4.5)) * cd;
+    const vortexSpin = ((pattern.spinSpeed || 5.2) * 2.8 + 4.5 * (1.0 - u)) * cd;
+
     if (elapsed < t1) {
         // ── 1) Generation and Ground Phase (Phase 1: Accretion Revolution) ──
         const p1 = elapsed / t1;
         const e1 = p1 * p1 * p1 * (p1 * (p1 * 6.0 - 15.0) + 10.0); // Smooth quintic Hermite
         const rDisc = (1.0 - e1) * r0 + e1 * discRadius;
-        const diffSpin = (4.0 + 15.0 / (r0 + 4.5)) * cd;
-        const angle1 = baseAngle + diffSpin * elapsed * e1;
 
-        return {
-            x: Math.cos(angle1) * rDisc,
-            y: (1.0 - e1) * hy + e1 * (fBottom + 0.022 * rDisc * rDisc + 3.0 * (u - 0.5)),
-            z: Math.sin(angle1) * rDisc
-        };
+        // Continuous angular integral (strictly increasing omega > 0)
+        const angle1 = baseAngle + diffSpin * (0.6 * elapsed + 0.2 * (elapsed * elapsed / t1));
+
+        const rx = Math.cos(angle1) * rDisc;
+        const ry = (1.0 - e1) * hy + e1 * (fBottom + 0.022 * rDisc * rDisc + 3.0 * (u - 0.5));
+        const rz = Math.sin(angle1) * rDisc;
+        if (out) { out.x = rx; out.y = ry; out.z = rz; return out; }
+        return { x: rx, y: ry, z: rz };
     } else if (elapsed < t1 + t2) {
         // ── 2) Ascent and Funnel Growth Phase (Phase 2: Vertical Funnel Vortex) ──
-        const p2 = (elapsed - t1) / t2;
-        const eLift = p2 * p2 * (3.0 - 2.0 * p2); // Smooth cubic ease for vertical ascent
+        const tau = elapsed - t1;
+        const p2 = tau / t2;
+        const eLift = p2 * p2 * (3.0 - 2.0 * p2);
 
-        const speedPulse = 1.0 + 0.85 * Math.sin(Math.PI * p2);
-        const diffSpin1 = (4.0 + 15.0 / (r0 + 4.5)) * cd * t1;
-        const vortexSpin = ((pattern.spinSpeed || 5.2) * 2.8 + 4.5 * (1.0 - u)) * cd;
-        const angle2 = baseAngle + diffSpin1 + vortexSpin * (elapsed - t1) * speedPulse;
+        // Continuous angular integral (accelerating vortex, never stalls)
+        const angleAtEnd1 = baseAngle + diffSpin * (0.8 * t1);
+        const integral2 = tau + (0.6 * t2 / Math.PI) * (1.0 - Math.cos(Math.PI * tau / t2));
+        const angle2 = angleAtEnd1 + vortexSpin * 1.25 * integral2;
 
         const currentR = (1.0 - eLift) * discRadius + eLift * (radiusFunnel * sheathRipple);
         const axisX = 2.8 * Math.sin(1.8 * elapsed + 2.2 * u) * u * eLift;
         const axisZ = 2.4 * Math.cos(1.5 * elapsed + 1.8 * u) * u * eLift;
 
-        return {
-            x: axisX + Math.cos(angle2) * currentR,
-            y: (1.0 - eLift) * (fBottom + 0.022 * discRadius * discRadius) + eLift * (fBottom + fHeight * u) + 5.5 * Math.sin(p2 * Math.PI) * u,
-            z: axisZ + Math.sin(angle2) * currentR
-        };
+        const rx = axisX + Math.cos(angle2) * currentR;
+        const ry = (1.0 - eLift) * (fBottom + 0.022 * discRadius * discRadius) + eLift * (fBottom + fHeight * u) + 5.5 * Math.sin(p2 * Math.PI) * u;
+        const rz = axisZ + Math.sin(angle2) * currentR;
+        if (out) { out.x = rx; out.y = ry; out.z = rz; return out; }
+        return { x: rx, y: ry, z: rz };
     } else if (elapsed < t1 + t2 + t3) {
         // ── 3) Maturity and Dynamic Equilibrium (Phase 3: Centrifugal Expansion) ──
-        const p3 = (elapsed - (t1 + t2)) / t3;
-        const tRel3 = elapsed - (t1 + t2);
+        const tau3 = elapsed - (t1 + t2);
+        const p3 = tau3 / t3;
         const bloom = 1.0 + 0.75 * Math.sin(Math.PI * p3) + 0.35 * p3;
 
-        const diffSpin1 = (4.0 + 15.0 / (r0 + 4.5)) * cd * t1;
-        const vortexSpin = ((pattern.spinSpeed || 5.2) * 2.8 + 4.5 * (1.0 - u)) * cd;
-        const angleAtEnd2 = baseAngle + diffSpin1 + vortexSpin * t2;
-        const oscIntegral = tRel3 - (0.42 / 2.4) * (Math.cos(2.4 * tRel3) - 1.0);
-        const angle3 = angleAtEnd2 + (vortexSpin * 0.68) * oscIntegral;
+        // Continuous angular integral (mature roaring vortex)
+        const angleAtEnd1 = baseAngle + diffSpin * (0.8 * t1);
+        const integral2End = t2 + (1.2 * t2 / Math.PI);
+        const angleAtEnd2 = angleAtEnd1 + vortexSpin * 1.25 * integral2End;
+        const integral3 = tau3 - (0.2 / 2.4) * (Math.cos(2.4 * tau3) - 1.0);
+        const angle3 = angleAtEnd2 + vortexSpin * 1.1 * integral3;
 
         const currentR3 = (radiusFunnel * sheathRipple) * bloom;
         const axisX3 = 2.8 * Math.sin(1.8 * (t1 + t2) + 2.2 * u) * u * (1.0 - 0.4 * p3);
         const axisZ3 = 2.4 * Math.cos(1.5 * (t1 + t2) + 1.8 * u) * u * (1.0 - 0.4 * p3);
 
-        return {
-            x: axisX3 + Math.cos(angle3) * currentR3,
-            y: fBottom + fHeight * u + (1.0 - p3) * 2.0 * u,
-            z: axisZ3 + Math.sin(angle3) * currentR3
-        };
+        const rx = axisX3 + Math.cos(angle3) * currentR3;
+        const ry = fBottom + fHeight * u + (1.0 - p3) * 2.0 * u;
+        const rz = axisZ3 + Math.sin(angle3) * currentR3;
+        if (out) { out.x = rx; out.y = ry; out.z = rz; return out; }
+        return { x: rx, y: ry, z: rz };
     } else {
-        // ── 4) Dissipation Phase (Phase 4: Reverse Transformation to Ground Disc & Smooth Return) ──
-        const p4 = Math.min(1.0, (elapsed - (t1 + t2 + t3)) / t4);
-        const tRel4 = elapsed - (t1 + t2 + t3);
+        // ── 4) Dissipation Phase (Phase 4: High-Energy Dissipation & Smooth Return) ──
+        const tau4 = elapsed - (t1 + t2 + t3);
+        const p4 = Math.min(1.0, tau4 / t4);
 
-        const diffSpin1 = (4.0 + 15.0 / (r0 + 4.5)) * cd * t1;
-        const vortexSpin = ((pattern.spinSpeed || 5.2) * 2.8 + 4.5 * (1.0 - u)) * cd;
-        const oscIntegral3End = t3 - (0.42 / 2.4) * (Math.cos(2.4 * t3) - 1.0);
-        const angleAtEnd3 = baseAngle + diffSpin1 + vortexSpin * t2 + (vortexSpin * 0.68) * oscIntegral3End;
-
-        const spinDecay4 = Math.pow(1.0 - p4, 2.0);
-        const angle4 = angleAtEnd3 + (vortexSpin * 0.50) * spinDecay4 * tRel4;
+        // Continuous angular integral (sustained non-stalling rotation right up to home)
+        const angleAtEnd1 = baseAngle + diffSpin * (0.8 * t1);
+        const integral2End = t2 + (1.2 * t2 / Math.PI);
+        const angleAtEnd2 = angleAtEnd1 + vortexSpin * 1.25 * integral2End;
+        const integral3End = t3 - (0.2 / 2.4) * (Math.cos(2.4 * t3) - 1.0);
+        const angleAtEnd3 = angleAtEnd2 + vortexSpin * 1.1 * integral3End;
+        const integral4 = 0.85 * tau4 - 0.275 * (tau4 * tau4 / t4);
+        const angle4 = angleAtEnd3 + vortexSpin * 1.1 * integral4;
 
         const reverseFunnelR = (radiusFunnel * sheathRipple) * (1.0 - p4) + discRadius * p4;
         const reverseFunnelY = (fBottom + fHeight * u) * (1.0 - p4) + (fBottom + 0.022 * discRadius * discRadius + 3.0 * (u - 0.5)) * p4;
@@ -116,15 +125,46 @@ export function evaluateTornadoParticle(i, hx, hy, hz, u, fx, fz, cd, elapsed, p
         const revDiscZ = Math.sin(angle4) * reverseFunnelR;
 
         const returnProg = 0.35 * p4 + 0.65 * Math.pow(p4, 2.2);
-        return {
-            x: (1.0 - returnProg) * revDiscX + returnProg * hx,
-            y: (1.0 - returnProg) * revDiscY + returnProg * hy,
-            z: (1.0 - returnProg) * revDiscZ + returnProg * hz
-        };
+        const rx = (1.0 - returnProg) * revDiscX + returnProg * hx;
+        const ry = (1.0 - returnProg) * revDiscY + returnProg * hy;
+        const rz = (1.0 - returnProg) * revDiscZ + returnProg * hz;
+        if (out) { out.x = rx; out.y = ry; out.z = rz; return out; }
+        return { x: rx, y: ry, z: rz };
     }
 }
 
-export function evaluateBreezeParticle(i, hx, hy, hz, cd, elapsed, breezeConfig) {
+function computeBreezePlume(tWind, curElapsed, lambda, gX, gY, gZ, gx, cd, windSpeedMult, buoyancy, liftStart, seedZ, t2, i, out) {
+    if (lambda > 0.75) {
+        const groundTumble = tWind * 14.0 * windSpeedMult * cd + 1.2 * Math.sin(3.5 * curElapsed + i * 0.1);
+        const rx = gX + gx * groundTumble;
+        const ry = gY + 0.40 * Math.abs(Math.sin(6.0 * curElapsed + i * 0.2));
+        const rz = gZ + 0.9 * Math.sin(2.5 * curElapsed + i * 0.15);
+        if (out) { out.x = rx; out.y = ry; out.z = rz; return out; }
+        return { x: rx, y: ry, z: rz };
+    } else {
+        const p = tWind / t2;
+        const liftProg = Math.min(1.0, Math.max(0.0, (p - liftStart) / (1.0 - liftStart + 1e-4)));
+        const eLift = liftProg * liftProg * (3.0 - 2.0 * liftProg);
+
+        const plumeSpread = 1.0 + tWind * 0.55;
+        const fuzzX = 6.0 * Math.sin(0.35 * gX + 4.1 * curElapsed + i * 0.13) + 3.0 * Math.cos(0.8 * gZ + 6.3 * curElapsed + i * 0.37);
+        const fuzzY = 6.5 * Math.sin(0.28 * gX + 3.7 * curElapsed + i * 0.21) * Math.cos(0.4 * gZ + 5.1 * curElapsed) + 3.5 * Math.sin(7.5 * curElapsed + i * 0.45);
+        const fuzzZ = 8.5 * Math.sin(0.25 * gX + 3.2 * curElapsed + i * 0.17) + 5.0 * Math.cos(0.6 * gY + 4.8 * curElapsed + i * 0.29);
+
+        const xDrift = gx * (34.0 * windSpeedMult * cd * tWind + fuzzX * plumeSpread);
+        const hLift = 10.0 + 24.0 * buoyancy * cd;
+        const yWave = 4.5 * Math.sin(0.10 * (gX + gx * tWind * 25.0) - 2.8 * curElapsed) * Math.cos(0.12 * gZ);
+        const zRibbon = seedZ * 0.35 * plumeSpread + fuzzZ;
+
+        const rx = gX + xDrift;
+        const ry = gY + eLift * (hLift + yWave + fuzzY);
+        const rz = gZ + eLift * zRibbon;
+        if (out) { out.x = rx; out.y = ry; out.z = rz; return out; }
+        return { x: rx, y: ry, z: rz };
+    }
+}
+
+export function evaluateBreezeParticle(i, hx, hy, hz, cd, elapsed, breezeConfig, out) {
     const b = breezeConfig || {};
     const gx = (b.blowDir != null) ? b.blowDir : 1.0;
 
@@ -152,85 +192,51 @@ export function evaluateBreezeParticle(i, hx, hy, hz, cd, elapsed, breezeConfig)
     const buoyancy = 0.40 + (((i * 81.33) % 100.0) / 100.0) * 1.10;
     const liftStart = Math.pow(((i * 61.19) % 100.0) / 100.0, 1.4) * 0.60;
 
-    function getPlumePosition(tWind, curElapsed) {
-        if (lambda > 0.75) {
-            const groundTumble = tWind * 14.0 * windSpeedMult * cd + 1.2 * Math.sin(3.5 * curElapsed + i * 0.1);
-            return {
-                x: gX + gx * groundTumble,
-                y: gY + 0.40 * Math.abs(Math.sin(6.0 * curElapsed + i * 0.2)),
-                z: gZ + 0.9 * Math.sin(2.5 * curElapsed + i * 0.15)
-            };
-        } else {
-            const p = tWind / t2;
-            const liftProg = Math.min(1.0, Math.max(0.0, (p - liftStart) / (1.0 - liftStart + 1e-4)));
-            const eLift = liftProg * liftProg * (3.0 - 2.0 * liftProg);
-
-            const plumeSpread = 1.0 + tWind * 0.55;
-            const fuzzX = 6.0 * Math.sin(0.35 * gX + 4.1 * curElapsed + i * 0.13) + 3.0 * Math.cos(0.8 * gZ + 6.3 * curElapsed + i * 0.37);
-            const fuzzY = 6.5 * Math.sin(0.28 * gX + 3.7 * curElapsed + i * 0.21) * Math.cos(0.4 * gZ + 5.1 * curElapsed) + 3.5 * Math.sin(7.5 * curElapsed + i * 0.45);
-            const fuzzZ = 8.5 * Math.sin(0.25 * gX + 3.2 * curElapsed + i * 0.17) + 5.0 * Math.cos(0.6 * gY + 4.8 * curElapsed + i * 0.29);
-
-            const xDrift = gx * (34.0 * windSpeedMult * cd * tWind + fuzzX * plumeSpread);
-            const hLift = 10.0 + 24.0 * buoyancy * cd;
-            const yWave = 4.5 * Math.sin(0.10 * (gX + gx * tWind * 25.0) - 2.8 * curElapsed) * Math.cos(0.12 * gZ);
-            const zRibbon = seedZ * 0.35 * plumeSpread + fuzzZ;
-
-            return {
-                x: gX + xDrift,
-                y: gY + eLift * (hLift + yWave + fuzzY),
-                z: gZ + eLift * zRibbon
-            };
-        }
-    }
-
     if (elapsed < t1) {
         // ── 1) Phase 1: Straight Vertical Fall & Floor Impact ──
         const p1 = elapsed / t1;
-        const eDrop = Math.pow(p1, 2.0);
+        const eDrop = p1 * p1;
 
         const pImpact = Math.max(0.0, (p1 - 0.70) / 0.30);
         const eImpact = pImpact * (2.0 - pImpact);
         const recoil = (isClash ? 1.6 : 0.5) * Math.sin(Math.PI * pImpact) * (1.0 - pImpact);
 
-        return {
-            x: hx + scatX * eImpact,
-            y: (1.0 - eDrop) * hy + eDrop * gY + recoil,
-            z: hz + scatZ * eImpact
-        };
+        const rx = hx + scatX * eImpact;
+        const ry = (1.0 - eDrop) * hy + eDrop * gY + recoil;
+        const rz = hz + scatZ * eImpact;
+        if (out) { out.x = rx; out.y = ry; out.z = rz; return out; }
+        return { x: rx, y: ry, z: rz };
     } else if (elapsed < t1 + tPause) {
         // ── 1.5) Ground Pause: 2 full seconds resting flat on visible floor ──
-        return {
-            x: gX,
-            y: gY,
-            z: gZ
-        };
+        if (out) { out.x = gX; out.y = gY; out.z = gZ; return out; }
+        return { x: gX, y: gY, z: gZ };
     } else if (elapsed < t1 + tPause + t2) {
         // ── 2) Phase 2: Forward Fuzzy Breeze Lift ──
         const tWind = elapsed - (t1 + tPause);
-        return getPlumePosition(tWind, elapsed);
+        return computeBreezePlume(tWind, elapsed, lambda, gX, gY, gZ, gx, cd, windSpeedMult, buoyancy, liftStart, seedZ, t2, i, out);
     } else if (elapsed < t1 + tPause + t2 + t3) {
         // ── 3) Phase 3: Exact Reverse Breeze Flow back to Ground Floor ──
         const p3 = (elapsed - (t1 + tPause + t2)) / t3;
         const smoothP3 = p3 * p3 * (3.0 - 2.0 * p3);
         const tWindRev = t2 * (1.0 - smoothP3);
-        return getPlumePosition(tWindRev, elapsed);
+        return computeBreezePlume(tWindRev, elapsed, lambda, gX, gY, gZ, gx, cd, windSpeedMult, buoyancy, liftStart, seedZ, t2, i, out);
     } else {
         // ── 4) Phase 4: Reverse Drop (Straight Elevation to Rest) ──
         const p4 = Math.min(1.0, (elapsed - (t1 + tPause + t2 + t3)) / t4);
         const eRise = p4 * p4 * (3.0 - 2.0 * p4);
 
-        return {
-            x: (1.0 - eRise) * gX + eRise * hx,
-            y: (1.0 - eRise) * gY + eRise * hy,
-            z: (1.0 - eRise) * gZ + eRise * hz
-        };
+        const rx = (1.0 - eRise) * gX + eRise * hx;
+        const ry = (1.0 - eRise) * gY + eRise * hy;
+        const rz = (1.0 - eRise) * gZ + eRise * hz;
+        if (out) { out.x = rx; out.y = ry; out.z = rz; return out; }
+        return { x: rx, y: ry, z: rz };
     }
 }
 
-export function evaluateExplosionParticle(ox, oy, oz, rx, ry, rz, maxDist, expDur, driftDur, contrDur, elapsed) {
+export function evaluateExplosionParticle(ox, oy, oz, rx, ry, rz, maxDist, expDur, driftDur, contrDur, elapsed, out) {
     const tDrift = driftDur || 3.0;
-    const peakProg = (1.0 - Math.exp(-2.8)) * 0.82 + 0.18;
-    const vLatest = (2.8 * Math.exp(-2.8) * 0.82 + 0.18) / Math.max(0.1, expDur);
+    const peakProg = (1.0 - EXP_NEG_2_8) * 0.82 + 0.18;
+    const vLatest = (2.8 * EXP_NEG_2_8 * 0.82 + 0.18) / Math.max(0.1, expDur);
     const driftPeakProg = peakProg + vLatest * tDrift * 0.78;
 
     let dist;
@@ -248,9 +254,57 @@ export function evaluateExplosionParticle(ox, oy, oz, rx, ry, rz, maxDist, expDu
         dist = driftPeakProg * Math.max(0, returnProg) * maxDist;
     }
 
-    return {
-        x: ox + rx * dist,
-        y: oy + ry * dist,
-        z: oz + rz * dist
-    };
+    const px = ox + rx * dist;
+    const py = oy + ry * dist;
+    const pz = oz + rz * dist;
+    if (out) { out.x = px; out.y = py; out.z = pz; return out; }
+    return { x: px, y: py, z: pz };
+}
+
+export function evaluateKineticParticle(i, hx, hy, hz, cd, elapsed, kineticConfig, out) {
+    const totalDur = 7.5;
+    const p = Math.min(1.0, elapsed / totalDur);
+
+    // Wave peels diagonally across the stage from left to right
+    const xPeel = -38.0 + 76.0 * p;
+
+    // Peeling wave distance function (slanted surf angle)
+    const dPeel = (hx + 0.25 * hy) - xPeel;
+    const tubeWidth = 9.0; // Compact, clean wave width
+
+    // Gaussian wave packet envelope
+    const env = Math.exp(-(dPeel * dPeel) / (2.0 * tubeWidth * tubeWidth));
+
+    // Continuous wave phase angle
+    const theta = (Math.PI * dPeel) / (2.0 * tubeWidth);
+    const cosT = Math.cos(theta);
+    const sinT = Math.sin(theta);
+
+    // Clean, scaled-down wave height (keeps emoji face fully intact and visible)
+    const waveHeight = 14.0;
+
+    // Completely continuous vertical weight function (NO boolean slicing or tears)
+    const lipBlend = 0.5 + 0.5 * Math.tanh(hy / 8.0);
+
+    // Trochoidal wave face profile using double-angle identity: sin(2*theta) = 2*sinT*cosT
+    const baseWaveZ = waveHeight * (cosT - 0.30 * 2.0 * sinT * cosT);
+
+    // Smooth forward curl (+Z) and lip drop (-Y)
+    const curlZ = 4.5 * lipBlend * Math.max(0.0, cosT);
+    const curlY = -2.5 * lipBlend * Math.max(0.0, sinT);
+
+    // Bounded, smooth continuous displacement across all coordinates
+    const deltaZ = env * (baseWaveZ + curlZ) * cd;
+    const deltaY = env * ((waveHeight * 0.12) * sinT + curlY);
+    const deltaX = -env * (waveHeight * 0.05) * sinT;
+
+    // Smooth exit ramp
+    const rawRamp = Math.max(0.0, (p - 0.92) / 0.08);
+    const exitRamp = Math.max(0.0, 1.0 - rawRamp * rawRamp);
+
+    const px = hx + deltaX * exitRamp;
+    const py = hy + deltaY * exitRamp;
+    const pz = hz + deltaZ * exitRamp;
+    if (out) { out.x = px; out.y = py; out.z = pz; return out; }
+    return { x: px, y: py, z: pz };
 }

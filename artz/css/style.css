@@ -376,7 +376,6 @@ select option {
 #emoji-row {
     display: flex;
     flex-wrap: wrap;
-    flex-wrap: wrap;
     align-items: center;
     gap: 8px;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
@@ -456,11 +455,6 @@ select option {
         align-items: stretch;
     }
 
-    #presets-row {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
     #capture-btn {
         width: 100%;
         justify-content: center;
@@ -478,9 +472,9 @@ select option {
         padding: 14px;
         gap: 12px;
         top: 10px;
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        background: rgba(10, 10, 20, 0.85);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: rgba(10, 10, 20, 0.94);
     }
     
     .control-row {
