@@ -166,7 +166,7 @@ test('BREEZE triggers cleanly on Web Worker without console errors and recovers 
 
     // Wait for breeze cycle to complete within prompt time window
     await page.waitForFunction(() => !window.__artzDebug.snapshot(1).explosionActive, null, {
-        timeout: 12_000
+        timeout: 16_000
     });
 
     expect(consoleErrors).toEqual([]);

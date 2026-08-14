@@ -1,4 +1,22 @@
 import {
+    particleVertexShader,
+    particleFragmentShader,
+    trailVertexShader,
+    trailFragmentShader,
+    emberVertexShader,
+    emberFragmentShader
+} from './shaders.js';
+import {
+    playExplosionSound,
+    playContractionRumble
+} from './audio.js';
+import {
+    tornadoRadius,
+    evaluateTornadoParticle,
+    evaluateBreezeParticle,
+    evaluateExplosionParticle
+} from './physics-math.js';
+import {
     Clock,
     OrthographicCamera,
     Scene,
@@ -185,52 +203,51 @@ const CONFIG = {
         },
         TORNADO: {
             expansionDuration: 3.5,
-            contractionDuration: 6.0,
-            explosionMaxDistMultiplier: 12.0,
-            motionStyle: 1, // tornado: morph into a visible vertical funnel
-            spinSpeed: 2.4,
-            funnelHeight: 38,
-            funnelBottom: -19,
-            funnelCrownRadius: 10.5,
-            funnelWaistRadius: 2.2,
-            funnelTailRadius: 0.55,
-            funnelWaistT: 0.42,
-            funnelCrownT: 0.78,
+            vortexDuration: 4.5,
+            equilibriumDuration: 3.5,
+            contractionDuration: 3.5,
+            explosionMaxDistMultiplier: 26.0,
+            motionStyle: 1, // 4-phase ~15s tornado: Phase 1 Ground Accretion -> Phase 2 Organic Funnel -> Phase 3 Mature Canopy -> Phase 4 Dissipation
+            spinSpeed: 4.8,
+            funnelHeight: 46,
+            funnelBottom: -22,
+            funnelCrownRadius: 22.0,
+            funnelWaistRadius: 4.5,
+            funnelTailRadius: 1.8,
+            funnelWaistT: 0.38,
+            funnelCrownT: 0.82,
             funnelFadeStart: 0.03,
             funnelFadeEnd: 0.30,
-            trailStrength: 0.35,
+            trailStrength: 0.75,
             heat: {
-                cold: [0.05, 0.15, 0.55],
-                warm: [0.25, 0.65, 1.0],
-                hot: [0.85, 0.95, 1.0]
+                cold: [0.08, 0.18, 0.45],  // Deep storm blue
+                warm: [0.92, 0.82, 0.28],  // Luminous golden accretion filament (Image 2)
+                hot: [1.0, 0.98, 0.90]     // White-hot lightning vortex core highlight
             },
-            emberBudget: 70,
-            soundPitch: 85,
-            soundDuration: 2.4,
-            soundType: 'sine'
+            emberBudget: 90,
+            soundPitch: 75,
+            soundDuration: 15.0,
+            soundType: 'sawtooth'
         },
                                                                         BREEZE: {
-            expansionDuration: 1.8,
-            contractionDuration: 2.2,
-            explosionMaxDistMultiplier: 42.0,
-            motionStyle: 2, // Smooth, laminar 3D silk breeze with off-screen flow & zero-G turnaround
+            expansionDuration: 1.0,
+            groundPauseDuration: 2.0,
+            liftDuration: 3.6,
+            settleDuration: 3.6,
+            contractionDuration: 1.6,
+            explosionMaxDistMultiplier: 38.0,
+            motionStyle: 2, // 4-phase breeze: Straight Fall (1.0s) -> 2s Ground Rest (1.0-3.0s) -> Forward Breeze (3.0-6.6s) -> Reverse Breeze to Floor (6.6-10.2s) -> Reverse Drop Elevation Home (10.2-11.8s)
             gustCoherence: 0.94,
-            windSpeed: 28.0,
-            billowAmp1: 9.0,
-            billowAmp2: 4.0,
-            peakAmp: 16.0,
-            creaseAmp: 7.0,
-            depthAmp: 14.0,
-            turbAmp: 4.0,
-            trailStrength: 0.70,
+            windSpeed: 36.0,
+            trailStrength: 0.65,
             heat: {
-                cold: [0.38, 0.08, 0.58],  // Deep luminous purple
-                warm: [0.85, 0.28, 0.85],  // Radiant orchid / magenta
-                hot: [1.0, 0.94, 1.0]      // Pure white-pink glowing crest highlight
+                cold: [0.15, 0.35, 0.65],  // Oceanic breeze blue
+                warm: [0.85, 0.45, 0.35],  // Warm terracotta ground scatter (Image 1 & 2)
+                hot: [0.95, 0.92, 0.85]     // Crisp sunlight highlight
             },
             emberBudget: 0,
             soundPitch: 95,
-            soundDuration: 2.2,
+            soundDuration: 11.8,
             soundType: 'sine'
         },
         EXPLODE: {
@@ -457,86 +474,7 @@ void main() {
 
 // Trail streaks: additive after-images that chase the live positions, so fast
 // particles leave coloured trails matching their displacement heat.
-const trailVertexShader = `
-uniform vec3 uHeatCold;
-uniform vec3 uHeatWarm;
-uniform vec3 uHeatHot;
-uniform float uHeatDistance;
-uniform float uPointSizeTrail;
-uniform float uPixelRatio;
-uniform float uPointScale;
-uniform float uTornadoActive;
-uniform float uTornadoFadeStart;
-uniform float uTornadoFadeEnd;
-
-attribute vec3 homePosition;
-attribute vec3 livePosition;
-attribute float funnelT;
-
-varying vec3 vColor;
-varying float vSpeed;
-varying float vTornadoFade;
-
-void main() {
-    float movement = length(position - homePosition);
-    float heat = smoothstep(0.05, uHeatDistance, movement);
-    vec3 heatMap = (heat < 0.5)
-        ? mix(uHeatCold, uHeatWarm, heat * 2.0)
-        : mix(uHeatWarm, uHeatHot, (heat - 0.5) * 2.0);
-
-vSpeed = clamp(length(livePosition - position) / uHeatDistance, 0.0, 1.0);
-    vColor = heatMap;
-    float funnelFade = clamp(
-        (funnelT - uTornadoFadeStart) / max(uTornadoFadeEnd - uTornadoFadeStart, 1e-4),
-        0.0, 1.0);
-    vTornadoFade = mix(1.0, 0.14 + 0.86 * funnelFade, uTornadoActive);
-
-    vec4 mv = modelViewMatrix * vec4(position, 1.0);
-    gl_Position = projectionMatrix * mv;
-    gl_PointSize = uPointSizeTrail * uPixelRatio * uPointScale * (0.5 + 1.4 * vSpeed);
-}
-`;
-
-const trailFragmentShader = `
-uniform float uTrailStrength;
-varying vec3 vColor;
-varying float vSpeed;
-varying float vTornadoFade;
-
-void main() {
-    vec2 cxy = 2.0 * gl_PointCoord - 1.0;
-    float r = dot(cxy, cxy);
-    if (r > 1.0) discard;
-    float alpha = (1.0 - smoothstep(0.0, 1.0, r)) * vSpeed * vSpeed * uTrailStrength;
-    alpha *= vTornadoFade;
-    gl_FragColor = vec4(vColor, alpha);
-}
-`;
-
 // Secondary ember sparks that burst from the fastest particles at peak expansion.
-const emberVertexShader = `
-attribute float aLife;
-varying float vLife;
-
-void main() {
-    vLife = aLife;
-    vec4 mv = modelViewMatrix * vec4(position, 1.0);
-    gl_Position = projectionMatrix * mv;
-    gl_PointSize = 3.0 * aLife;
-}
-`;
-
-const emberFragmentShader = `
-varying float vLife;
-void main() {
-    vec2 cxy = 2.0 * gl_PointCoord - 1.0;
-    float r = dot(cxy, cxy);
-    if (r > 1.0) discard;
-    float a = (1.0 - r) * 0.9 * vLife;
-    gl_FragColor = vec4(1.0, 0.75, 0.35, a);
-}
-`;
-
 // ─────────────────────────────────────────────
 // State grouped into named objects
 // ─────────────────────────────────────────────
@@ -597,9 +535,21 @@ const state = {
     heatHot: [1.0, 0.1, 0.1],
 
     get totalExplosionDuration() {
+        const style = (physics && physics.activeStyle >= 0) ? physics.activeStyle : this.motionStyle;
+        if (style === 1) {
+            // 4-Phase ~15s Tornado Simulation
+            const exp = this.expansionDuration || 3.5;
+            const vortex = (this.pattern && this.pattern.vortexDuration) ? this.pattern.vortexDuration : 4.5;
+            const equil = (this.pattern && this.pattern.equilibriumDuration) ? this.pattern.equilibriumDuration : 3.5;
+            const con = this.contractionDuration || 3.5;
+            return exp + vortex + equil + con; // 15.0s
+        }
+        if (style === 2) {
+            // 4-Phase Breeze: Straight Fall (1.0s) + Ground Pause (2.0s) + Forward Breeze (3.6s) + Reverse Breeze (3.6s) + Elevation (1.6s) = 11.8s
+            return 11.8;
+        }
         const exp = this.activeExpansionDuration || this.expansionDuration;
         const con = this.activeContractionDuration || this.contractionDuration;
-        const style = (physics && physics.activeStyle >= 0) ? physics.activeStyle : this.motionStyle;
         const drift = (style === 0 || style === 3 || style === -1) ? 3.0 : 0.0;
         return exp + drift + con;
     }
@@ -818,183 +768,7 @@ function updateAudioReactive() {
     uniforms.uAudioEnvelope.value += (env - uniforms.uAudioEnvelope.value) * 0.6;
 }
 
-function playExplosionSound(recoveryEstimate = 0) {
-    try {
-        ensureAudioGraph();
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
 
-        const now  = audioCtx.currentTime;
-        // Length scales with the recovery time so bigger explosions sound larger.
-        const dur  = Math.max(state.soundDuration * (0.85 + Math.random() * 0.3), recoveryEstimate * 0.7);
-        const pitch = state.soundPitch * (0.85 + Math.random() * 0.3);
-        const type = state.soundType;
-
-        // Sawtooth presets behave as bigger/harsher booms; sine as deep & clean.
-        const heavy = type === 'sawtooth';
-
-        // Master stage: everything funnels through one gain with a short attack so
-        // the blast starts punchy but never clicks, and decays to a clean stop.
-        const master = audioCtx.createGain();
-        master.gain.setValueAtTime(0.0001, now);
-        master.gain.exponentialRampToValueAtTime(0.9, now + 0.014);
-        master.gain.setValueAtTime(0.9, now + dur * 0.45);
-        master.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-        master.connect(audioMaster);
-
-        // Low-end hygiene: trim subsonic rumble so the thump stays tight.
-        const lowCut = audioCtx.createBiquadFilter();
-        lowCut.type = 'highpass';
-        lowCut.frequency.value = 20;
-        lowCut.connect(master);
-
-        const toDisconnect = [master, lowCut];
-
-                if (state.motionStyle === 1) {
-            // Swirling cyclone wind vortex howl (sweeping dual bandpass noise filters, no explosive boom)
-            const wind = audioCtx.createBufferSource();
-            wind.buffer = createNoiseBuffer(audioCtx);
-            wind.loop = true;
-            const windFilt = audioCtx.createBiquadFilter();
-            windFilt.type = 'bandpass';
-            windFilt.frequency.setValueAtTime(140, now);
-            windFilt.frequency.linearRampToValueAtTime(440, now + dur * 0.4);
-            windFilt.frequency.exponentialRampToValueAtTime(90, now + dur);
-            windFilt.Q.value = 2.2;
-            const windGain = audioCtx.createGain();
-            windGain.gain.setValueAtTime(0.0001, now);
-            windGain.gain.exponentialRampToValueAtTime(0.32, now + dur * 0.3);
-            windGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-            wind.connect(windFilt);
-            windFilt.connect(windGain);
-            windGain.connect(master);
-            wind.start(now);
-            wind.stop(now + dur + 0.05);
-            setTimeout(() => {
-                try {
-                    wind.disconnect();
-                    windFilt.disconnect();
-                    windGain.disconnect();
-                    master.disconnect();
-                } catch (_) {}
-            }, (dur + 0.2) * 1000);
-            return;
-        }
-
-        if (state.motionStyle === 2) {
-            // Gentle, tranquil wind breeze whisper (soft ambient bandpass noise swell)
-            const wind = audioCtx.createBufferSource();
-            wind.buffer = createNoiseBuffer(audioCtx);
-            wind.loop = true;
-            const windFilt = audioCtx.createBiquadFilter();
-            windFilt.type = 'bandpass';
-            windFilt.frequency.setValueAtTime(180, now);
-            windFilt.frequency.linearRampToValueAtTime(360, now + dur * 0.38);
-            windFilt.frequency.exponentialRampToValueAtTime(110, now + dur);
-            windFilt.Q.value = 0.95;
-            const windGain = audioCtx.createGain();
-            windGain.gain.setValueAtTime(0.0001, now);
-            windGain.gain.exponentialRampToValueAtTime(0.24, now + dur * 0.35);
-            windGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-            wind.connect(windFilt);
-            windFilt.connect(windGain);
-            windGain.connect(master);
-            wind.start(now);
-            wind.stop(now + dur + 0.05);
-            setTimeout(() => {
-                try {
-                    wind.disconnect();
-                    windFilt.disconnect();
-                    windGain.disconnect();
-                    master.disconnect();
-                } catch (_) {}
-            }, (dur + 0.2) * 1000);
-            return;
-        }
-
-        // ── 1) Sub thump: the low "boom" that gives the blast weight. ──────────────
-        const subFreq = Math.max(26, pitch * 0.5);
-        const thump = audioCtx.createOscillator();
-        const thumpGain = audioCtx.createGain();
-        thump.type = 'sine';
-        thump.frequency.setValueAtTime(subFreq * 2.4, now);
-        thump.frequency.exponentialRampToValueAtTime(subFreq, now + 0.18);
-        thumpGain.gain.setValueAtTime(0.95, now);
-        thumpGain.gain.exponentialRampToValueAtTime(0.0001, now + Math.min(0.4, dur * 0.55));
-        thump.connect(thumpGain);
-        thumpGain.connect(lowCut);
-        thump.start(now);
-        thump.stop(now + 0.45);
-        toDisconnect.push(thump, thumpGain);
-
-        // ── 2) Body: the broadband rumble = noise through a sweeping lowpass. ─────
-        const body = audioCtx.createBufferSource();
-        body.buffer = createNoiseBuffer(audioCtx);
-        body.loop = true;
-        const bodyFilt = audioCtx.createBiquadFilter();
-        bodyFilt.type = 'lowpass';
-        bodyFilt.frequency.setValueAtTime(heavy ? pitch * 4.5 : pitch * 2.8, now);
-        bodyFilt.frequency.exponentialRampToValueAtTime(Math.max(45, pitch * 0.5), now + dur);
-        bodyFilt.Q.value = 0.8;
-        const bodyGain = audioCtx.createGain();
-        const bodyLevel = heavy ? 0.6 : type === 'sine' ? 0.46 : 0.54;
-        bodyGain.gain.setValueAtTime(0.0001, now);
-        bodyGain.gain.exponentialRampToValueAtTime(bodyLevel, now + 0.025);
-        bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-        body.connect(bodyFilt);
-        bodyFilt.connect(bodyGain);
-        bodyGain.connect(lowCut);
-        body.start(now);
-        body.stop(now + dur + 0.06);
-        toDisconnect.push(body, bodyFilt, bodyGain);
-
-        // ── 3) Transient tone: a fast pitch-swept sine that punches the leading edge.
-        const tone = audioCtx.createOscillator();
-        const toneFilter = audioCtx.createBiquadFilter();
-        const toneGain = audioCtx.createGain();
-        tone.type = 'sine';
-        tone.frequency.setValueAtTime(heavy ? pitch * 6 : pitch * 4, now);
-        tone.frequency.exponentialRampToValueAtTime(pitch * 0.9, now + 0.12);
-        toneFilter.type = 'lowpass';
-        toneFilter.frequency.value = heavy ? 3000 : 2200;
-        toneGain.gain.setValueAtTime(0.28, now);
-        toneGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
-        tone.connect(toneFilter);
-        toneFilter.connect(toneGain);
-        toneGain.connect(lowCut);
-        tone.start(now);
-        tone.stop(now + 0.2);
-        toDisconnect.push(tone, toneFilter, toneGain);
-
-        // ── 4) Crackle: a short high-passed noise burst for the snapping tail. ────
-        const crackle = audioCtx.createBufferSource();
-        crackle.buffer = createNoiseBuffer(audioCtx);
-        crackle.loop = true;
-        const crackFilt = audioCtx.createBiquadFilter();
-        crackFilt.type = 'highpass';
-        crackFilt.frequency.value = heavy ? 2600 : 1800;
-        const crackGain = audioCtx.createGain();
-        crackGain.gain.setValueAtTime(0.15, now);
-        crackGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
-        crackle.connect(crackFilt);
-        crackFilt.connect(crackGain);
-        crackGain.connect(master);
-        crackle.start(now);
-        crackle.stop(now + 0.22);
-        toDisconnect.push(crackle, crackFilt, crackGain);
-
-        // Release all nodes once the explosion has fully decayed.
-        setTimeout(() => {
-            for (const node of toDisconnect) {
-                try { node.disconnect(); } catch (_) { /* already ended */ }
-            }
-        }, (dur + 0.15) * 1000);
-
-    } catch (err) {
-        console.warn('Audio synthesis initialized with error:', err);
-    }
-}
 
 // Low, swelling rumble that plays during the contraction phase, tuned to the actual
 // recovery duration so larger explosions audibly resolve more slowly.
@@ -2140,8 +1914,9 @@ function captureExplosionOrigin() {
     }
 }
 
-function triggerExplosion() {
-    if (physics.explosionStartTime >= 0) return;
+function triggerExplosion(force = false) {
+    if (physics.explosionStartTime >= 0 && !force) return;
+    physics.explosionStartTime = -1;
 
     // Every particle explodes from the position the user actually sees, not from
     // the screen center or its eventual text position.
@@ -2286,24 +2061,6 @@ function tornadoEnvelope(elapsed, expansionDuration, contractionDuration) {
     return Math.max(0, 1 - t * t * t);
 }
 
-function tornadoRadius(u, p) {
-    const bottom = p.funnelBottom || -20;
-    const height = p.funnelHeight || 40;
-    const waistU = (p.funnelWaistT != null) ? p.funnelWaistT : (p.funnelWaistU || 0.42);
-    const rTail = (p.funnelTailRadius != null) ? p.funnelTailRadius : 0.8;
-    const rWaist = (p.funnelWaistRadius != null) ? p.funnelWaistRadius : 3.5;
-    const rCrown = (p.funnelCrownRadius != null) ? p.funnelCrownRadius : 22.0;
-    const crownExp = p.funnelCrownExp || 1.4;
-
-    if (u <= waistU) {
-        const t = u / Math.max(0.01, waistU);
-        return rTail + (rWaist - rTail) * (t * t);
-    } else {
-        const t = (u - waistU) / Math.max(0.01, 1 - waistU);
-        return rWaist + (rCrown - rWaist) * Math.pow(t, crownExp);
-    }
-}
-
 // ─────────────────────────────────────────────
 // URL Parameter Synchronisation (Undo/Redo Support)
 // ─────────────────────────────────────────────
@@ -2325,6 +2082,8 @@ function updateURLParams(text, theme, font, shouldPush = true) {
 // Copy a preset's explosion physics/pattern/visual tuning into state and apply the
 // explosion-only visual uniforms. The user's theme/font always stay untouched.
 function applyPresetPhysics(preset) {
+    state.activeExpansionDuration = null;
+    state.activeContractionDuration = null;
     state.expansionDuration = preset.expansionDuration;
     state.driftDuration = preset.driftDuration !== undefined ? preset.driftDuration : 0;
     state.contractionDuration = preset.contractionDuration;
@@ -2349,6 +2108,8 @@ function applyPresetPhysics(preset) {
         funnelCrownT: (preset.funnelCrownT != null) ? preset.funnelCrownT : 0,
         funnelFadeStart: (preset.funnelFadeStart != null) ? preset.funnelFadeStart : 0,
         funnelFadeEnd: (preset.funnelFadeEnd != null) ? preset.funnelFadeEnd : 0,
+        vortexDuration: (preset.vortexDuration != null) ? preset.vortexDuration : 4.5,
+        equilibriumDuration: (preset.equilibriumDuration != null) ? preset.equilibriumDuration : 3.5,
         gustCoherence:(preset.gustCoherence != null)? preset.gustCoherence: 0,
         swayAmp:      (preset.swayAmp != null)      ? preset.swayAmp      : 0,
         swayFreq:     (preset.swayFreq != null)     ? preset.swayFreq     : 0,
@@ -2779,7 +2540,7 @@ function setupUI() {
             setActivePreset(presetVal); // Highlight the selected preset chip
             
             // Trigger the unique explosion
-            triggerExplosion();
+            triggerExplosion(true);
         });
     });
 
@@ -2998,19 +2759,21 @@ function animate() {
         } else {
             // At peak, lock the contraction duration to the ACTUAL distance travelled
             // so recovery genuinely reflects how far particles flew.
-            const tDrift = (activeStyle === 0 || activeStyle === 3 || activeStyle === -1) ? 3.0 : 0.0;
-            if (elapsed >= (activeExpDuration + tDrift) && !state.travelApplied) {
-                const travel = state.actualTravelRadius;
-                const baseContr = state.contractionDuration || 2.0;
-                state.activeContractionDuration = Math.min(
-                    baseContr * 1.25,
-                    Math.max(
-                        travel / CONFIG.maxContractionVelocity,
-                        CONFIG.contractionDurationFloor
-                    )
-                );
-                state.travelApplied = true;
-                scheduleContractionRumble(state.activeContractionDuration);
+            if (activeStyle === 0 || activeStyle === 3 || activeStyle === -1) {
+                const tDrift = 3.0;
+                if (elapsed >= (activeExpDuration + tDrift) && !state.travelApplied) {
+                    const travel = state.actualTravelRadius;
+                    const baseContr = state.contractionDuration || 2.0;
+                    state.activeContractionDuration = Math.min(
+                        baseContr * 1.25,
+                        Math.max(
+                            travel / CONFIG.maxContractionVelocity,
+                            CONFIG.contractionDurationFloor
+                        )
+                    );
+                    state.travelApplied = true;
+                    scheduleContractionRumble(state.activeContractionDuration);
+                }
             }
             // Spawn embers once, at peak, from the expanded particle field.
             if (elapsed >= activeExpDuration && !state.embersSpawned) {
