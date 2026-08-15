@@ -451,9 +451,13 @@ function setupEventListeners() {
       localStorage.setItem('theme', 'dark');
     }
 
-    // Immediately re-render all dashboard widgets so canvas labels/colors update without requiring hover
-    const filtered = getFilteredDashboardApps(state.dashboardRange || 'yearly');
-    renderAllDashboardWidgets(filtered, true);
+    // Immediately re-render dashboard widgets only if dashboard tab is currently active
+    const activeNavBtn = document.querySelector('.topbar-nav-btn.active');
+    const activeTab = activeNavBtn ? activeNavBtn.getAttribute('data-tab') : 'landing';
+    if (activeTab === 'dashboard') {
+      const filtered = getFilteredDashboardApps(state.dashboardRange || 'yearly');
+      renderAllDashboardWidgets(filtered, true);
+    }
   };
 
   if (dom.fabThemeToggle) {
@@ -479,7 +483,11 @@ function setupEventListeners() {
       
       const filtered = getFilteredDashboardApps(state.dashboardRange);
       calculateStatistics(filtered);
-      renderAllDashboardWidgets(filtered, true);
+      const activeNavBtn = document.querySelector('.topbar-nav-btn.active');
+      const activeTab = activeNavBtn ? activeNavBtn.getAttribute('data-tab') : 'landing';
+      if (activeTab === 'dashboard') {
+        renderAllDashboardWidgets(filtered, true);
+      }
     });
   }
 
@@ -950,7 +958,12 @@ function parseAndInitializeData(csvText) {
 
   state.dataVersion++;
   updateFiltersUI();
-  applyFilters();
+
+  const activeNavBtn = document.querySelector('.topbar-nav-btn.active');
+  const activeTab = activeNavBtn ? activeNavBtn.getAttribute('data-tab') : 'landing';
+
+  // Compute filtered items; only render DOM if Applications tab is active
+  applyFilters(activeTab !== 'home');
 
   const range = state.dashboardRange || 'yearly';
   const filtered = getFilteredDashboardApps(range);
@@ -965,8 +978,10 @@ function parseAndInitializeData(csvText) {
     }
   }
 
-  // Render all dashboard widgets
-  renderAllDashboardWidgets(filtered, true);
+  // Render dashboard widgets only if Dashboard tab is active
+  if (activeTab === 'dashboard') {
+    renderAllDashboardWidgets(filtered, true);
+  }
 }
 
 function getFilteredDashboardApps(range) {
@@ -1217,67 +1232,12 @@ function applyFilters(skipRender = false) {
     return matchCompany && matchJob && matchStatus;
   });
 
-  const sortVal = state.currentSortVal;
   state.filteredApplications.sort((a, b) => {
-    let comparison = 0;
-    
-    if (sortVal.startsWith('date')) {
-      const dateA = a._parsedDate;
-      const dateB = b._parsedDate;
-      comparison = dateA - dateB;
-      if (sortVal === 'date-desc') {
-        comparison = dateB - dateA;
-      }
-      if (comparison === 0) {
-        comparison = sortVal === 'date-desc'
-          ? (b.originalIndex || 0) - (a.originalIndex || 0)
-          : (a.originalIndex || 0) - (b.originalIndex || 0);
-      }
-    } else if (sortVal.startsWith('job')) {
-      const jobA = (a['Job Title'] || '').trim();
-      const jobB = (b['Job Title'] || '').trim();
-      comparison = sortCollator.compare(jobA, jobB);
-      if (sortVal === 'job-desc') {
-        comparison = sortCollator.compare(jobB, jobA);
-      }
-    } else if (sortVal.startsWith('company')) {
-      const companyA = (a['Company Name'] || '').trim();
-      const companyB = (b['Company Name'] || '').trim();
-      comparison = sortCollator.compare(companyA, companyB);
-      if (sortVal === 'company-desc') {
-        comparison = sortCollator.compare(companyB, companyA);
-      }
-    } else if (sortVal.startsWith('status')) {
-      const statusA = (a['Application Status'] || '').trim();
-      const statusB = (b['Application Status'] || '').trim();
-      comparison = sortCollator.compare(statusA, statusB);
-      if (sortVal === 'status-desc') {
-        comparison = sortCollator.compare(statusB, statusA);
-      }
-    } else if (sortVal.startsWith('suitability')) {
-      const valA = (a['Job_Suitability'] || '').trim();
-      const valB = (b['Job_Suitability'] || '').trim();
-      const numA = parseInt(valA, 10);
-      const numB = parseInt(valB, 10);
-      
-      const isNaN_A = isNaN(numA);
-      const isNaN_B = isNaN(numB);
-      
-      if (isNaN_A && isNaN_B) {
-        comparison = 0;
-      } else if (isNaN_A) {
-        comparison = 1;
-      } else if (isNaN_B) {
-        comparison = -1;
-      } else {
-        comparison = sortVal === 'suitability-desc' ? numB - numA : numA - numB;
-      }
-    }
-    
-    if (comparison === 0) {
-      return (b.originalIndex || 0) - (a.originalIndex || 0);
-    }
-    return comparison;
+    const dateA = a._parsedDate ? a._parsedDate.getTime() : 0;
+    const dateB = b._parsedDate ? b._parsedDate.getTime() : 0;
+    const comparison = dateB - dateA;
+    if (comparison !== 0) return comparison;
+    return (b.originalIndex || 0) - (a.originalIndex || 0);
   });
 
   if (!skipRender) {
@@ -1583,9 +1543,10 @@ async function updateApplicationStatusDirect(app, newStatus, targetContainer, ca
     updateCardDeleteButton(cardEl, app, newColKey);
     // Re-sort target column cards by creation date (newest first), prioritizing the moved card on date ties
     const cards = Array.from(targetContainer.querySelectorAll('.kanban-card'));
+    const appIndexMap = new Map((state.rawApplications || []).map(a => [a.originalIndex, a]));
     sortCardsByDate(cards, el => {
       const idx = parseInt(el.getAttribute('data-index'), 10);
-      return (state.rawApplications || []).find(x => x.originalIndex === idx);
+      return appIndexMap.get(idx);
     }, app);
     cards.forEach(c => targetContainer.appendChild(c));
     updateColumnEmptyState(targetContainer);
@@ -1612,9 +1573,10 @@ async function updateApplicationStatusDirect(app, newStatus, targetContainer, ca
       sourceContainer.appendChild(cardEl);
       updateCardDeleteButton(cardEl, app, oldColKey);
       const cards = Array.from(sourceContainer.querySelectorAll('.kanban-card'));
+      const appIndexMap = new Map((state.rawApplications || []).map(a => [a.originalIndex, a]));
       sortCardsByDate(cards, el => {
         const idx = parseInt(el.getAttribute('data-index'), 10);
-        return (state.rawApplications || []).find(x => x.originalIndex === idx);
+        return appIndexMap.get(idx);
       }, app);
       cards.forEach(c => sourceContainer.appendChild(c));
       updateColumnEmptyState(sourceContainer);

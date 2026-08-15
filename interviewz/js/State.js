@@ -10,7 +10,6 @@ export const state = {
   selectedJobTitle: null,
   selectedStatus: null,
   currentApp: null,
-  currentSortVal: 'date-desc',
   dataVersion: 0,
   deleteRequests: {},
   dashboardRange: localStorage.getItem('dashboardRange') || 'yearly'
