@@ -259,9 +259,9 @@ function initDomCache() {
   dom.btnCopyPreparation = document.getElementById('btnCopyPreparation');
   dom.drawerInterviewNotes = document.getElementById('drawerInterviewNotes');
   dom.jobInterviewForm = document.getElementById('jobinterview');
-  dom.btnSubmitInterviewNotes = document.getElementById('btnSubmitInterviewNotes');
   dom.btnResetInterviewNotes = document.getElementById('btnResetInterviewNotes');
-  dom.btnSubmitOverviewUpdates = document.getElementById('btnSubmitOverviewUpdates');
+  dom.btnSubmitOverviewBottom = document.getElementById('btnSubmitOverviewBottom');
+  dom.btnSubmitNotesBottom = document.getElementById('btnSubmitNotesBottom');
   dom.fabThemeToggle = document.getElementById('fabThemeToggle');
   dom.dashboardRangeToggle = document.getElementById('dashboardRangeToggle');
   dom.statCardThisMonth = document.getElementById('statCardThisMonth');
@@ -523,19 +523,27 @@ function setupEventListeners() {
     });
   }
 
-  // Submit notes event listener
+  // Submit notes / overview event listener
   const formJobInterview = dom.jobInterviewForm;
   if (formJobInterview) {
     formJobInterview.addEventListener('submit', (e) => {
       e.preventDefault();
 
       const submitter = e.submitter;
-      if (submitter && submitter.id === 'btnSubmitOverviewUpdates') {
-        submitJobInterviewForm(submitter.id);
+      const submitterId = submitter ? submitter.id : null;
+      if (submitterId === 'btnSubmitOverviewBottom') {
+        submitJobInterviewForm('overview');
+        return;
+      }
+      if (submitterId === 'btnSubmitNotesBottom') {
+        submitJobInterviewForm('notes');
         return;
       }
 
-      submitJobInterviewForm(submitter ? submitter.id : null);
+      // If submitted without explicit submitter (e.g. Enter key), check active tab
+      const activeDrawerTab = document.querySelector('.drawer-tab.active');
+      const isOverview = activeDrawerTab && activeDrawerTab.id === 'tabOverview';
+      submitJobInterviewForm(isOverview ? 'overview' : 'notes');
     });
   }
 
@@ -1783,16 +1791,6 @@ function selectTab(tabId) {
       pane.classList.remove('active');
     }
   });
-
-  const btnSubmitUpdates = document.getElementById('btnSubmitOverviewUpdates');
-  if (btnSubmitUpdates) {
-    btnSubmitUpdates.style.display = (tabId === 'tabOverview') ? '' : 'none';
-  }
-
-  const btnSubmitNotes = document.getElementById('btnSubmitInterviewNotes');
-  if (btnSubmitNotes) {
-    btnSubmitNotes.style.display = (tabId === 'tabNotes') ? '' : 'none';
-  }
 }
 
 function updateSelectColorClass(select) {
@@ -2311,19 +2309,21 @@ function setInterviewLoadingState(isLoading) {
   }
 
   const elements = [
-    dom.btnSubmitInterviewNotes,
+    dom.btnSubmitOverviewBottom,
+    dom.btnSubmitNotesBottom,
     dom.btnResetInterviewNotes,
     dom.drawerInterviewNotes,
-    dom.btnSubmitOverviewUpdates,
     dom.drawerStatusSelect,
-    dom.drawerCommentsTextarea
+    dom.drawerCommentsTextarea,
+    dom.drawerFollowUp,
+    dom.drawerHiringTeam
   ];
   elements.forEach(el => {
     if (el) el.disabled = isLoading;
   });
 }
 
-async function submitJobInterviewForm(submitterId) {
+async function submitJobInterviewForm(submitMode) {
   const form = dom.jobInterviewForm;
   if (!form) return;
 
@@ -2336,7 +2336,8 @@ async function submitJobInterviewForm(submitterId) {
   }
 
   isInterviewSubmitting = true;
-  const msg = submitterId === 'btnSubmitOverviewUpdates' ? 'Submitting updates... Please wait for feedback.' : 'Submitting your notes... Please wait for feedback.';
+  const isOverview = (submitMode === 'overview');
+  const msg = isOverview ? 'Submitting updates... Please wait for feedback.' : 'Submitting your notes... Please wait for feedback.';
   showToast(msg, 'info');
 
   await postForm(getNotesApiEndpoint(), new FormData(form), {
@@ -2345,11 +2346,10 @@ async function submitJobInterviewForm(submitterId) {
       form.classList.remove('was-validated');
       showToast('Changes submitted successfully!', 'success');
       if (state.currentApp) {
-        if (submitterId === 'btnSubmitOverviewUpdates') {
+        if (isOverview) {
           if (dom.drawerStatusSelect) {
             const newStatus = dom.drawerStatusSelect.value;
             state.currentApp['Application Status'] = newStatus;
-            
           }
           if (dom.drawerCommentsTextarea) {
             state.currentApp['Comments'] = dom.drawerCommentsTextarea.value.trim();
@@ -2365,7 +2365,7 @@ async function submitJobInterviewForm(submitterId) {
           state.currentApp['Interview_Notes'] = notesEl ? notesEl.value.trim() : '';
         }
       }
-      if (submitterId === 'btnSubmitOverviewUpdates') {
+      if (isOverview) {
         fetchData(false, true);
       } else {
         setTimeout(fetchData, 3000);

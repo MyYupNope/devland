@@ -156,6 +156,11 @@ export class FormApp {
     }
 
     this.resetTimerId = setTimeout(() => {
+      // Auto-switch to Applications tab
+      if (typeof window.switchTab === 'function') {
+        window.switchTab('home');
+      }
+
       this.form.reset();
       this.form.classList.remove('was-validated');
       this.inputs.forEach(input => {
@@ -166,11 +171,6 @@ export class FormApp {
       }
       this.initCharacterCounters();
       this.resetTimerId = null;
-      
-      // Auto-switch to Home tab
-      if (typeof window.switchTab === 'function') {
-        window.switchTab('home');
-      }
     }, FORM_SUBMISSION_RESET_TIMEOUT);
   }
 

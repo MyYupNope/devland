@@ -2232,6 +2232,40 @@ a.topbar-nav-btn:hover svg {
   box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.15);
 }
 
+.drawer-panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+}
+
+.btn-drawer-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 500;
+  font-size: 0.9rem;
+  padding: 0.55rem 1.75rem;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-primary);
+  color: #ffffff !important;
+  border: 1px solid var(--color-primary);
+  cursor: pointer;
+  transition: background-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base);
+}
+
+.btn-drawer-save:hover {
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+  box-shadow: 0 2px 6px rgba(26, 115, 232, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-drawer-save:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
 #drawerInterviewCompany,
 #drawerInterviewPreparation {
   max-height: none;
