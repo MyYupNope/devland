@@ -4,6 +4,7 @@
   "scripts": {
     "deploy": "node deploy.js",
     "deploy-interviewz": "node deploy.js",
-    "serve": "node serve.js"
+    "serve": "node serve.js",
+    "ship": "git add . && git commit -m \"Update codebase\" && git push origin main && node deploy.js"
   }
 }
