@@ -398,7 +398,12 @@ export function renderAllDashboardWidgets(applications, force = false) {
   if (noDataMsg) noDataMsg.style.display = 'none';
 
   const isDark = document.documentElement.classList.contains('theme-dark');
-  const currentRenderHash = `theme:${isDark}-v:${state.dataVersion}-len:${applications.length}-range:${state.dashboardRange || 'weekly'}`;
+  let statusSummary = '';
+  for (let i = 0; i < applications.length; i++) {
+    const a = applications[i];
+    statusSummary += (a['Application Status'] || a['Status'] || '')[0] || '';
+  }
+  const currentRenderHash = `theme:${isDark}-v:${state.dataVersion}-len:${applications.length}-range:${state.dashboardRange || 'weekly'}-sig:${statusSummary}`;
   if (!force && lastRenderHash === currentRenderHash) {
     return;
   }

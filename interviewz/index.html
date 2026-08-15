@@ -29,7 +29,7 @@
   <link rel="modulepreload" href="js/State.js">
   <link rel="modulepreload" href="js/Toast.js">
   <link rel="modulepreload" href="js/Utils.js">
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
@@ -38,7 +38,7 @@
   <!-- Favicon -->
   <link rel="icon" href="assets/favicon.png" type="image/png">
   <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous" defer></script>
   <!-- Inline theme detection script to prevent flashing -->
   <script>
     (function() {
@@ -190,7 +190,7 @@
 
         <div class="bento-grid">
           <!-- Card 1: Applications (12 columns) -->
-          <div class="bento-card card-full reveal reveal-delay-1" onclick="window.switchTab('home')">
+          <div class="bento-card card-full reveal reveal-delay-1" role="button" tabindex="0" aria-label="Explore Applications Command Center" onclick="window.switchTab('home')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.switchTab('home')}">
             <div class="card-accent-border accent-blue"></div>
             <div class="card-content-layout">
               <div class="card-text-side">
@@ -216,7 +216,7 @@
           </div>
 
           <!-- Card 2: Dashboard (6 columns) -->
-          <div class="bento-card card-half reveal reveal-delay-2" onclick="window.switchTab('dashboard')">
+          <div class="bento-card card-half reveal reveal-delay-2" role="button" tabindex="0" aria-label="Explore Dashboard Analytics" onclick="window.switchTab('dashboard')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.switchTab('dashboard')}">
             <div class="card-accent-border accent-green"></div>
             <div class="card-content-layout vertical">
               <div class="card-text-side">
@@ -242,7 +242,7 @@
           </div>
 
           <!-- Card 3: New Application (6 columns) -->
-          <div class="bento-card card-half reveal reveal-delay-3" onclick="window.switchTab('new-application')">
+          <div class="bento-card card-half reveal reveal-delay-3" role="button" tabindex="0" aria-label="Explore New Application Submission" onclick="window.switchTab('new-application')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.switchTab('new-application')}">
             <div class="card-accent-border accent-amber"></div>
             <div class="card-content-layout vertical">
               <div class="card-text-side">
@@ -268,7 +268,7 @@
           </div>
 
           <!-- Card 4: Resume (12 columns) -->
-          <div class="bento-card card-full reveal reveal-delay-4" onclick="window.open('https://myyupnope.github.io/resume/', '_blank')">
+          <div class="bento-card card-full reveal reveal-delay-4" role="button" tabindex="0" aria-label="Explore Interactive Resume Showcase" onclick="window.open('https://myyupnope.github.io/resume/', '_blank')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.open('https://myyupnope.github.io/resume/', '_blank')}">
             <div class="card-accent-border accent-purple"></div>
             <div class="card-content-layout">
               <div class="card-text-side">
@@ -355,15 +355,6 @@
       </section>
 
     </div>
-
-    <!-- Hero Banner -->
-    <div class="hero-banner">
-      <div class="logo-text">
-        <h1>Job Applications Assistant</h1>
-        <span class="sub-logo-text">Streamline your application process with our premium tools.</span>
-      </div>
-    </div>
-
 
     <!-- Stats Dashboard Section -->
     <section class="stats-section tab-hidden">
@@ -934,7 +925,7 @@
 
   <!-- Detail Drawer Panel -->
   <div class="drawer-overlay" id="drawerOverlay"></div>
-  <aside class="details-drawer" id="detailsDrawer">
+  <aside class="details-drawer" id="detailsDrawer" role="dialog" aria-modal="true" aria-labelledby="drawerJobTitleDisplay">
     <form id="jobinterview">
       <!-- Hidden inputs to act as form fields for job title and company name -->
       <input type="hidden" id="drawerJobTitle" name="drawerJobTitle">

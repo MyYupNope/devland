@@ -118,10 +118,11 @@ export class FormApp {
     this.submitBtn.classList.add('btn-primary');
 
     await postForm(getFormApiEndpoint(), new FormData(this.form), {
+      timeoutMs: 60000,
       setLoading: (v) => this.setLoadingState(v),
       onSuccess:  ()  => this.handleSuccess(),
       onError:    (e) => this.handleError(e.name === 'AbortError'
-        ? 'Submission error: Request timed out after 5 minutes.'
+        ? 'Submission error: Request timed out after 60 seconds.'
         : 'Submission error: ' + e.message),
     });
 

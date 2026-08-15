@@ -233,30 +233,16 @@ export async function postForm(url, formData, { setLoading = () => {}, onSuccess
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    let response;
-    try {
-      response = await fetch(url, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRF-Token': csrfToken,
-          'X-Submission-Timestamp': timestamp
-        },
-        signal: controller.signal
-      });
-    } catch (corsErr) {
-      if (corsErr.name !== 'AbortError') {
-        console.warn('[postForm] Custom header preflight bypassed, retrying with payload CSRF:', corsErr.message);
-        response = await fetch(url, {
-          method: 'POST',
-          body: formData,
-          signal: controller.signal
-        });
-      } else {
-        throw corsErr;
-      }
-    }
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-Token': csrfToken,
+        'X-Submission-Timestamp': timestamp
+      },
+      signal: controller.signal
+    });
 
     clearTimeout(timeoutId);
 

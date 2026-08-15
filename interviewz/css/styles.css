@@ -3,10 +3,13 @@
    Styles for the Job Application Dashboard
    ========================================================================== */
 
+@layer bootstrap, base, components, utilities;
+
 :root {
   /* Google Store Palette */
   --color-bg: #f8f9fa;
   --color-surface: #ffffff;
+  --color-surface-hover: #f1f3f4;
   --color-primary: #1a73e8;
   --color-primary-hover: #1557b0;
   --color-primary-light: #e8f0fe;
@@ -40,6 +43,7 @@
   --radius-sm: 8px;
 
   /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
   --shadow-md: 0 1px 3px 0 rgba(60, 64, 67, 0.3), 0 4px 8px 3px rgba(60, 64, 67, 0.15);
   --shadow-lg: 0 4px 6px 0 rgba(60, 64, 67, 0.3), 0 8px 24px 6px rgba(60, 64, 67, 0.15);
 
@@ -58,12 +62,12 @@
 
   /* Google Sheets dropdown status chip colors (Light Theme) */
   --bg-status-applied: #e8f0fe;
-  --color-status-applied: #1a73e8;
+  --color-status-applied: #1967d2;
 
-  --bg-status-interviews: #ffe0b2;
+  --bg-status-interviews: #fef7e0;
   --color-status-interviews: #b06000;
 
-  --bg-status-ready: #e1e1e1;
+  --bg-status-ready: #f1f3f4;
   --color-status-ready: #3c4043;
 
   --bg-status-rejected: #fce8e6;
@@ -72,11 +76,11 @@
   --bg-status-accepted: #e6f4ea;
   --color-status-accepted: #137333;
 
-  --bg-status-offer: #c6dbe1;
-  --color-status-offer: #215a6c;
+  --bg-status-offer: #e0f2f1;
+  --color-status-offer: #00796b;
 
-  --bg-status-in-review: #e4f7fb;
-  --color-status-in-review: #007b83;
+  --bg-status-in-review: #e0f2f1;
+  --color-status-in-review: #00796b;
   --bg-status-withdraw: #f3e5f5;
   --color-status-withdraw: #ab47bc;
   --bg-invalid: #fce8e6;
@@ -85,6 +89,7 @@
 :root.theme-dark {
   --color-bg: #121212;
   --color-surface: #1e1e1e;
+  --color-surface-hover: #303134;
   --color-primary-hover: #1765cc;
   --color-primary-light: rgba(26, 115, 232, 0.15);
   --color-text-primary: #e8eaed;
@@ -102,6 +107,7 @@
   --bg-error-light: rgba(217, 48, 37, 0.15);
   --bg-info-light: rgba(0, 191, 165, 0.15);
   
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.6);
   --shadow-md: 0 1px 3px 0 rgba(0, 0, 0, 0.5), 0 4px 8px 3px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 4px 6px 0 rgba(0, 0, 0, 0.5), 0 8px 24px 6px rgba(0, 0, 0, 0.3);
 
@@ -131,6 +137,15 @@
   --bg-status-withdraw: rgba(171, 71, 188, 0.15);
   --color-status-withdraw: #dec9e9;
   --bg-invalid: #301c1c;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Ensure select dropdown options have dark background in dark mode */
@@ -244,43 +259,8 @@ body {
 }
 
 /* ==========================================================================
-   Hero Banner Component (Google Hero Quote Card Style)
+   Sync Status Component
    ========================================================================== */
-.hero-banner {
-  background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)), url('../assets/hero-bg-wide.webp') no-repeat center center;
-  background-size: cover;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  border: none;
-  padding: 3rem 2.5rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 1.25rem;
-  transition: box-shadow var(--transition-base);
-}
-
-.hero-banner:hover {
-  box-shadow: var(--shadow-lg);
-}
-
-.logo-text h1 {
-  font-family: 'Roboto', 'Google Sans', sans-serif;
-  font-size: clamp(1.75rem, 4vw, 2.25rem);
-  font-weight: 500;
-  color: #ffffff;
-  margin-bottom: 0.5rem;
-}
-
-.sub-logo-text {
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.85);
-  font-weight: 400;
-  display: block;
-}
-
 .sync-status {
   display: inline-flex;
   align-items: center;
@@ -297,35 +277,6 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-}
-
-.btn-header-refresh {
-  background: rgba(255, 255, 255, 0.15);
-  border: none;
-  color: #ffffff;
-  cursor: pointer;
-  padding: 0.45rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color var(--transition-base), transform var(--transition-base);
-  outline: none;
-}
-
-.btn-header-refresh:hover {
-  background-color: rgba(255, 255, 255, 0.3);
-  transform: scale(1.05);
-}
-
-.btn-header-refresh svg {
-  width: 16px;
-  height: 16px;
-  stroke: #ffffff;
-}
-
-.btn-header-refresh:active svg {
-  transform: rotate(180deg);
 }
 
 .status-dot {
@@ -1389,16 +1340,6 @@ a.topbar-nav-btn:hover svg {
   line-height: 1.5;
 }
 
-/* Empty state for the Active Applications when filters yield no results */
-.no-results-pipeline {
-  padding: 1.5rem;
-  text-align: center;
-  color: var(--color-text-secondary);
-  width: 100%;
-  grid-column: 1 / -1;
-  font-size: 0.95rem;
-}
-
 /* ==========================================================================
    Details Drawer Component
    ========================================================================== */
@@ -1547,41 +1488,6 @@ a.topbar-nav-btn:hover svg {
   flex-direction: column;
   gap: 1.25rem;
 }
-
-.score-badge {
-  background-color: var(--color-primary);
-  padding: 0.15rem 0.6rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: #ffffff;
-}
-
-.score-badge.score-1 {
-  background-color: var(--color-score-1);
-}
-
-/* Red */
-.score-badge.score-2 {
-  background-color: var(--color-score-2);
-}
-
-/* Lighter Pink */
-.score-badge.score-3 {
-  background-color: var(--color-score-3);
-}
-
-/* Orange */
-.score-badge.score-4 {
-  background-color: var(--color-score-4);
-}
-
-/* Yellow-Green transition */
-.score-badge.score-5 {
-  background-color: var(--color-score-5);
-}
-
-/* Green */
 
 #drawerSuitabilityScore {
   font-size: inherit;
@@ -1843,18 +1749,6 @@ a.topbar-nav-btn:hover svg {
 #drawerJobDescription,
 #drawerCompanyDescription {
   max-height: 560px;
-}
-
-/* Comments Box Styling */
-.comments-box {
-  background: var(--bg-warning-light);
-  border: 1px solid rgba(249, 171, 0, 0.2);
-  color: var(--color-warning);
-  font-size: 0.95rem;
-  line-height: 1.55;
-  padding: 1.25rem 1.5rem;
-  border-radius: var(--radius-md);
-  white-space: pre-wrap;
 }
 
 /* Suitability Evaluation Styling */
@@ -2871,53 +2765,6 @@ a.topbar-nav-btn:hover svg {
 .text-block.markdown-content .md-table tr:hover {
   background-color: rgba(26, 115, 232, 0.03);
   /* Subtle blue tint on hover */
-}
-
-/* Copy-mode: compact styles inlined by the browser for Word-compatible paste */
-.copy-mode .md-table {
-  width: auto !important;
-  max-width: none !important;
-  box-shadow: none !important;
-  border-radius: 0 !important;
-  font-size: 10pt !important;
-  table-layout: auto !important;
-}
-
-.copy-mode .md-table th,
-.copy-mode .md-table td {
-  padding: 2pt 6pt !important;
-  font-size: 10pt !important;
-  white-space: normal !important;
-  word-wrap: break-word !important;
-}
-
-.copy-mode .md-table th {
-  font-size: 10pt !important;
-  font-weight: 600 !important;
-}
-
-.copy-mode .suit-eval-grid {
-  font-size: 10pt !important;
-}
-
-.copy-mode .suit-eval-section {
-  padding: 4pt !important;
-}
-
-.copy-mode .prep-divider {
-  display: none !important;
-}
-
-.copy-mode .prep-no-data {
-  display: none !important;
-}
-
-.copy-mode .suitability-score-circle-wrapper {
-  display: none !important;
-}
-
-.copy-mode .btn-copy-html {
-  display: none !important;
 }
 
 /* ==========================================================================
@@ -4410,7 +4257,6 @@ a.topbar-nav-btn:hover svg {
 .applications-section,
 .results-section,
 .kanban-view-section,
-.active-interviews-section-wrapper,
 .sync-container,
 .stats-section,
 .analytics-section,
@@ -4544,8 +4390,8 @@ a.topbar-nav-btn:hover svg {
   border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
-  min-height: 500px;
-  max-height: 820px;
+  min-height: 120px;
+  max-height: 460px;
   box-shadow: var(--shadow-sm);
   transition: border-color var(--transition-base), box-shadow var(--transition-base);
   contain: layout style;
@@ -4595,7 +4441,8 @@ a.topbar-nav-btn:hover svg {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  min-height: 400px;
+  min-height: 60px;
+  max-height: 395px;
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   transition: background-color var(--transition-base), border-color var(--transition-base);
   scrollbar-width: thin;

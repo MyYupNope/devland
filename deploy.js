@@ -2,13 +2,26 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
+const isDryRun = process.argv.includes('--dry-run');
+const args = process.argv.slice(2).filter(arg => arg !== '--dry-run');
+const commitMessage = args.join(' ') || 'Update interviewz, resume, and artz projects';
+
 const targetRepo = 'https://github.com/MyYupNope/MyYupNope.github.io.git';
 const tempDir = path.join(__dirname, 'temp-deploy-github-io');
 const srcDir = path.join(__dirname, 'interviewz');
 
-const commitMessage = process.argv.slice(2).join(' ') || 'Update interviewz, resume, and artz projects';
+const EXCLUDED_DIRS = new Set(['documentation', 'introduction', '.git', '.system_generated', 'node_modules']);
+
+function copyDirFilter(src) {
+  const base = path.basename(src);
+  return !EXCLUDED_DIRS.has(base);
+}
 
 try {
+  if (isDryRun) {
+    console.log('=== DRY RUN MODE ACTIVATED === (No changes will be pushed)');
+  }
+
   // 1. Clean up temp folder if it exists
   if (fs.existsSync(tempDir)) {
     console.log('Cleaning up old temp directory...');
@@ -19,14 +32,14 @@ try {
   console.log('1. Cloning target repository...');
   execSync(`git clone ${targetRepo} "${tempDir}"`, { stdio: 'inherit' });
 
-  // 3. Copy interviewz files
-  console.log('2. Copying interviewz files...');
+  // 3. Copy interviewz files (excluding heavy documentation/introduction)
+  console.log('2. Copying interviewz files (excluding documentation & introduction)...');
   const destDir = path.join(tempDir, 'interviewz');
   if (fs.existsSync(destDir)) {
     fs.rmSync(destDir, { recursive: true, force: true });
   }
   fs.mkdirSync(destDir, { recursive: true });
-  fs.cpSync(srcDir, destDir, { recursive: true });
+  fs.cpSync(srcDir, destDir, { recursive: true, filter: copyDirFilter });
 
   // 3b. Copy resume files
   const resumeSrcDir = path.join(__dirname, 'resume');
@@ -37,7 +50,7 @@ try {
       fs.rmSync(resumeDestDir, { recursive: true, force: true });
     }
     fs.mkdirSync(resumeDestDir, { recursive: true });
-    fs.cpSync(resumeSrcDir, resumeDestDir, { recursive: true });
+    fs.cpSync(resumeSrcDir, resumeDestDir, { recursive: true, filter: copyDirFilter });
   }
 
   // 3c. Build and copy artz files
@@ -52,7 +65,7 @@ try {
         fs.rmSync(artzDestDir, { recursive: true, force: true });
       }
       fs.mkdirSync(artzDestDir, { recursive: true });
-      fs.cpSync(artzDistDir, artzDestDir, { recursive: true });
+      fs.cpSync(artzDistDir, artzDestDir, { recursive: true, filter: copyDirFilter });
     }
   }
 
@@ -61,11 +74,17 @@ try {
   execSync('git add -A', { cwd: tempDir, stdio: 'inherit' });
   const status = execSync('git status --porcelain', { cwd: tempDir }).toString().trim();
   if (status) {
-    console.log('Committing changes...');
-    execSync(`git commit -m "${commitMessage.replace(/"/g, '\\"')}"`, { cwd: tempDir, stdio: 'inherit' });
+    console.log('Changes detected in target repo:\n' + status);
+    if (isDryRun) {
+      console.log('[DRY-RUN] Would commit with message: "' + commitMessage + '"');
+      console.log('[DRY-RUN] Would push to GitHub origin master');
+    } else {
+      console.log('Committing changes...');
+      execSync(`git commit -m "${commitMessage.replace(/"/g, '\\"')}"`, { cwd: tempDir, stdio: 'inherit' });
 
-    console.log('4. Pushing to GitHub...');
-    execSync('git push origin master', { cwd: tempDir, stdio: 'inherit' });
+      console.log('4. Pushing to GitHub...');
+      execSync('git push origin master', { cwd: tempDir, stdio: 'inherit' });
+    }
   } else {
     console.log('No changes detected in target repo. Skipping commit and push.');
   }
@@ -74,7 +93,7 @@ try {
   console.log('5. Cleaning up...');
   fs.rmSync(tempDir, { recursive: true, force: true });
 
-  console.log('Done! Deployment successful.');
+  console.log(isDryRun ? 'Done! Dry run completed successfully.' : 'Done! Deployment successful.');
 } catch (error) {
   console.error('Deployment failed:', error.message);
   if (fs.existsSync(tempDir)) {
