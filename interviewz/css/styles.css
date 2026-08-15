@@ -4772,4 +4772,95 @@ a.topbar-nav-btn:hover svg {
   color: var(--color-primary-hover);
   text-decoration: underline;
 }
-
+
+/* ==========================================================================
+   Kanban Card Delete Control
+   ========================================================================== */
+
+.kanban-delete-form {
+  display: inline-flex;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.kanban-card-meta .kanban-delete-form {
+  margin-left: auto;
+}
+
+.btn-kanban-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: var(--bg-error-light);
+  color: var(--color-error) !important;
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(217, 48, 37, 0.28);
+  text-decoration: none !important;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-base);
+  flex-shrink: 0;
+}
+
+.kanban-card-meta .btn-kanban-delete {
+  padding: 3px 8px;
+  font-size: 0.72rem;
+}
+
+.btn-kanban-delete:hover,
+.btn-kanban-delete:focus-visible {
+  background-color: var(--color-error);
+  color: #ffffff !important;
+  border-color: var(--color-error);
+  box-shadow: 0 2px 6px rgba(217, 48, 37, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-kanban-delete:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.btn-kanban-delete svg {
+  stroke: currentColor;
+  fill: none;
+}
+
+.theme-dark .btn-kanban-delete {
+  background-color: rgba(217, 48, 37, 0.18);
+  color: #f28b82 !important;
+  border-color: rgba(242, 139, 130, 0.3);
+}
+
+.theme-dark .btn-kanban-delete:hover,
+.theme-dark .btn-kanban-delete:focus-visible {
+  background-color: var(--color-error);
+  color: #ffffff !important;
+  border-color: var(--color-error);
+}
+
+/* Locked card while a delete request is pending */
+.kanban-card.is-deleting {
+  opacity: 0.68;
+  pointer-events: none;
+  position: relative;
+}
+
+.kanban-card.is-deleting::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: inherit;
+  z-index: 1;
+}
+
+.theme-dark .kanban-card.is-deleting::after {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+

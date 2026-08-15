@@ -7,7 +7,8 @@
 const _EP = {
   s: 'aHR0cHM6Ly9kb2NzLmdvb2dsZS5jb20vc3ByZWFkc2hlZXRzL2QvMUxkWG1wOXdBaWxkcVlkUkl5ekEzMkJNTVFJRERNMmtUMjVsTXJnWWVSYmsvZXhwb3J0P2Zvcm1hdD1jc3Y=',
   f: 'aHR0cHM6Ly9uZXdkYXduLnRhaWw3NGVlZjMudHMubmV0L3dlYmhvb2svamFwcG1vdGxldA==',
-  n: 'aHR0cHM6Ly9uZXdkYXduLnRhaWw3NGVlZjMudHMubmV0L3dlYmhvb2svaW50ZXJwcmVwbm90ZXM='
+  n: 'aHR0cHM6Ly9uZXdkYXduLnRhaWw3NGVlZjMudHMubmV0L3dlYmhvb2svaW50ZXJwcmVwbm90ZXM=',
+  d: 'aHR0cHM6Ly9uZXdkYXduLnRhaWw3NGVlZjMudHMubmV0L3dlYmhvb2svY2U1YWU4N2MtZTQ2My00NDQ1LWIxNTktOWQ5MzQ5MWRmMmI3'
 };
 
 function _decode(b64) {
@@ -58,6 +59,16 @@ export function getNotesApiEndpoint() {
   return _decode(_EP.n);
 }
 
+export function getDeleteApiEndpoint() {
+  if (typeof window !== 'undefined' && window.APP_CONFIG && window.APP_CONFIG.DELETE_API_ENDPOINT) {
+    return window.APP_CONFIG.DELETE_API_ENDPOINT;
+  }
+  const base = getApiBaseUrl();
+  if (base) return `${base}/webhook/ce5ae87c-e463-4445-b159-9d93491df2b7`;
+  return _decode(_EP.d);
+}
+
 export const FORM_TIMEOUT_MS = 300000;
 export const FORM_SUBMISSION_RESET_TIMEOUT = 10000;
 export const CSV_CACHE_KEY = 'talent_tracker_csv_cache';
+export const DELETE_TIMEOUT_MS = 60000;

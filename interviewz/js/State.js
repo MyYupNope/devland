@@ -12,5 +12,6 @@ export const state = {
   currentApp: null,
   currentSortVal: 'date-desc',
   dataVersion: 0,
+  deleteRequests: {},
   dashboardRange: localStorage.getItem('dashboardRange') || 'yearly'
 };

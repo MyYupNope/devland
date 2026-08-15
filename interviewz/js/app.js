@@ -3,7 +3,7 @@ import { FormApp } from './FormApp.js';
 import { state } from './State.js';
 import { renderAllDashboardWidgets } from './Charts.js';
 import { parseMarkdown } from './Markdown.js';
-import { showToast } from './Toast.js';
+import { showToast, showPersistentToast, updatePersistentToast, closePersistentToast } from './Toast.js';
 import {
   escapeHtml,
   parseDate,
@@ -17,7 +17,9 @@ import {
 import {
   getSheetExportUrl,
   getNotesApiEndpoint,
-  CSV_CACHE_KEY
+  getDeleteApiEndpoint,
+  CSV_CACHE_KEY,
+  DELETE_TIMEOUT_MS
 } from './Config.js';
 
 const sortCollator = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
@@ -254,6 +256,7 @@ function initDomCache() {
   dom.fabThemeToggle = document.getElementById('fabThemeToggle');
   dom.dashboardRangeToggle = document.getElementById('dashboardRangeToggle');
   dom.statCardThisMonth = document.getElementById('statCardThisMonth');
+
 }
 
 // Global drop-down components
@@ -600,6 +603,36 @@ function setupEventListeners() {
     });
   }
 
+  // Event Delegation: Kanban Board Delete Form Submit
+  if (dom.kanbanBoard) {
+    dom.kanbanBoard.addEventListener('submit', (e) => {
+      const form = e.target.closest('.kanban-delete-form');
+      if (!form) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const jobUrl = (form.getAttribute('data-job-url') || '').trim();
+      if (!jobUrl) {
+        showToast('This application has no Job URL and cannot be deleted.', 'error');
+        return;
+      }
+
+      const cardEl = form.closest('.kanban-card');
+      const app = (state.rawApplications || []).find(a => (a['Job URL'] || '').trim() === jobUrl);
+      if (!app) {
+        showToast('Application not found in current data. Refresh and try again.', 'error');
+        return;
+      }
+
+      if (state.deleteRequests && state.deleteRequests[jobUrl]) {
+        showToast('A deletion request is already in progress for this application.', 'warning');
+        return;
+      }
+
+      deleteApplication(app, cardEl);
+    });
+  }
+
   // Initialize Kanban drag and drop event handlers ONCE
   setupKanbanDragAndDrop();
 
@@ -616,7 +649,10 @@ function setupEventListeners() {
 /**
  * Fetch and Parse Data with offline Local Storage support
  */
-function fetchData(isTabSwitch = false, isForceRefresh = false) {
+function fetchData(isTabSwitch = false, isForceRefresh = false, onComplete = null) {
+  const emitComplete = (ok) => {
+    if (typeof onComplete === 'function') onComplete(ok);
+  };
   const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
   const cachedVal = localStorage.getItem(CACHE_KEY_CSV());
   let cachedCsvText = null;
@@ -661,6 +697,7 @@ function fetchData(isTabSwitch = false, isForceRefresh = false) {
       console.log('[OpportunityTracker] Skipping fetch request on tab switch (last sync was < 15 min ago)');
       const lastUpdated = new Date(lastSyncTimeMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
       setSyncState('success', `Synced ${lastUpdated}`);
+      emitComplete(true);
       return; // Skip fetch since cache is fresh
     }
   }
@@ -695,6 +732,7 @@ function fetchData(isTabSwitch = false, isForceRefresh = false) {
         if (!hasLoadedFromCache || !state.rawApplications || state.rawApplications.length === 0) {
           parseAndInitializeData(csvText);
         }
+        emitComplete(true);
         return;
       }
 
@@ -709,6 +747,7 @@ function fetchData(isTabSwitch = false, isForceRefresh = false) {
       
       const lastUpdated = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
       setSyncState('success', `Synced ${lastUpdated}`);
+      emitComplete(true);
     })
     .catch(error => {
       console.error('[OpportunityTracker] Fetch error:', error);
@@ -735,6 +774,7 @@ function fetchData(isTabSwitch = false, isForceRefresh = false) {
           `;
         }
       }
+      emitComplete(false);
     });
 }
 
@@ -1276,6 +1316,21 @@ function renderKanbanBoard() {
 
       const followUpRaw = (app['Follow-Up'] || app['Follow_Up'] || app['Link'] || app['Job Link'] || app['URL'] || '').trim();
       const isUrl = followUpRaw.startsWith('http://') || followUpRaw.startsWith('https://');
+      const jobUrl = (app['Job URL'] || '').trim();
+      const deleteControl = (colKey === 'Ready' && jobUrl) ? `
+        <form class="kanban-delete-form" method="post" action="${escapeHtml(getDeleteApiEndpoint())}" data-job-url="${escapeHtml(jobUrl)}">
+          <input type="hidden" name="jobUrl" value="${escapeHtml(jobUrl)}">
+          <button type="submit" class="btn-kanban-delete" aria-label="${escapeHtml('Delete application for ' + company)}" title="Delete application">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              <line x1="10" y1="11" x2="10" y2="17"/>
+              <line x1="14" y1="11" x2="14" y2="17"/>
+            </svg>
+            Delete
+          </button>
+        </form>
+      ` : '';
 
       const card = document.createElement('div');
       card.className = 'kanban-card';
@@ -1290,6 +1345,7 @@ function renderKanbanBoard() {
         <h4 class="kanban-card-title">${escapeHtml(title)}</h4>
         <div class="kanban-card-meta">
           <span class="kanban-card-date">${escapeHtml(formatDisplayDate(dateStr))}</span>
+          ${deleteControl}
         </div>
         <div class="kanban-card-actions">
           ${isUrl ? `
@@ -1362,6 +1418,10 @@ function setupKanbanDragAndDrop() {
     dom.kanbanBoard.addEventListener('dragstart', (e) => {
       const card = e.target.closest('.kanban-card');
       if (!card) return;
+      if (card.classList.contains('is-deleting') || e.target.closest('.kanban-delete-form')) {
+        e.preventDefault();
+        return;
+      }
       card.classList.add('dragging');
       const rawIdx = card.getAttribute('data-index');
       const idx = parseInt(rawIdx, 10);
@@ -1513,8 +1573,9 @@ async function updateApplicationStatusDirect(app, newStatus, targetContainer, ca
       timeoutMs: 60000,
       setLoading: () => {},
       onSuccess: () => {
-        // 3. Success Confirmation: Card stays in target column with zero re-renders
+        // Re-render after confirmation so column-specific controls match the saved status.
         showToast('Changes submitted successfully!', 'success');
+        renderKanbanBoard();
       },
       onError: (err) => {
         // 4. Failure: Card moves back to original column gracefully
@@ -1523,6 +1584,140 @@ async function updateApplicationStatusDirect(app, newStatus, targetContainer, ca
     });
   } catch (err) {
     handleFailure(err);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   DELETE APPLICATION FLOW
+   -------------------------------------------------------------------------- */
+
+function generateRequestId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'del_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+}
+
+function lockCard(cardEl, locked) {
+  if (!cardEl) return;
+  cardEl.classList.toggle('is-deleting', locked);
+  cardEl.setAttribute('draggable', locked ? 'false' : 'true');
+  cardEl.setAttribute('aria-busy', locked ? 'true' : 'false');
+
+  cardEl.querySelectorAll('button, a, input').forEach(el => {
+    if (el.tagName === 'BUTTON' || el.tagName === 'INPUT') {
+      el.disabled = locked;
+    }
+    if (locked) el.setAttribute('tabindex', '-1');
+    else el.removeAttribute('tabindex');
+  });
+}
+
+function removeApplicationLocally(jobUrl) {
+  if (!jobUrl) return;
+  const removed = [];
+  const isMatch = (a) => (a['Job URL'] || '').trim() === jobUrl;
+
+  state.rawApplications = (state.rawApplications || []).filter(a => {
+    const keep = !isMatch(a);
+    if (!keep) removed.push(a);
+    return keep;
+  });
+  state.activeApplications = (state.activeApplications || []).filter(a => !isMatch(a));
+  state.filteredApplications = (state.filteredApplications || []).filter(a => !isMatch(a));
+
+  removed.forEach(a => {
+    const keyVer = (a['Company Name'] || '').trim() + '|' + (a['Job Title'] || '').trim();
+    if (state.statusOverrides && state.statusOverrides[keyVer]) {
+      delete state.statusOverrides[keyVer];
+    }
+  });
+
+  if (state.currentApp && isMatch(state.currentApp)) state.currentApp = null;
+}
+
+async function deleteApplication(app, cardEl) {
+  const jobUrl = (app['Job URL'] || '').trim();
+  if (!jobUrl) {
+    showToast('This application has no Job URL and cannot be deleted.', 'error');
+    return;
+  }
+
+  if (state.deleteRequests && state.deleteRequests[jobUrl]) {
+    showToast('A deletion request is already in progress for this application.', 'warning');
+    return;
+  }
+
+  const requestId = generateRequestId();
+  if (!state.deleteRequests) state.deleteRequests = {};
+  state.deleteRequests[jobUrl] = { requestId, jobUrl, status: 'submitting', startedAt: Date.now() };
+
+  lockCard(cardEl, true);
+  const toastId = showPersistentToast('Submitting deletion request to the database...', 'info');
+
+  const formData = new FormData();
+  formData.append('jobUrl', jobUrl);
+  formData.append('requestId', requestId);
+  formData.append('action', 'delete');
+  formData.append('companyName', app['Company Name'] || '');
+  formData.append('jobTitle', app['Job Title'] || '');
+
+  const onFailure = (message) => {
+    const req = state.deleteRequests[jobUrl];
+    if (req && req.status !== 'deleted' && req.status !== 'unconfirmed') {
+      req.status = 'failed';
+    }
+    delete state.deleteRequests[jobUrl]; // allow retry
+    lockCard(cardEl, false);
+    updatePersistentToast(toastId, message, 'error');
+    showToast('Deletion failed. The application remains available.', 'error');
+    setTimeout(() => closePersistentToast(toastId), 3500);
+  };
+
+  try {
+    await postForm(getDeleteApiEndpoint(), formData, {
+      timeoutMs: DELETE_TIMEOUT_MS,
+      setLoading: () => {},
+      onSuccess: () => {
+        if (state.deleteRequests[jobUrl]) {
+          state.deleteRequests[jobUrl].status = 'deleted';
+        }
+
+        // Remove from local state immediately so the card disappears even if refresh fails.
+        removeApplicationLocally(jobUrl);
+        renderKanbanBoard();
+
+        updatePersistentToast(toastId, 'Application deleted successfully!', 'success');
+
+        // Invalidate cache and force a fresh database refresh to reconcile.
+        try { localStorage.removeItem(CACHE_KEY_CSV()); } catch (e) {}
+
+        new Promise((resolve) => fetchData(false, true, resolve)).then((refreshOk) => {
+          if (refreshOk !== false) {
+            renderKanbanBoard();
+          } else {
+            updatePersistentToast(toastId, 'Deleted from database, but the latest board data could not be loaded. Use Refresh.', 'warning');
+          }
+          setTimeout(() => closePersistentToast(toastId), 3500);
+          delete state.deleteRequests[jobUrl];
+        });
+      },
+      onError: (err) => {
+        const isTimeout = err && (err.name === 'AbortError' || (err.message && err.message.toLowerCase().includes('timed out')));
+        if (isTimeout) {
+          if (state.deleteRequests[jobUrl] && state.deleteRequests[jobUrl].status !== 'deleted') {
+            state.deleteRequests[jobUrl].status = 'unconfirmed';
+          }
+          // Keep card locked + request record so no duplicate is submitted; result is unknown.
+          updatePersistentToast(toastId, 'Deletion result could not be confirmed. The application is still locked — refresh to verify.', 'error');
+          return;
+        }
+        const msg = (err && err.message) ? err.message : 'Failed to delete application';
+        onFailure(msg);
+      }
+    });
+  } catch (err) {
+    onFailure('Failed to delete application: ' + (err && err.message ? err.message : err));
   }
 }
 
