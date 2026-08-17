@@ -1,6 +1,6 @@
 import { showToast } from './Toast.js';
 import { postForm, encryptCacheData, decryptCacheData } from './Utils.js';
-import { getFormApiEndpoint, FORM_SUBMISSION_RESET_TIMEOUT } from './Config.js';
+import { getFormApiEndpoint, FORM_TIMEOUT_MS, FORM_SUBMISSION_RESET_TIMEOUT } from './Config.js';
 
 export class FormApp {
   constructor() {
@@ -118,11 +118,11 @@ export class FormApp {
     this.submitBtn.classList.add('btn-primary');
 
     await postForm(getFormApiEndpoint(), new FormData(this.form), {
-      timeoutMs: 60000,
+      timeoutMs: FORM_TIMEOUT_MS,
       setLoading: (v) => this.setLoadingState(v),
       onSuccess:  ()  => this.handleSuccess(),
       onError:    (e) => this.handleError(e.name === 'AbortError'
-        ? 'Submission error: Request timed out after 60 seconds.'
+        ? 'Submission error: Request timed out after 5 minutes.'
         : 'Submission error: ' + e.message),
     });
 
@@ -151,6 +151,9 @@ export class FormApp {
     localStorage.removeItem('job_app_draft');
 
     // Restore standard blue color on success
+    this.submitBtn.classList.remove('btn-danger');
+    this.submitBtn.classList.add('btn-primary');
+
     if (this.resetTimerId) {
       clearTimeout(this.resetTimerId);
     }

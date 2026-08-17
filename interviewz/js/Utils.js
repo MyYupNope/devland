@@ -230,7 +230,13 @@ export async function postForm(url, formData, { setLoading = () => {}, onSuccess
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const timeoutId = setTimeout(() => {
+    try {
+      controller.abort(new Error(`Request timed out after ${Math.round(timeoutMs / 1000)}s`));
+    } catch (e) {
+      controller.abort();
+    }
+  }, timeoutMs);
 
   try {
     const response = await fetch(url, {
@@ -282,10 +288,13 @@ export async function postForm(url, formData, { setLoading = () => {}, onSuccess
  */
 function sanitizeErrorMessage(err) {
   if (!err) return 'An unexpected error occurred. Please try again.';
-  const raw = typeof err === 'string' ? err : (err.message || String(err));
-  if (raw.includes('AbortError') || raw.includes('timed out')) {
+  const isAbort = (err && err.name === 'AbortError') ||
+                  (typeof err === 'string' && err.includes('AbortError')) ||
+                  (err && err.message && (err.message.includes('AbortError') || err.message.includes('aborted') || err.message.includes('timed out')));
+  if (isAbort) {
     return 'Request timed out. Please check your connection and try again.';
   }
+  const raw = typeof err === 'string' ? err : (err.message || String(err));
   if (raw.includes('Failed to fetch') || raw.includes('NetworkError')) {
     return 'Network error: Unable to reach server. Please try again later.';
   }
