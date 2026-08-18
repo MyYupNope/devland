@@ -151,9 +151,24 @@ function tryStat(p) {
   }
 }
 
-server.listen(PORT, () => {
-  console.log(`devland static server listening on http://localhost:${PORT}`);
-  console.log(`- /artz/              -> built artz app (artz/dist)`);
-  console.log(`- /interviewz/        -> source`);
-  console.log(`- /resume/            -> source`);
+let currentPort = parseInt(process.env.PORT || '8080', 10);
+
+function startServer(port) {
+  server.listen(port, () => {
+    console.log(`devland static server listening on http://localhost:${port}`);
+    console.log(`- /artz/              -> built artz app (artz/dist)`);
+    console.log(`- /resume/            -> source`);
+  });
+}
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.log(`Port ${currentPort} is in use, trying port ${currentPort + 1}...`);
+    currentPort += 1;
+    startServer(currentPort);
+  } else {
+    console.error('Server error:', err);
+  }
 });
+
+startServer(currentPort);

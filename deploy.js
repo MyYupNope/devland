@@ -4,7 +4,7 @@ const path = require('path');
 
 const isDryRun = process.argv.includes('--dry-run');
 const args = process.argv.slice(2).filter(arg => arg !== '--dry-run');
-const commitMessage = args.join(' ') || 'Update interviewz, resume, and artz projects';
+const commitMessage = args.join(' ') || 'Update resume and artz projects';
 
 const targetRepo = 'https://github.com/MyYupNope/MyYupNope.github.io.git';
 const tempDir = path.join(__dirname, 'temp-deploy-github-io');
@@ -32,14 +32,16 @@ try {
   console.log('1. Cloning target repository...');
   execSync(`git clone ${targetRepo} "${tempDir}"`, { stdio: 'inherit' });
 
-  // 3. Copy interviewz files (excluding heavy documentation/introduction)
-  console.log('2. Copying interviewz files (excluding documentation & introduction)...');
-  const destDir = path.join(tempDir, 'interviewz');
-  if (fs.existsSync(destDir)) {
-    fs.rmSync(destDir, { recursive: true, force: true });
+  // 3. Copy interviewz files if present
+  if (fs.existsSync(srcDir)) {
+    console.log('2. Copying interviewz files (excluding documentation & introduction)...');
+    const destDir = path.join(tempDir, 'interviewz');
+    if (fs.existsSync(destDir)) {
+      fs.rmSync(destDir, { recursive: true, force: true });
+    }
+    fs.mkdirSync(destDir, { recursive: true });
+    fs.cpSync(srcDir, destDir, { recursive: true, filter: copyDirFilter });
   }
-  fs.mkdirSync(destDir, { recursive: true });
-  fs.cpSync(srcDir, destDir, { recursive: true, filter: copyDirFilter });
 
   // 3b. Copy resume files
   const resumeSrcDir = path.join(__dirname, 'resume');
