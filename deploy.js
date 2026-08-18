@@ -77,6 +77,13 @@ try {
     fs.rmSync(artzDestDir, { recursive: true, force: true });
   }
 
+  // 3d. Copy root index.html if present
+  const rootIndex = path.join(__dirname, 'index.html');
+  if (fs.existsSync(rootIndex)) {
+    console.log('   Copying root index.html...');
+    fs.copyFileSync(rootIndex, path.join(tempDir, 'index.html'));
+  }
+
   // 4. Commit and Push
   console.log('3. Staging and checking changes...');
   execSync('git add -A', { cwd: tempDir, stdio: 'inherit' });
