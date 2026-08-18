@@ -58,13 +58,13 @@ try {
     fs.cpSync(resumeSrcDir, resumeDestDir, { recursive: true, filter: copyDirFilter });
   }
 
-  // 3c. Build and copy artz files
+  // 3c. Sync artz files (or remove from live deployment if deleted locally)
   const artzDir = path.join(__dirname, 'artz');
+  const artzDestDir = path.join(tempDir, 'artz');
   if (fs.existsSync(artzDir)) {
     console.log('   Building and copying artz files...');
     execSync('npm run build', { cwd: artzDir, stdio: 'inherit' });
     const artzDistDir = path.join(artzDir, 'dist');
-    const artzDestDir = path.join(tempDir, 'artz');
     if (fs.existsSync(artzDistDir)) {
       if (fs.existsSync(artzDestDir)) {
         fs.rmSync(artzDestDir, { recursive: true, force: true });
@@ -72,6 +72,9 @@ try {
       fs.mkdirSync(artzDestDir, { recursive: true });
       fs.cpSync(artzDistDir, artzDestDir, { recursive: true, filter: copyDirFilter });
     }
+  } else if (fs.existsSync(artzDestDir)) {
+    console.log('   Removing deleted artz folder from live deployment...');
+    fs.rmSync(artzDestDir, { recursive: true, force: true });
   }
 
   // 4. Commit and Push

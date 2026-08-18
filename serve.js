@@ -3,7 +3,6 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = __dirname;
-const ARTZ_DIST = path.join(ROOT, 'artz', 'dist');
 const PORT = process.env.PORT || 8080;
 
 const MIME = {
@@ -34,21 +33,6 @@ const MIME = {
 function resolveRequest(req) {
   const requestUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
   const pathname = decodeURIComponent(requestUrl.pathname);
-
-  if (pathname === '/artz' || /^\/artz\/+$/u.test(pathname)) {
-    return {
-      fsPath: ARTZ_DIST,
-      redirect: `/artz/${requestUrl.search}`,
-    };
-  }
-
-  if (pathname.startsWith('/artz/')) {
-    const relativePath = pathname.slice('/artz/'.length).replace(/^\/+/, '');
-    return {
-      fsPath: safeJoin(ARTZ_DIST, relativePath),
-      redirect: null,
-    };
-  }
 
   return {
     fsPath: safeJoin(ROOT, pathname.slice(1)),
