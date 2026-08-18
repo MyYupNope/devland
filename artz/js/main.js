@@ -129,8 +129,8 @@ const CONFIG = {
     afterglowDuration: 0.2,
 
     // Mouse repulsion
-    mouseInfluence: 7.0,
-    repulsionStrength: 3.5,
+    mouseInfluence: 8.0,
+    repulsionStrength: 12.0,
 
     // Spring physics
     springK: 0.12,
@@ -150,29 +150,29 @@ const CONFIG = {
     // Themes
     themes: {
         ember: {
-            hot: [1.0, 0.0, 0.0],
-            warm: [1.0, 1.0, 0.0],
-            cold: [1.0, 1.0, 1.0]
+            hot: [1.0, 0.95, 0.75],   // White-hot flame core
+            warm: [1.0, 0.45, 0.05],  // Radiant fiery amber / orange
+            cold: [0.92, 0.18, 0.05]  // Rich glowing crimson ember
         },
         arctic: {
-            hot: [0.0, 0.4, 1.0],
-            warm: [0.2, 0.8, 1.0],
-            cold: [0.9, 0.95, 1.0]
+            hot: [0.92, 0.98, 1.0],   // Glacial white-cyan highlight
+            warm: [0.18, 0.75, 1.0],  // Vibrant azure cyan
+            cold: [0.05, 0.35, 0.88]  // Deep oceanic polar blue
         },
         toxic: {
-            hot: [0.1, 0.8, 0.1],
-            warm: [0.6, 1.0, 0.2],
-            cold: [0.7, 1.0, 0.8]
+            hot: [0.92, 1.0, 0.40],   // Electric chartreuse spark
+            warm: [0.35, 0.95, 0.15], // Radiant radioactive neon green
+            cold: [0.06, 0.58, 0.22]  // Deep venom emerald
         },
         neon: {
-            hot: [1.0, 0.0, 0.5],
-            warm: [0.6, 1.0, 0.1], // adjusted warm slightly
-            cold: [0.5, 0.9, 1.0]
+            hot: [1.0, 0.92, 0.98],   // Hyper-bright strobe highlight
+            warm: [1.0, 0.08, 0.55],  // Vivid neon magenta / hot pink
+            cold: [0.35, 0.05, 0.88]  // Electric ultraviolet violet
         },
         sakura: {
-            hot: [1.0, 0.2, 0.4],
-            warm: [1.0, 0.6, 0.7],
-            cold: [1.0, 1.0, 1.0]
+            hot: [1.0, 0.95, 0.96],   // Luminous blossom petal white
+            warm: [1.0, 0.45, 0.65],  // Soft cherry blossom pink
+            cold: [0.85, 0.18, 0.42]  // Deep floral rose magenta
         }
     },
 
@@ -248,7 +248,7 @@ const CONFIG = {
         EXPLODE: {
             expansionDuration: 1.2,
             driftDuration: 3.0,
-            contractionDuration: 1.8,
+            contractionDuration: 2.0,
             explosionMaxDistMultiplier: 36.0,
             motionStyle: 0, // uniform sphere
             trailStrength: 0.3,
@@ -259,13 +259,13 @@ const CONFIG = {
             },
             emberBudget: 140,
             soundPitch: 110,
-            soundDuration: 1.6,
+            soundDuration: 6.2,
             soundType: 'sine'
         },
         DEFAULT: {
             expansionDuration: 1.2,
             driftDuration: 3.0,
-            contractionDuration: 1.8,
+            contractionDuration: 2.0,
             explosionMaxDistMultiplier: 15.0,
             motionStyle: -1, // random per blast
             spokes: 12,
@@ -281,12 +281,6 @@ const CONFIG = {
             funnelFadeStart: 0,
             funnelFadeEnd: 0,
             gustCoherence: 0,
-            swayAmp: 0,
-            swayFreq: 0,
-            gustAmp: 0,
-            gustFreq: 0,
-            windDrift: 0,
-            turbulence: 0,
             trailStrength: 0.25,
             heat: {
                 cold: [0.1, 0.4, 1.0],
@@ -328,7 +322,7 @@ let gustPerpX = 0, gustPerpY = 1, gustPerpZ = 0;
 let activeGustX = 1, activeGustY = 0;
 
 // ─────────────────────────────────────────────
-// Shaders
+// Shaders (GPU-Native Kinematics Engine)
 // ─────────────────────────────────────────────
 const vertexShader = `
 uniform vec3 uMouse;
@@ -354,41 +348,311 @@ uniform float uAudioEnvelope;
 uniform float uEmojiMode;
 uniform float uEmojiMotionMix;
 
+// GPU Kinematics Uniforms
+uniform float uGpuPhysics;
+uniform int uMotionStyle;
+uniform float uExplosionElapsed;
+uniform float uExpDuration;
+uniform float uDriftDuration;
+uniform float uContractionDuration;
+uniform float uMaxDist;
+uniform float uSpinSpeed;
+uniform float uFunnelBottom;
+uniform float uFunnelHeight;
+uniform float uFunnelCrownRadius;
+uniform float uFunnelWaistRadius;
+uniform float uFunnelTailRadius;
+uniform float uFunnelWaistT;
+uniform float uFunnelCrownExp;
+uniform float uBreezeBlowDir;
+uniform float uBreezeIntensity;
+uniform vec3 uMouseWorld;
+uniform float uMousePushDistance;
+uniform float uMouseActive;
+
 attribute vec3 homePosition;
 attribute vec4 sourceColor;
 attribute float sampleSize;
 attribute float funnelT;
 attribute vec2 aSourceUV;
+attribute vec3 aRandomDir;
+attribute float aRandomSpeed;
+attribute float aIndex;
+attribute vec3 aSeed;
+attribute float aCustomDir;
 
 varying vec3 vColor;
 varying float vCoverage;
 varying float vTornadoFade;
 varying vec2 vSourceUV;
 
+float calcTornadoRadius(float u, float waistU, float rTail, float rWaist, float rCrown, float crownExp) {
+    if (u <= waistU) {
+        float t = u / max(0.01, waistU);
+        return rTail + (rWaist - rTail) * (t * t);
+    } else {
+        float t = (u - waistU) / max(0.01, 1.0 - waistU);
+        return rWaist + (rCrown - rWaist) * pow(t, crownExp);
+    }
+}
+
+vec3 evalTornadoGPU(float i, vec3 home, float u, vec3 seed, float cd, float elapsed, float spinSpeed, float fBottom, float fHeight, float rCrown, float rWaist, float rTail, float waistU, float crownExp) {
+    float radiusFunnel = calcTornadoRadius(u, waistU, rTail, rWaist, rCrown, crownExp);
+    float baseAngle = atan(seed.z, seed.x);
+    float r0 = length(home.xz);
+
+    float t1 = 3.5;
+    float t2 = 4.5;
+    float t3 = 3.5;
+    float t4 = 3.5;
+
+    float discRadius = 14.0 + 0.55 * r0;
+    float ripple1 = 0.12 * sin(3.0 * baseAngle - 4.2 * elapsed + 2.5 * u);
+    float ripple2 = 0.08 * cos(5.0 * baseAngle + 6.0 * elapsed - 3.8 * u);
+    float ripple3 = 0.06 * sin(elapsed * 7.5 + i * 0.03);
+    float sheathRipple = 1.0 + ripple1 + ripple2 + ripple3;
+
+    float diffSpin = (4.0 + 15.0 / (r0 + 4.5)) * cd;
+    float vortexSpin = (spinSpeed * 2.8 + 4.5 * (1.0 - u)) * cd;
+
+    if (elapsed < t1) {
+        float p1 = elapsed / t1;
+        float e1 = p1 * p1 * p1 * (p1 * (p1 * 6.0 - 15.0) + 10.0);
+        float rDisc = (1.0 - e1) * r0 + e1 * discRadius;
+        float angle1 = baseAngle + diffSpin * (0.6 * elapsed + 0.2 * (elapsed * elapsed / t1));
+        float rx = cos(angle1) * rDisc;
+        float ry = (1.0 - e1) * home.y + e1 * (fBottom + 0.022 * rDisc * rDisc + 3.0 * (u - 0.5));
+        float rz = sin(angle1) * rDisc;
+        return vec3(rx, ry, rz);
+    } else if (elapsed < t1 + t2) {
+        float tau = elapsed - t1;
+        float p2 = tau / t2;
+        float eLift = p2 * p2 * (3.0 - 2.0 * p2);
+        float angleAtEnd1 = baseAngle + diffSpin * (0.8 * t1);
+        float integral2 = tau + (0.6 * t2 / 3.14159265) * (1.0 - cos(3.14159265 * tau / t2));
+        float angle2 = angleAtEnd1 + vortexSpin * 1.25 * integral2;
+        float currentR = (1.0 - eLift) * discRadius + eLift * (radiusFunnel * sheathRipple);
+        float axisX = 2.8 * sin(1.8 * elapsed + 2.2 * u) * u * eLift;
+        float axisZ = 2.4 * cos(1.5 * elapsed + 1.8 * u) * u * eLift;
+        float rx = axisX + cos(angle2) * currentR;
+        float ry = (1.0 - eLift) * (fBottom + 0.022 * discRadius * discRadius) + eLift * (fBottom + fHeight * u) + 5.5 * sin(p2 * 3.14159265) * u;
+        float rz = axisZ + sin(angle2) * currentR;
+        return vec3(rx, ry, rz);
+    } else if (elapsed < t1 + t2 + t3) {
+        float tau3 = elapsed - (t1 + t2);
+        float p3 = tau3 / t3;
+        float bloom = 1.0 + 0.75 * sin(3.14159265 * p3) + 0.35 * p3;
+        float angleAtEnd1 = baseAngle + diffSpin * (0.8 * t1);
+        float integral2End = t2 + (1.2 * t2 / 3.14159265);
+        float angleAtEnd2 = angleAtEnd1 + vortexSpin * 1.25 * integral2End;
+        float integral3 = tau3 - (0.2 / 2.4) * (cos(2.4 * tau3) - 1.0);
+        float angle3 = angleAtEnd2 + vortexSpin * 1.1 * integral3;
+        float currentR3 = (radiusFunnel * sheathRipple) * bloom;
+        float axisX3 = 2.8 * sin(1.8 * (t1 + t2) + 2.2 * u) * u * (1.0 - 0.4 * p3);
+        float axisZ3 = 2.4 * cos(1.5 * (t1 + t2) + 1.8 * u) * u * (1.0 - 0.4 * p3);
+        float rx = axisX3 + cos(angle3) * currentR3;
+        float ry = fBottom + fHeight * u + (1.0 - p3) * 2.0 * u;
+        float rz = axisZ3 + sin(angle3) * currentR3;
+        return vec3(rx, ry, rz);
+    } else {
+        float tau4 = elapsed - (t1 + t2 + t3);
+        float p4 = min(1.0, tau4 / t4);
+        float angleAtEnd1 = baseAngle + diffSpin * (0.8 * t1);
+        float integral2End = t2 + (1.2 * t2 / 3.14159265);
+        float angleAtEnd2 = angleAtEnd1 + vortexSpin * 1.25 * integral2End;
+        float integral3End = t3 - (0.2 / 2.4) * (cos(2.4 * t3) - 1.0);
+        float angleAtEnd3 = angleAtEnd2 + vortexSpin * 1.1 * integral3End;
+        float integral4 = 0.85 * tau4 - 0.275 * (tau4 * tau4 / t4);
+        float angle4 = angleAtEnd3 + vortexSpin * 1.1 * integral4;
+        float reverseFunnelR = (radiusFunnel * sheathRipple) * (1.0 - p4) + discRadius * p4;
+        float reverseFunnelY = (fBottom + fHeight * u) * (1.0 - p4) + (fBottom + 0.022 * discRadius * discRadius + 3.0 * (u - 0.5)) * p4;
+        float revDiscX = cos(angle4) * reverseFunnelR;
+        float revDiscY = reverseFunnelY;
+        float revDiscZ = sin(angle4) * reverseFunnelR;
+        float returnProg = 0.35 * p4 + 0.65 * pow(p4, 2.2);
+        float rx = (1.0 - returnProg) * revDiscX + returnProg * home.x;
+        float ry = (1.0 - returnProg) * revDiscY + returnProg * home.y;
+        float rz = (1.0 - returnProg) * revDiscZ + returnProg * home.z;
+        return vec3(rx, ry, rz);
+    }
+}
+
+vec3 computeBreezePlumeGPU(float tWind, float curElapsed, float lambda, vec3 gPos, float gx, float intensity, float cd, float windSpeedMult, float buoyancy, float liftStart, float seedZ, float t2, float i) {
+    if (lambda > 0.82) {
+        float groundTumble = (tWind * 16.0 * windSpeedMult + 1.2 * sin(3.5 * curElapsed + i * 0.1)) * intensity;
+        float rx = gPos.x + gx * groundTumble;
+        float ry = gPos.y + 0.35 * abs(sin(7.0 * curElapsed + i * 0.25)) * intensity;
+        float rz = gPos.z + 1.2 * sin(2.5 * curElapsed + i * 0.15) * intensity;
+        return vec3(rx, ry, rz);
+    } else {
+        float p = tWind / t2;
+        float liftProg = min(1.0, max(0.0, (p - liftStart) / (1.0 - liftStart + 1e-4)));
+        float eLift = liftProg * liftProg * (3.0 - 2.0 * liftProg);
+
+        float aloftSpeed = 24.0 * windSpeedMult * (0.40 + 0.60 * buoyancy) * intensity;
+        float xStreamline = gx * (aloftSpeed * tWind);
+
+        float vortexPhase = 0.14 * (gPos.x * gx) - 2.8 * curElapsed + i * 0.08;
+        float vortexRadius = 4.0 * buoyancy * min(1.0, tWind / 1.2) * intensity;
+        float rollY = vortexRadius * sin(vortexPhase);
+        float rollX = gx * (vortexRadius * cos(vortexPhase));
+
+        float wisp1 = (4.5 * sin(0.15 * gPos.x - 2.2 * curElapsed + seedZ * 0.05) * cos(0.12 * gPos.z)) * intensity;
+        float wisp2 = (3.0 * sin(0.32 * gPos.x + 3.8 * curElapsed + i * 0.15) * sin(0.25 * (gPos.y + 11.0))) * intensity;
+        float flutterZ = ((5.5 * sin(0.25 * gPos.x - 4.2 * curElapsed + i * 0.18) + seedZ * 0.25) * (1.0 + tWind * 0.25)) * intensity;
+        float flutterY = (2.0 * cos(0.28 * gPos.x + 3.4 * curElapsed + i * 0.12)) * intensity;
+
+        float baseLift = (7.0 + 22.0 * buoyancy) * intensity;
+        float totalLift = max(0.0, baseLift + wisp1 + wisp2 + rollY + flutterY);
+
+        float rx = gPos.x + xStreamline + rollX + gx * (wisp1 * 0.6);
+        float ry = gPos.y + eLift * totalLift;
+        float rz = gPos.z + eLift * flutterZ;
+
+        return vec3(rx, ry, rz);
+    }
+}
+
+vec3 evalBreezeGPU(float i, vec3 home, float cd, float elapsed, float gx, float intensity) {
+    float t1 = 1.0;
+    float tPause = 2.0;
+    float t2 = 3.6;
+    float t3 = 3.6;
+    float t4 = 1.6;
+
+    float lambda = mod(i * 37.119, 100.0) / 100.0;
+    bool isClash = lambda < 0.22;
+    float seedX = mod(i * 19.417, 100.0) - 50.0;
+    float seedZ = mod(i * 29.831, 100.0) - 50.0;
+    float scatX = isClash ? seedX * 0.05 : 0.0;
+    float scatZ = isClash ? seedZ * 0.04 : 0.0;
+    float yGround = -11.0;
+
+    vec3 gPos = vec3(home.x + scatX, yGround + (home.y * 0.03), home.z + scatZ);
+    float windSpeedMult = 0.55 + (mod(i * 43.71, 100.0) / 100.0) * 0.90;
+    float buoyancy = 0.40 + (mod(i * 81.33, 100.0) / 100.0) * 1.10;
+    float liftStart = pow(mod(i * 61.19, 100.0) / 100.0, 1.4) * 0.60;
+
+    if (elapsed < t1) {
+        float p1 = elapsed / t1;
+        float eDrop = p1 * p1;
+        float pImpact = max(0.0, (p1 - 0.70) / 0.30);
+        float eImpact = pImpact * (2.0 - pImpact);
+        float recoil = (isClash ? 1.6 : 0.5) * sin(3.14159265 * pImpact) * (1.0 - pImpact);
+        return vec3(home.x + scatX * eImpact, (1.0 - eDrop) * home.y + eDrop * gPos.y + recoil, home.z + scatZ * eImpact);
+    } else if (elapsed < t1 + tPause) {
+        return gPos;
+    } else if (elapsed < t1 + tPause + t2) {
+        float tWind = elapsed - (t1 + tPause);
+        return computeBreezePlumeGPU(tWind, elapsed, lambda, gPos, gx, intensity, cd, windSpeedMult, buoyancy, liftStart, seedZ, t2, i);
+    } else if (elapsed < t1 + tPause + t2 + t3) {
+        float p3 = (elapsed - (t1 + tPause + t2)) / t3;
+        float smoothP3 = p3 * p3 * (3.0 - 2.0 * p3);
+        float tWindRev = t2 * (1.0 - smoothP3);
+        return computeBreezePlumeGPU(tWindRev, elapsed, lambda, gPos, gx, intensity, cd, windSpeedMult, buoyancy, liftStart, seedZ, t2, i);
+    } else {
+        float p4 = min(1.0, (elapsed - (t1 + tPause + t2 + t3)) / t4);
+        float eRise = p4 * p4 * (3.0 - 2.0 * p4);
+        return mix(gPos, home, eRise);
+    }
+}
+
+vec3 evalKineticGPU(vec3 home, float cd, float elapsed) {
+    float totalDur = 7.5;
+    float p = min(1.0, max(0.0, elapsed / totalDur));
+    float xPeel = -48.0 + 96.0 * p;
+    float dPeel = (home.x + 0.25 * home.y) - xPeel;
+    float tubeWidth = 9.2;
+    float env = exp(-(dPeel * dPeel) / (2.0 * tubeWidth * tubeWidth));
+
+    float timeEnv = sin(3.14159265 * p);
+    float waveEnv = env * (0.35 + 0.65 * timeEnv);
+
+    float theta = (3.14159265 * dPeel) / (2.0 * tubeWidth);
+    float cosT = cos(theta);
+    float sinT = sin(theta);
+    float waveHeight = 16.0;
+    float e2y = exp(clamp(2.0 * (home.y / 8.0), -10.0, 10.0));
+    float tanhVal = (e2y - 1.0) / (e2y + 1.0);
+    float lipBlend = 0.5 + 0.5 * tanhVal;
+    float baseWaveZ = waveHeight * (cosT - 0.30 * 2.0 * sinT * cosT);
+    float curlZ = 5.0 * lipBlend * max(0.0, cosT);
+    float curlY = -3.5 * lipBlend * max(0.0, sinT);
+
+    float deltaZ = waveEnv * (baseWaveZ + curlZ);
+    float deltaY = waveEnv * ((waveHeight * 0.14) * sinT + curlY);
+    float deltaX = -waveEnv * (waveHeight * 0.06) * sinT;
+
+    return vec3(home.x + deltaX, home.y + deltaY, home.z + deltaZ);
+}
+
+vec3 evalExplosionGPU(vec3 home, vec3 rDir, float rSpeed, float maxDist, float expDur, float driftDur, float contrDur, float elapsed) {
+    float tDrift = driftDur > 0.0 ? driftDur : 3.0;
+    float peakProg = (1.0 - 0.06081006) * 0.82 + 0.18;
+    float vLatest = (2.8 * 0.06081006 * 0.82 + 0.18) / max(0.1, expDur);
+    float driftPeakProg = peakProg + vLatest * tDrift * 0.78;
+    float dist = 0.0;
+    if (elapsed < expDur) {
+        float u = elapsed / expDur;
+        dist = ((1.0 - exp(-2.8 * u)) * 0.82 + 0.18 * u) * maxDist;
+    } else if (elapsed < expDur + tDrift) {
+        float dtDrift = elapsed - expDur;
+        float driftRatio = dtDrift / max(0.01, tDrift);
+        float prog = peakProg + vLatest * dtDrift * (1.0 - 0.22 * driftRatio);
+        dist = prog * maxDist;
+    } else {
+        float v = min(1.0, max(0.0, (elapsed - (expDur + tDrift)) / max(0.1, contrDur)));
+        float returnProg = max(0.0, 1.0 - pow(v, 2.4));
+        dist = driftPeakProg * returnProg * maxDist;
+    }
+    return home + rDir * (dist * rSpeed);
+}
+
 void main() {
-    // Smooth heatmap based on mouse proximity and dynamic colors (used while idle).
-    float r = clamp(distance(uMouse, position) / uMouseInfluence, 0.0, 1.0);
-    vec3 themeColor = (r < 0.5)
-        ? mix(uColorHot, uColorWarm, r * 2.0)
-        : mix(uColorWarm, uColorCold, (r - 0.5) * 2.0);
+    vec3 livePos = position;
+    if (uGpuPhysics > 0.5) {
+        livePos = homePosition;
+        if (uExplosionActive > 0.01 && uExplosionElapsed >= 0.0) {
+            if (uMotionStyle == 1) {
+                livePos = evalTornadoGPU(aIndex, homePosition, funnelT, aSeed, aCustomDir, uExplosionElapsed, uSpinSpeed, uFunnelBottom, uFunnelHeight, uFunnelCrownRadius, uFunnelWaistRadius, uFunnelTailRadius, uFunnelWaistT, uFunnelCrownExp);
+            } else if (uMotionStyle == 2) {
+                livePos = evalBreezeGPU(aIndex, homePosition, aCustomDir, uExplosionElapsed, uBreezeBlowDir, uBreezeIntensity);
+            } else if (uMotionStyle == 3) {
+                livePos = evalKineticGPU(homePosition, aCustomDir, uExplosionElapsed);
+            } else {
+                livePos = evalExplosionGPU(homePosition, aRandomDir, aRandomSpeed, uMaxDist, uExpDuration, uDriftDuration, uContractionDuration, uExplosionElapsed);
+            }
+        }
+        if (uMouseActive > 0.5) {
+            vec2 diff = livePos.xy - uMouseWorld.xy;
+            float d = length(diff);
+            if (d < uMouseInfluence && d > 0.001) {
+                float f = (1.0 - d / uMouseInfluence) * uMousePushDistance;
+                livePos.xy += (diff / d) * f;
+            }
+        }
+    }
+
+    // Smooth spatial gradient across the sculpture blended with mouse hover glow
+    float spatialGrad = clamp((livePos.y + 12.0) / 24.0 + 0.15 * sin(0.12 * livePos.x), 0.0, 1.0);
+    float mouseHeat = clamp(1.0 - distance(uMouse, livePos) / uMouseInfluence, 0.0, 1.0);
+    float tMix = clamp(mix(spatialGrad, 1.0, mouseHeat * 0.9), 0.0, 1.0);
+    vec3 themeColor = (tMix < 0.5)
+        ? mix(uColorCold, uColorWarm, tMix * 2.0)
+        : mix(uColorWarm, uColorHot, (tMix - 0.5) * 2.0);
 
     // Emoji mode keeps the sampled glyph color (eyes, tears, mouth, hearts stay
     // readable); text mode keeps the theme heatmap exactly as before.
     vec3 baseColor = mix(themeColor, sourceColor.rgb, uEmojiMode);
 
     // Movement heatmap: cooler (blue) near the particle's OWN initial position, hotter
-    // (red) the further it has been displaced, with yellow in between. Independent of
-    // screen/message center, zoom and rotation because homePosition is in the same
-    // local space as position. Uses a fixed blue-yellow-red palette for every preset.
-    float movement = length(position - homePosition);
+    // (red) the further it has been displaced, with yellow in between.
+    float movement = length(livePos - homePosition);
     float heat = smoothstep(0.05, uHeatDistance, movement);
     vec3 movementColor = (heat < 0.5)
         ? mix(uHeatCold, uHeatWarm, heat * 2.0)
         : mix(uHeatWarm, uHeatHot, (heat - 0.5) * 2.0);
 
-    // During an explosion every particle is colored by displacement. Emojis blend
-    // the motion palette into their source color (uEmojiMotionMix) instead of
-    // replacing it, so the glyph stays recognizable while the blast reads as heat.
     vec3 motionColor = mix(movementColor, sourceColor.rgb, uEmojiMode * uEmojiMotionMix);
     vColor = mix(baseColor, motionColor, uExplosionActive);
 
@@ -399,33 +663,25 @@ void main() {
 
     // Depth cue: nearer particles (positive z depth) read slightly larger and
     // brighter, so the face-on sculpture still reads volumetric under the
-    // orthographic projection. Emojis use a near-flat depth cue so small internal
-    // details keep a consistent size/brightness.
+    // orthographic projection.
     float depthCue = 1.0 + uDepthCue * homePosition.z;
     vColor *= depthCue;
 
     vCoverage = sourceColor.a;
     vSourceUV = aSourceUV;
 
-    // Safe fade for the funnel tail: clamped instead of smoothstep so equal uniform
-    // edges (non-Tornado presets) can never produce undefined values that poison alpha.
+    // Safe fade for the funnel tail.
     float funnelFade = clamp(
         (funnelT - uTornadoFadeStart) / max(uTornadoFadeEnd - uTornadoFadeStart, 1e-4),
         0.0, 1.0);
     vTornadoFade = mix(1.0, 0.14 + 0.86 * funnelFade, uTornadoActive);
 
-    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    vec4 mvPosition = modelViewMatrix * vec4(livePos, 1.0);
     gl_Position = projectionMatrix * mvPosition;
 
-    // Size attenuation - corrected for device pixel ratio. Under the orthographic
-    // projection mvPosition.z is constant, so the perspective divisor is replaced
-    // by the per-frame uPointScale uniform (same visual size at every zoom level).
-    // Each particle is sized by the source raster cell it represents, so interior
-    // cells (sampleSize 2) cover their grid and feature edges stay sharp (size 1).
+    // Size attenuation - corrected for device pixel ratio.
     float effectiveSampleSize = mix(sampleSize, 1.0, uEmojiMode);
     gl_PointSize = uPointSize * uPixelRatio * uPointScale * depthCue * effectiveSampleSize;
-    // Hotter (more displaced) particles grow slightly to emphasize the leading edge;
-    // high-frequency audio sparkle also nudges size up.
     gl_PointSize *= (1.0 + 0.5 * heat * uExplosionActive + 0.2 * uAudioHigh);
     gl_PointSize *= mix(1.0, 0.76 + 0.24 * funnelFade, uTornadoActive);
 }
@@ -467,9 +723,6 @@ void main() {
 }
 `;
 
-// Trail streaks: additive after-images that chase the live positions, so fast
-// particles leave coloured trails matching their displacement heat.
-// Secondary ember sparks that burst from the fastest particles at peak expansion.
 // ─────────────────────────────────────────────
 // State grouped into named objects
 // ─────────────────────────────────────────────
@@ -484,6 +737,8 @@ const state = {
     imageName: '',
     activePreset: null,  // Tracks which preset chip is currently selected
     activeEmoji: null,   // Set when an emoji is picked from the list; cleared by typing
+    audioEnabled: true,  // Controls procedural sound effects synthesis
+    gpuPhysics: !(typeof window !== 'undefined' && (new URLSearchParams(window.location.search).get('noworker') === '1' || new URLSearchParams(window.location.search).get('gpu') === '0')),
 
     // Dynamic per-explosion properties
     expansionDuration: CONFIG.presets.DEFAULT.expansionDuration,
@@ -517,13 +772,16 @@ const state = {
         funnelCrownT: CONFIG.presets.DEFAULT.funnelCrownT,
         funnelFadeStart: CONFIG.presets.DEFAULT.funnelFadeStart,
         funnelFadeEnd: CONFIG.presets.DEFAULT.funnelFadeEnd,
-        gustCoherence: CONFIG.presets.DEFAULT.gustCoherence,
-        swayAmp:      CONFIG.presets.DEFAULT.swayAmp,
-        swayFreq:     CONFIG.presets.DEFAULT.swayFreq,
-        gustAmp:      CONFIG.presets.DEFAULT.gustAmp,
-        gustFreq:     CONFIG.presets.DEFAULT.gustFreq,
-        windDrift:    CONFIG.presets.DEFAULT.windDrift,
-        turbulence:   CONFIG.presets.DEFAULT.turbulence
+        gustCoherence: 0,
+        trailStrength: 0.25,
+        heat: {
+            cold: [0.1, 0.4, 1.0],
+            warm: [1.0, 1.0, 0.1],
+            hot: [1.0, 0.1, 0.1]
+        },
+        soundPitch: 140,
+        soundDuration: 1.5,
+        soundType: 'sine'
     },
     heatCold: [0.1, 0.4, 1.0],
     heatWarm: [1.0, 1.0, 0.1],
@@ -603,19 +861,31 @@ const physics = {
     randomized: null,      // { dirs, style } echo of the active blast's generated directions
 };
 
-// Particle budget: full density with the worker, a reduced cap for the main-thread
+// Particle budget: full density with the worker or GPU, a reduced cap for the main-thread
 // CPU fallback so it stays within the frame budget on weaker machines.
 function currentParticleCap() {
-    return physicsWorker ? 30000 : 15000;
+    const isFallback = typeof window !== 'undefined' && (new URLSearchParams(window.location.search).get('noworker') === '1');
+    if (isFallback) return 15000;
+    return (physicsWorker || state.gpuPhysics) ? 30000 : 15000;
 }
 
-// Interaction / UI state
+// Interaction & Input State
 const interaction = {
-    keys: {},
-    mouseWorld: new Vector3(-1000, -1000, 0),
+    keys: {
+        ArrowUp: false,
+        ArrowDown: false,
+        ArrowLeft: false,
+        ArrowRight: false,
+        '+': false,
+        '-': false,
+        '=': false,
+        ' ': false
+    },
+    mouseWorld: new Vector3(),
     mouseLocal: new Vector3(),
     invMatrix: new Matrix4(),
-    clickCount: 0,
+    mousePos: { x: -1000, y: -1000, active: false },
+    mouseWorldPos: new Vector3(-1000, -1000, 0),
     lastClickTime: 0,
     lastPinchDist: null,
     lastMidpoint: new Vector2(),
@@ -647,7 +917,6 @@ const uniforms = {
     // Fixed motion-heat distance for every preset (red = 1/3 screen height at rest).
     uHeatDistance: { value: CONFIG.heatDistance },
     // Per-preset motion heatmap (cold = far, mid = mid, hot = leading edge).
-    // The active preset's palette is applied on selection via applyPresetPhysics().
     uHeatCold: { value: new Vector3(0.1, 0.4, 1.0) },
     uHeatWarm: { value: new Vector3(1.0, 1.0, 0.1) },
     uHeatHot: { value: new Vector3(1.0, 0.1, 0.1) },
@@ -663,11 +932,31 @@ const uniforms = {
     uEmojiMotionMix: { value: CONFIG.emojiMotionMix },
     // Approach C: source texture sampling (0 = disabled, 1 = full texture)
     uUseSourceTexture: { value: 0.0 },
-    uSourceTexture: { value: null }
+    uSourceTexture: { value: null },
+
+    // GPU-Native Kinematics Uniforms
+    uGpuPhysics: { value: 1.0 },
+    uMotionStyle: { value: 0 },
+    uExplosionElapsed: { value: -1.0 },
+    uExpDuration: { value: 2.0 },
+    uDriftDuration: { value: 3.0 },
+    uContractionDuration: { value: 2.0 },
+    uMaxDist: { value: 35.0 },
+    uSpinSpeed: { value: 5.2 },
+    uFunnelBottom: { value: -22.0 },
+    uFunnelHeight: { value: 46.0 },
+    uFunnelCrownRadius: { value: 22.0 },
+    uFunnelWaistRadius: { value: 3.5 },
+    uFunnelTailRadius: { value: 0.8 },
+    uFunnelWaistT: { value: 0.42 },
+    uFunnelCrownExp: { value: 1.4 },
+    uBreezeBlowDir: { value: 1.0 },
+    uBreezeIntensity: { value: 1.0 },
+    uMouseWorld: { value: new Vector3(-1000, -1000, 0) },
+    uMousePushDistance: { value: CONFIG.repulsionStrength },
+    uMouseActive: { value: 0.0 }
 };
 
-// ─────────────────────────────────────────────
-// Toast Message Notification (UX Toast UI)
 // ─────────────────────────────────────────────
 function showToast(message) {
     const toast = document.getElementById('toast');
@@ -744,6 +1033,13 @@ function updateAudioReactive() {
         uniforms.uAudioEnvelope.value = 0;
         return;
     }
+    // Optimization: Skip FFT byte copy when simulation is idle and audio has decayed
+    if (physics.explosionStartTime < 0 && uniforms.uAudioEnvelope.value < 0.005 && uniforms.uAudioMid.value < 0.005 && uniforms.uAudioHigh.value < 0.005) {
+        uniforms.uAudioMid.value = 0;
+        uniforms.uAudioHigh.value = 0;
+        uniforms.uAudioEnvelope.value = 0;
+        return;
+    }
     audioAnalyser.getByteFrequencyData(audioFreqData);
     const n = audioFreqData.length;
     const bass = computeAudioFreqBand(audioFreqData, 0.02, 0.25, n);
@@ -795,18 +1091,12 @@ const loadedFonts = new Set(['Outfit']);
 // Font Loading Optimization
 // ─────────────────────────────────────────────
 async function ensureFontLoaded(fontFamily) {
-    if (loadedFonts.has(fontFamily)) return;
-    const fontUrls = {
-        'Fira Code': 'https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap',
-        'Pacifico': 'https://fonts.googleapis.com/css2?family=Pacifico&display=swap',
-        'Playfair Display': 'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap'
-    };
-    if (fontUrls[fontFamily]) {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = fontUrls[fontFamily];
-        document.head.appendChild(link);
-        loadedFonts.add(fontFamily);
+    if (!fontFamily) return;
+    const fontSpec = `bold ${CONFIG.fontSize}px "${fontFamily}"`;
+    try {
+        await document.fonts.load(fontSpec);
+    } catch (err) {
+        console.warn(`Font load note for "${fontFamily}":`, err);
     }
 }
 
@@ -1454,7 +1744,7 @@ async function setupParticles(text, shouldScatter = false) {
         ? new BufferGeometry()
         : render.particles.geometry;
 
-const posAttr = new BufferAttribute(physics.posLive, 3);
+    const posAttr = new BufferAttribute(physics.posLive, 3);
     posAttr.setUsage(DynamicDrawUsage);
     geo.setAttribute('position', posAttr);
     // Per-particle rest/glyph positions, used by the shader to color by displacement.
@@ -1466,6 +1756,26 @@ const posAttr = new BufferAttribute(physics.posLive, 3);
     geo.setAttribute('funnelT', new BufferAttribute(physics.funnelT, 1));
     // Approach C: UV attribute for source texture sampling.
     geo.setAttribute('aSourceUV', new BufferAttribute(srcUVArr, 2));
+
+    // Populate initial random vectors
+    randomizeExplosionVectors();
+
+    // GPU-Native Kinematics Attributes
+    const aIndexArr = new Float32Array(finalCount);
+    const aSeedArr = new Float32Array(finalCount * 3);
+    const aCustomDirArr = new Float32Array(finalCount);
+    for (let i = 0; i < finalCount; i++) {
+        aIndexArr[i] = i;
+        aSeedArr[i * 3] = physics.funnelRadialX[i];
+        aSeedArr[i * 3 + 1] = 0;
+        aSeedArr[i * 3 + 2] = physics.funnelRadialZ[i];
+        aCustomDirArr[i] = (i % 2 === 0) ? 1.0 : -1.0;
+    }
+    geo.setAttribute('aRandomDir', new BufferAttribute(new Float32Array(physics.randomDir), 3));
+    geo.setAttribute('aRandomSpeed', new BufferAttribute(new Float32Array(physics.randomSpeed), 1));
+    geo.setAttribute('aIndex', new BufferAttribute(aIndexArr, 1));
+    geo.setAttribute('aSeed', new BufferAttribute(aSeedArr, 3));
+    geo.setAttribute('aCustomDir', new BufferAttribute(aCustomDirArr, 1));
 
     if (isFirstBuild) {
         const mat = new ShaderMaterial({
@@ -1761,9 +2071,33 @@ function randomizeExplosionVectors() {
         ? state.motionStyle
         : Math.floor(Math.random() * 4);
 
-    // Procedural randomized 3D silk wave landscape configuration for Breeze (style 2)
+    // Procedural randomized Tornado configuration (style 1)
+    if (style === 1) {
+        const spinDirection = Math.random() < 0.5 ? 1.0 : -1.0;
+        const spinSpeed = (3.8 + Math.random() * 2.8) * spinDirection; // 3.8 - 6.6 rad/s clockwise or counter-clockwise
+        const funnelHeight = 38.0 + Math.random() * 16.0;              // 38 - 54 height
+        const funnelCrownRadius = 18.0 + Math.random() * 12.0;         // 18 - 30 top canopy spread
+        const funnelWaistRadius = 2.4 + Math.random() * 2.8;          // 2.4 - 5.2 vortex eye constriction
+        const funnelTailRadius = 0.8 + Math.random() * 1.6;           // 0.8 - 2.4 ground touchdown base
+        const funnelWaistT = 0.32 + Math.random() * 0.16;             // 0.32 - 0.48 waist vertical ratio
+        const funnelCrownExp = 1.15 + Math.random() * 0.65;           // 1.15 - 1.80 canopy curvature profile
+
+        state.pattern = {
+            ...state.pattern,
+            spinSpeed,
+            funnelHeight,
+            funnelCrownRadius,
+            funnelWaistRadius,
+            funnelTailRadius,
+            funnelWaistT,
+            funnelCrownExp
+        };
+    }
+
+    // Procedural randomized 3D breeze configuration (style 2)
     const blowFromLeft = Math.random() < 0.5;
     const dirX = blowFromLeft ? 1.0 : -1.0;
+    const breezeIntensity = 0.55 + Math.random() * 0.90; // Random intensity (0.55x gentle whisper to 1.45x strong gale)
     let gx = dirX;
     let gy = (Math.random() - 0.5) * 0.08;
     let gz = (Math.random() - 0.5) * 0.05;
@@ -1774,14 +2108,15 @@ function randomizeExplosionVectors() {
 
     activeBreezeConfig = {
         blowDir: dirX,
+        intensity: breezeIntensity,
         windAngleY: (Math.random() - 0.5) * 0.22,
         windAngleZ: (Math.random() - 0.5) * 0.12,
-        strengthMult: 0.58 + Math.random() * 0.44, // Randomized gentle strength per activation (0.58 - 1.02)
-        easePower: 1.45 + Math.random() * 0.40,    // Soft non-linear onset curve
+        strengthMult: breezeIntensity,
+        easePower: 1.45 + Math.random() * 0.40,
         seedXi: Math.random() * 100.0,
         peakX: (Math.random() - 0.5) * 22.0,
         peakY: 3.5 + Math.random() * 5.0,
-        peakAmp: 16.0 + Math.random() * 7.0,
+        peakAmp: (16.0 + Math.random() * 7.0) * breezeIntensity,
         peakWidthX: 0.065 + Math.random() * 0.025,
         peakWidthY: 0.11 + Math.random() * 0.035,
         creaseY: -(3.5 + Math.random() * 4.0),
@@ -1826,8 +2161,7 @@ function randomizeExplosionVectors() {
             rz = tz * spinSign + (Math.random() - 0.5) * 0.15;
         } else if (style === 2) {
             // Traveling horizontal wind gust: strictly Left-to-Right or Right-to-Left
-            const dirSign = Math.random() < 0.5 ? 1 : -1;
-            gx = dirSign;
+            gx = dirX;
             gy = (Math.random() - 0.5) * 0.04;
             gz = (Math.random() - 0.5) * 0.04;
             const gLen = Math.hypot(gx, gy, gz) || 1;
@@ -1885,6 +2219,20 @@ function randomizeExplosionVectors() {
         style
     };
     physics.activeStyle = style;
+
+    // Upload randomized directions and speeds to GPU attribute buffers
+    if (render.particles && render.particles.geometry) {
+        const attrDir = render.particles.geometry.attributes.aRandomDir;
+        if (attrDir && attrDir.array && attrDir.array.length === physics.randomDir.length) {
+            attrDir.copyArray(physics.randomDir);
+            attrDir.needsUpdate = true;
+        }
+        const attrSpd = render.particles.geometry.attributes.aRandomSpeed;
+        if (attrSpd && attrSpd.array && attrSpd.array.length === physics.randomSpeed.length) {
+            attrSpd.copyArray(physics.randomSpeed);
+            attrSpd.needsUpdate = true;
+        }
+    }
 }
 
 function captureExplosionOrigin() {
@@ -1938,15 +2286,14 @@ function triggerExplosion(force = false) {
     state.activeMaxDist = state.explosionMaxDistMultiplier * (0.8 + Math.random() * 0.4);
     state.activeExpansionDuration = state.expansionDuration * (0.85 + Math.random() * 0.3);
 
-    // Initial recovery estimate (replaced at peak by the measured travel radius).
-    state.activeContractionDuration = Math.max(
-        state.activeMaxDist / CONFIG.maxContractionVelocity,
-        CONFIG.contractionDurationFloor
-    );
+    // Initial recovery estimate
+    state.activeContractionDuration = state.contractionDuration || 4.0;
 
     const estimatedRecovery = state.activeContractionDuration;
 
-    if (physicsWorker) {
+    if (state.gpuPhysics) {
+        randomizeExplosionVectors();
+    } else if (physicsWorker) {
         // Re-randomize particle trajectory vectors/speeds inside the worker, so the
         // 30k-particle trig loop never hitches the main thread at blast time.
         physicsWorker.postMessage({
@@ -1970,7 +2317,9 @@ function triggerExplosion(force = false) {
     if (state.motionStyle === 0 || state.motionStyle === -1) {
         flashImpact();
     }
-    playExplosionSound(state, estimatedRecovery);
+    if (state.audioEnabled) {
+        playExplosionSound(state, estimatedRecovery);
+    }
     announceToScreenReader(`Explosion triggered for "${state.currentText}"`);
 }
 
@@ -2033,9 +2382,11 @@ function applyPresetPhysics(preset) {
         turbulence:   (preset.turbulence != null)   ? preset.turbulence   : 0
     };
 
-    state.heatCold = preset.heat ? preset.heat.cold : [0.1, 0.4, 1.0];
-    state.heatWarm = preset.heat ? preset.heat.warm : [1.0, 1.0, 0.1];
-    state.heatHot  = preset.heat ? preset.heat.hot  : [1.0, 0.1, 0.1];
+    // Always preserve and apply the user's selected theme colors during animations
+    const currentThemeObj = CONFIG.themes[state.currentTheme] || CONFIG.themes.ember;
+    state.heatCold = currentThemeObj.cold;
+    state.heatWarm = currentThemeObj.warm;
+    state.heatHot  = currentThemeObj.hot;
 
     uniforms.uHeatCold.value.set(...state.heatCold);
     uniforms.uHeatWarm.value.set(...state.heatWarm);
@@ -2065,9 +2416,12 @@ function applyActiveOrRandomPreset() {
 function selectTheme(themeName, shouldPush = true) {
     const theme = CONFIG.themes[themeName] || CONFIG.themes.ember;
     state.currentTheme = themeName;
-    uniforms.uColorHot.value.set(theme.hot[0], theme.hot[1], theme.hot[2]);
-    uniforms.uColorWarm.value.set(theme.warm[0], theme.warm[1], theme.warm[2]);
-    uniforms.uColorCold.value.set(theme.cold[0], theme.cold[1], theme.cold[2]);
+    uniforms.uColorHot.value.set(...theme.hot);
+    uniforms.uColorWarm.value.set(...theme.warm);
+    uniforms.uColorCold.value.set(...theme.cold);
+    uniforms.uHeatHot.value.set(...theme.hot);
+    uniforms.uHeatWarm.value.set(...theme.warm);
+    uniforms.uHeatCold.value.set(...theme.cold);
 
     const themeSelect = document.getElementById('theme-select');
     if (themeSelect) themeSelect.value = themeName;
@@ -2081,6 +2435,16 @@ async function selectFont(fontName, shouldPush = true, shouldScatter = false) {
     const fontSelect = document.getElementById('font-select');
     if (fontSelect) fontSelect.value = fontName;
 
+    if (state.messageMode !== 'text') {
+        state.messageMode = 'text';
+        setMessageModeUI('text');
+    }
+    if (state.activeEmoji) {
+        state.activeEmoji = null;
+        setEmojiActive(null);
+    }
+
+    await ensureFontLoaded(fontName);
     await setupParticles(state.currentText, shouldScatter);
     updateURLParams(state.currentText, state.currentTheme, state.currentFont, shouldPush);
     announceToScreenReader(`Font changed to ${fontName}`);
@@ -2443,6 +2807,61 @@ function setupUI() {
         });
     }
 
+    // 1-Click Share functionality: serialize current state into URL and copy to clipboard
+    const shareBtn = document.getElementById('share-btn');
+    if (shareBtn) {
+        shareBtn.addEventListener('click', async () => {
+            try {
+                const params = new URLSearchParams();
+                if (state.activeEmoji) {
+                    params.set('t', state.activeEmoji);
+                } else if (state.messageMode === 'text' && state.currentText) {
+                    params.set('t', state.currentText);
+                }
+                if (state.currentTheme && state.currentTheme !== 'ember') {
+                    params.set('theme', state.currentTheme);
+                }
+                if (state.currentFont && state.currentFont !== 'Outfit') {
+                    params.set('font', state.currentFont);
+                }
+                if (state.activePreset) {
+                    params.set('preset', state.activePreset);
+                }
+                const queryString = params.toString();
+                const shareUrl = `${window.location.origin}${window.location.pathname}${queryString ? '?' + queryString : ''}`;
+                
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(shareUrl);
+                } else {
+                    const tempInput = document.createElement('input');
+                    tempInput.value = shareUrl;
+                    document.body.appendChild(tempInput);
+                    tempInput.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(tempInput);
+                }
+                showToast('🔗 Shareable link copied to clipboard!');
+            } catch (err) {
+                showToast('Could not copy link');
+            }
+        });
+    }
+
+    // Audio/SFX Mute & Volume toggle
+    const audioBtn = document.getElementById('audio-btn');
+    const audioIcon = document.getElementById('audio-icon');
+    if (audioBtn) {
+        audioBtn.addEventListener('click', () => {
+            state.audioEnabled = !state.audioEnabled;
+            audioBtn.setAttribute('aria-pressed', state.audioEnabled.toString());
+            audioBtn.title = state.audioEnabled ? 'Toggle Sound (Mute/Unmute)' : 'Sound: MUTED (Click to unmute)';
+            if (audioIcon) {
+                audioIcon.textContent = state.audioEnabled ? '🔊' : '🔇';
+            }
+            showToast(state.audioEnabled ? '🔊 Sound effects enabled' : '🔇 Sound effects muted');
+        });
+    }
+
     // Presets Row
     const chips = document.querySelectorAll('.preset-chip');
     chips.forEach(chip => {
@@ -2547,10 +2966,22 @@ function animate() {
 
     // Keyboard rotation & controls
     if (particles) {
-        if (keys.ArrowUp)    particles.rotation.x -= CONFIG.rotationStep;
-        if (keys.ArrowDown)  particles.rotation.x += CONFIG.rotationStep;
-        if (keys.ArrowLeft)  particles.rotation.y -= CONFIG.rotationStep;
-        if (keys.ArrowRight) particles.rotation.y += CONFIG.rotationStep;
+        if (keys.ArrowUp) {
+            particles.rotation.x -= CONFIG.rotationStep;
+            interaction.lastGestureEndTime = performance.now();
+        }
+        if (keys.ArrowDown) {
+            particles.rotation.x += CONFIG.rotationStep;
+            interaction.lastGestureEndTime = performance.now();
+        }
+        if (keys.ArrowLeft) {
+            particles.rotation.y -= CONFIG.rotationStep;
+            interaction.lastGestureEndTime = performance.now();
+        }
+        if (keys.ArrowRight) {
+            particles.rotation.y += CONFIG.rotationStep;
+            interaction.lastGestureEndTime = performance.now();
+        }
 
         const isKeyRotating = keys.ArrowUp || keys.ArrowDown || keys.ArrowLeft || keys.ArrowRight;
         const gestureGraceActive = (performance.now() - lastGestureEndTime) < CONFIG.autoReturnGracePeriodMs;
@@ -2572,6 +3003,9 @@ function animate() {
     }
     render.targetZ = MathUtils.clamp(render.targetZ, CONFIG.zoomMin, CONFIG.zoomMax);
     camera.position.z = MathUtils.lerp(camera.position.z, render.targetZ, CONFIG.zoomLerp);
+    if (Math.abs(camera.position.z - render.targetZ) < 0.005) {
+        camera.position.z = render.targetZ;
+    }
 
     // Orthographic framing: keep the exact view scale the perspective camera had by
     // deriving the frustum height from the camera depth. This eliminates the
@@ -2673,20 +3107,14 @@ function animate() {
         } else {
             // At peak, lock the contraction duration to the ACTUAL distance travelled
             // so recovery genuinely reflects how far particles flew.
-            if (activeStyle === 0 || activeStyle === 3 || activeStyle === -1) {
+            if (activeStyle === 0 || activeStyle === -1) {
                 const tDrift = 3.0;
                 if (elapsed >= (activeExpDuration + tDrift) && !state.travelApplied) {
-                    const travel = state.actualTravelRadius;
-                    const baseContr = state.contractionDuration || 2.0;
-                    state.activeContractionDuration = Math.min(
-                        baseContr * 1.25,
-                        Math.max(
-                            travel / CONFIG.maxContractionVelocity,
-                            CONFIG.contractionDurationFloor
-                        )
-                    );
+                    state.activeContractionDuration = state.contractionDuration || 2.0;
                     state.travelApplied = true;
-                    scheduleContractionRumble(state.activeContractionDuration);
+                    if (state.audioEnabled) {
+                        scheduleContractionRumble(state.activeContractionDuration);
+                    }
                 }
             }
             // Spawn embers once, at peak, from the expanded particle field.
@@ -2733,139 +3161,149 @@ function animate() {
                 render.trailPoints.rotation.x = targetRotX;
                 render.trailPoints.rotation.y = targetRotY;
             }
-        } else if (physics.explosionStartTime < 0 && render.particles.rotation.x !== 0) {
-            render.particles.rotation.x *= 0.92;
-            render.particles.rotation.y *= 0.92;
-            if (Math.abs(render.particles.rotation.x) < 0.001) render.particles.rotation.x = 0;
-            if (Math.abs(render.particles.rotation.y) < 0.001) render.particles.rotation.y = 0;
-            if (render.trailPoints) {
-                render.trailPoints.rotation.x = render.particles.rotation.x;
-                render.trailPoints.rotation.y = render.particles.rotation.y;
-            }
         }
     }
 
-    // Offload dense spring calculation loop to Web Worker (with CPU Fallback).
-    // Double-buffered dispatch: send any free slot (no busy-wait), so a momentarily
-    // slow worker never drops or freezes the simulation — it simply falls a frame
-    // behind while the main thread renders the most recent completed result.
-    if (physicsWorker) {
-        let slot = null;
-        for (const s of physics.slots) {
-            if (!s.inFlight) { slot = s; break; }
-        }
-        if (slot) {
-            if (slot.needsReset) {
-                slot.posLive.set(physics.explosionOrigin);
-                slot.springDisp.fill(0);
-                slot.springVel.fill(0);
-                slot.needsReset = false;
-            }
-            slot.inFlight = true;
-            slot.seq = physics.seq++;
-            physics.sendQueue.push(slot);
-            physicsWorker.postMessage({
-                type: 'update',
-                data: {
-                    posLive: slot.posLive,
-                    springDisp: slot.springDisp,
-                    springVel: slot.springVel,
-                    count, dt, elapsed,
-                    mouseLocal: { x: ml.x, y: ml.y, z: ml.z },
-                    kFrame, dampFrame,
-                    expansionDuration: activeExpDuration,
-                    driftDuration: (activeStyle === 0 || activeStyle === 3 || activeStyle === -1) ? 3.0 : 0.0,
-                    contractionDuration: activeContrDuration,
-                    explosionMaxDistMultiplier: activeMaxDistMult,
-                    mouseInfluence,
-                    repulsionStr,
-                    breeze: activeBreezeConfig,
-                    sourceGeneration: physics.sourceGeneration,
-                    motionToken: physics.motionToken
-                },
-                seq: slot.seq
-            }, [slot.posLive.buffer, slot.springDisp.buffer, slot.springVel.buffer]);
-        }
+    // GPU-Native Kinematics vs CPU Fallback
+    const isExploding = (physics.explosionStartTime >= 0);
+    if (state.gpuPhysics && isExploding) {
+        uniforms.uGpuPhysics.value = 1.0;
+        uniforms.uMotionStyle.value = (activeStyle >= 0) ? activeStyle : 0;
+        uniforms.uExplosionElapsed.value = (physics.explosionStartTime >= 0) ? elapsed : -1.0;
+        uniforms.uExpDuration.value = activeExpDuration;
+        uniforms.uDriftDuration.value = (activeStyle === 0 || activeStyle === -1) ? 3.0 : 0.0;
+        uniforms.uContractionDuration.value = activeContrDuration;
+        uniforms.uMaxDist.value = activeMaxDistMult;
+        uniforms.uSpinSpeed.value = (state.pattern && state.pattern.spinSpeed) || 5.2;
+        uniforms.uFunnelBottom.value = (state.pattern && state.pattern.funnelBottom) || -22.0;
+        uniforms.uFunnelHeight.value = (state.pattern && state.pattern.funnelHeight) || 46.0;
+        uniforms.uFunnelCrownRadius.value = (state.pattern && state.pattern.funnelCrownRadius) || 22.0;
+        uniforms.uFunnelWaistRadius.value = (state.pattern && state.pattern.funnelWaistRadius) || 3.5;
+        uniforms.uFunnelTailRadius.value = (state.pattern && state.pattern.funnelTailRadius) || 0.8;
+        uniforms.uFunnelWaistT.value = (state.pattern && state.pattern.funnelWaistT) || 0.42;
+        uniforms.uFunnelCrownExp.value = (state.pattern && state.pattern.funnelCrownExp) || 1.4;
+        uniforms.uBreezeBlowDir.value = (activeBreezeConfig && activeBreezeConfig.blowDir) || 1.0;
+        uniforms.uBreezeIntensity.value = (activeBreezeConfig && activeBreezeConfig.intensity) || 1.0;
+        uniforms.uMouseWorld.value.copy(interaction.mouseLocal);
+        uniforms.uMousePushDistance.value = CONFIG.repulsionStrength;
+        uniforms.uMouseInfluence.value = CONFIG.mouseInfluence;
+        uniforms.uMouseActive.value = (interaction.mouseWorld.x > -900) ? 1.0 : 0.0;
     } else {
-        // Local CPU Fallback (Main Thread)
-        const pat = state.pattern;
-        const _fallbackRes = { x: 0, y: 0, z: 0 };
-        const isTornado = activeStyle === 1
-            && pat.funnelHeight
-            && funnelT
-            && funnelRadialX
-            && funnelRadialZ;
+        uniforms.uGpuPhysics.value = 0.0;
 
-        const origin = explosionOrigin || posHome;
-        const tDrift = (activeStyle === 0 || activeStyle === 3 || activeStyle === -1) ? 3.0 : 0.0;
-
-        for (let i = 0; i < count; i++) {
-            const ix = i * 3, iy = ix + 1, iz = ix + 2;
-            let bx, by, bz;
-
-            if (elapsed >= 0.0) {
-                if (activeStyle === 1 && isTornado) {
-                    evaluateTornadoParticle(
-                        i, posHome[ix], posHome[iy], posHome[iz],
-                        funnelT[i], funnelRadialX[i], funnelRadialZ[i],
-                        (randomSpeed ? randomSpeed[i] : 1.0) * 0.35 + 0.85,
-                        elapsed, pat, _fallbackRes
-                    );
-                    bx = _fallbackRes.x; by = _fallbackRes.y; bz = _fallbackRes.z;
-                } else if (activeStyle === 2) {
-                    evaluateBreezeParticle(
-                        i, posHome[ix], posHome[iy], posHome[iz],
-                        (randomSpeed ? randomSpeed[i] : 1.0) * 0.35 + 0.85,
-                        elapsed, activeBreezeConfig, _fallbackRes
-                    );
-                    bx = _fallbackRes.x; by = _fallbackRes.y; bz = _fallbackRes.z;
-                } else if (activeStyle === 3) {
-                    evaluateKineticParticle(
-                        i, posHome[ix], posHome[iy], posHome[iz],
-                        (randomSpeed ? randomSpeed[i] : 1.0) * 0.35 + 0.85,
-                        elapsed, pat, _fallbackRes
-                    );
-                    bx = _fallbackRes.x; by = _fallbackRes.y; bz = _fallbackRes.z;
-                } else {
-                    const maxDist = randomSpeed[i] * activeMaxDistMult;
-                    evaluateExplosionParticle(
-                        origin[ix], origin[iy], origin[iz],
-                        randomDir[ix], randomDir[iy], randomDir[iz],
-                        maxDist, activeExpDuration, tDrift, activeContrDuration, elapsed, _fallbackRes
-                    );
-                    bx = _fallbackRes.x; by = _fallbackRes.y; bz = _fallbackRes.z;
+        // Offload dense spring calculation loop to Web Worker (with CPU Fallback).
+        // Double-buffered dispatch: send any free slot (no busy-wait), so a momentarily
+        // slow worker never drops or freezes the simulation — it simply falls a frame
+        // behind while the main thread renders the most recent completed result.
+        if (physicsWorker) {
+            let slot = null;
+            for (const s of physics.slots) {
+                if (!s.inFlight) { slot = s; break; }
+            }
+            if (slot) {
+                if (slot.needsReset) {
+                    slot.posLive.set(physics.explosionOrigin);
+                    slot.springDisp.fill(0);
+                    slot.springVel.fill(0);
+                    slot.needsReset = false;
                 }
-            } else {
-                bx = posHome[ix];
-                by = posHome[iy];
-                bz = posHome[iz];
+                slot.inFlight = true;
+                slot.seq = physics.seq++;
+                physics.sendQueue.push(slot);
+                physicsWorker.postMessage({
+                    type: 'update',
+                    data: {
+                        posLive: slot.posLive,
+                        springDisp: slot.springDisp,
+                        springVel: slot.springVel,
+                        count, dt, elapsed,
+                        mouseLocal: { x: ml.x, y: ml.y, z: ml.z },
+                        kFrame, dampFrame,
+                        expansionDuration: activeExpDuration,
+                        driftDuration: (activeStyle === 0 || activeStyle === 3 || activeStyle === -1) ? 3.0 : 0.0,
+                        contractionDuration: activeContrDuration,
+                        explosionMaxDistMultiplier: activeMaxDistMult,
+                        mouseInfluence,
+                        repulsionStr,
+                        breeze: activeBreezeConfig,
+                        sourceGeneration: physics.sourceGeneration,
+                        motionToken: physics.motionToken
+                    },
+                    seq: slot.seq
+                }, [slot.posLive.buffer, slot.springDisp.buffer, slot.springVel.buffer]);
             }
+        } else {
+            // Local CPU Fallback (Main Thread)
+            const pat = state.pattern;
+            const _fallbackRes = { x: 0, y: 0, z: 0 };
+            const isTornado = activeStyle === 1
+                && pat.funnelHeight
+                && funnelT
+                && funnelRadialX
+                && funnelRadialZ;
 
-            const cur_x = pos[ix], cur_y = pos[iy], cur_z = pos[iz];
-            const ddx = cur_x - ml.x;
-            const ddy = cur_y - ml.y;
-            const ddz = cur_z - ml.z;
-            const d2 = ddx * ddx + ddy * ddy + ddz * ddz;
+            const origin = explosionOrigin || posHome;
+            const tDrift = (activeStyle === 0 || activeStyle === 3 || activeStyle === -1) ? 3.0 : 0.0;
 
-            let tdx = 0, tdy = 0, tdz = 0;
-            if (d2 < mouseInfluence2 && d2 > 0.00001) {
-                const d    = Math.sqrt(d2);
-                const invD = 1.0 / d;
-                const force = (mouseInfluence - d) / mouseInfluence;
-                const push  = repulsionStr * force;
-                tdx = ddx * invD * push;
-                tdy = ddy * invD * push;
-                tdz = ddz * invD * push;
-            }
+            for (let i = 0; i < count; i++) {
+                const ix = i * 3, iy = ix + 1, iz = ix + 2;
+                let bx, by, bz;
 
-            if (elapsed < 0 && d2 >= mouseInfluence2) {
-                springVel[ix] = 0;
-                springVel[iy] = 0;
-                springVel[iz] = 0;
-                springDisp[ix] = 0;
-                springDisp[iy] = 0;
-                springDisp[iz] = 0;
-            } else {
+                if (elapsed >= 0.0) {
+                    if (activeStyle === 1 && isTornado) {
+                        evaluateTornadoParticle(
+                            i, posHome[ix], posHome[iy], posHome[iz],
+                            funnelT[i], funnelRadialX[i], funnelRadialZ[i],
+                            (randomSpeed ? randomSpeed[i] : 1.0) * 0.35 + 0.85,
+                            elapsed, pat, _fallbackRes
+                        );
+                        bx = _fallbackRes.x; by = _fallbackRes.y; bz = _fallbackRes.z;
+                    } else if (activeStyle === 2) {
+                        evaluateBreezeParticle(
+                            i, posHome[ix], posHome[iy], posHome[iz],
+                            (randomSpeed ? randomSpeed[i] : 1.0) * 0.35 + 0.85,
+                            elapsed, activeBreezeConfig, _fallbackRes
+                        );
+                        bx = _fallbackRes.x; by = _fallbackRes.y; bz = _fallbackRes.z;
+                    } else if (activeStyle === 3) {
+                        evaluateKineticParticle(
+                            i, posHome[ix], posHome[iy], posHome[iz],
+                            (randomSpeed ? randomSpeed[i] : 1.0) * 0.35 + 0.85,
+                            elapsed, pat, _fallbackRes
+                        );
+                        bx = _fallbackRes.x; by = _fallbackRes.y; bz = _fallbackRes.z;
+                    } else {
+                        const maxDist = randomSpeed[i] * activeMaxDistMult;
+                        evaluateExplosionParticle(
+                            origin[ix], origin[iy], origin[iz],
+                            randomDir[ix], randomDir[iy], randomDir[iz],
+                            maxDist, activeExpDuration, tDrift, activeContrDuration, elapsed, _fallbackRes
+                        );
+                        bx = _fallbackRes.x; by = _fallbackRes.y; bz = _fallbackRes.z;
+                    }
+                } else {
+                    bx = posHome[ix];
+                    by = posHome[iy];
+                    bz = posHome[iz];
+                }
+
+                const cur_x = pos[ix], cur_y = pos[iy], cur_z = pos[iz];
+                const ddx = cur_x - ml.x;
+                const ddy = cur_y - ml.y;
+                const ddz = cur_z - ml.z;
+                const d2 = ddx * ddx + ddy * ddy + ddz * ddz;
+
+                let tdx = 0, tdy = 0, tdz = 0;
+                if (d2 < mouseInfluence2 && d2 > 0.00001) {
+                    const d    = Math.sqrt(d2);
+                    const invD = 1.0 / d;
+                    const force = (mouseInfluence - d) / mouseInfluence;
+                    const push  = repulsionStr * force;
+                    tdx = ddx * invD * push;
+                    tdy = ddy * invD * push;
+                    tdz = ddz * invD * push;
+                }
+
                 springVel[ix] = (springVel[ix] + (tdx - springDisp[ix]) * kFrame) * dampFrame;
                 springVel[iy] = (springVel[iy] + (tdy - springDisp[iy]) * kFrame) * dampFrame;
                 springVel[iz] = (springVel[iz] + (tdz - springDisp[iz]) * kFrame) * dampFrame;
@@ -2873,23 +3311,23 @@ function animate() {
                 springDisp[ix] += springVel[ix];
                 springDisp[iy] += springVel[iy];
                 springDisp[iz] += springVel[iz];
-            }
 
-            pos[ix] = bx + springDisp[ix];
-            pos[iy] = by + springDisp[iy];
-            pos[iz] = bz + springDisp[iz];
+                pos[ix] = bx + springDisp[ix];
+                pos[iy] = by + springDisp[iy];
+                pos[iz] = bz + springDisp[iz];
 
-            if (elapsed >= 0.0) {
-                const tx = pos[ix] - origin[ix];
-                const ty = pos[iy] - origin[iy];
-                const tz = pos[iz] - origin[iz];
-                const td2 = tx * tx + ty * ty + tz * tz;
-                if (td2 > fallbackMaxTravelSq) fallbackMaxTravelSq = td2;
+                if (elapsed >= 0.0) {
+                    const tx = pos[ix] - origin[ix];
+                    const ty = pos[iy] - origin[iy];
+                    const tz = pos[iz] - origin[iz];
+                    const td2 = tx * tx + ty * ty + tz * tz;
+                    if (td2 > fallbackMaxTravelSq) fallbackMaxTravelSq = td2;
+                }
             }
+            state.actualTravelRadius = Math.sqrt(fallbackMaxTravelSq);
+            posAttr.needsUpdate = true;
+            physics.positionsDirty = true;
         }
-        state.actualTravelRadius = Math.sqrt(fallbackMaxTravelSq);
-        posAttr.needsUpdate = true;
-        physics.positionsDirty = true;
     }
 
     updateTrails();
@@ -2926,6 +3364,17 @@ async function init() {
     const canvas = render.renderer.domElement;
     canvas.setAttribute('role', 'img');
     canvas.setAttribute('aria-label', 'Kinetic particle sculpture — interactive particle animation');
+    
+    // WebGL context resilience
+    canvas.addEventListener('webglcontextlost', (e) => {
+        e.preventDefault();
+        showToast('WebGL context lost — attempting restoration...');
+    }, false);
+    canvas.addEventListener('webglcontextrestored', async () => {
+        showToast('WebGL context restored');
+        await setupParticles(state.currentText, false);
+    }, false);
+
     document.getElementById('stage').appendChild(canvas);
 
     // Size the renderer/camera to the stage (space excluding the menu) and apply
@@ -3020,10 +3469,16 @@ async function init() {
     await document.fonts.ready.catch(() => {});
 
     // Parse URL params for persistent sculpture sharing
-    const urlParams = new URLSearchParams(window.location.search);
-    const initialText = urlParams.get('t') || 'Bring your message!';
+    const searchString = window.location.search || (window.location.hash.includes('?') ? window.location.hash.substring(window.location.hash.indexOf('?')) : '');
+    const urlParams = new URLSearchParams(searchString);
+    const initialText = urlParams.get('text') || urlParams.get('t') || urlParams.get('emoji') || 'Bring your message!';
     const initialTheme = urlParams.get('theme') || 'ember';
     const initialFont = urlParams.get('font') || 'Outfit';
+    const initialPreset = urlParams.get('preset');
+    const disableGpu = urlParams.get('gpu') === '0';
+    if (disableGpu) {
+        state.gpuPhysics = false;
+    }
 
     state.currentText = initialText;
     state.currentTheme = initialTheme;
@@ -3032,9 +3487,16 @@ async function init() {
     // A shared URL whose message is a list emoji keeps the high-detail rendering.
     if (CONFIG.emojiOptions.includes(initialText)) state.activeEmoji = initialText;
 
-    // Apply initial state & check if text matches a preset
+    // Apply initial state & check if text or param matches a preset
     const upperText = initialText.toUpperCase();
-    if (CONFIG.presets[upperText] && upperText !== 'DEFAULT') {
+    const targetPreset = initialPreset ? initialPreset.toUpperCase() : (CONFIG.presets[upperText] && upperText !== 'DEFAULT' ? upperText : null);
+
+    if (targetPreset && CONFIG.presets[targetPreset]) {
+        selectTheme(initialTheme, false);
+        await setupParticles(state.currentText, false);
+        await applyPresetExplosion(targetPreset, false);
+        setActivePreset(targetPreset);
+    } else if (CONFIG.presets[upperText] && upperText !== 'DEFAULT') {
         await applyPresetExplosion(upperText, false);
         setActivePreset(upperText);
     } else {
@@ -3073,11 +3535,13 @@ async function init() {
     
     window.addEventListener('keydown', e => {
         interaction.keys[e.key] = true;
-        if (e.code === 'Space') {
+        if (e.code === 'Space' || e.key.startsWith('Arrow')) {
             if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') {
                 e.preventDefault();
-                applyActiveOrRandomPreset(); // Use active preset or random if none selected
-                triggerExplosion();
+                if (e.code === 'Space') {
+                    applyActiveOrRandomPreset(); // Use active preset or random if none selected
+                    triggerExplosion();
+                }
             }
         }
     });
@@ -3133,6 +3597,7 @@ window.__artzDebug = {
     triggerExplosion,
     get particleCount() { return physics.posLive ? physics.posLive.length / 3 : 0; },
     get usingWorker() { return !!physicsWorker; },
+    get usingGpu() { return state.gpuPhysics; },
     get geometryCount() {
         return render.renderer ? render.renderer.info.memory.geometries : -1;
     },
@@ -3142,11 +3607,39 @@ window.__artzDebug = {
     get renderCalls() {
         return render.renderer ? render.renderer.info.render.calls : -1;
     },
-snapshot(limit = 96) {
-        const position = render.particles?.geometry.attributes.position.array;
+    snapshot(limit = 96) {
         const home = physics.posHome;
         const origin = physics.explosionOrigin;
-        const count = Math.min(limit * 3, position?.length || 0);
+        const count = Math.min(limit * 3, home ? home.length : 0);
+        let position = render.particles?.geometry.attributes.position.array;
+        if (state.gpuPhysics && physics.explosionStartTime >= 0 && home) {
+            const elapsed = render.clock.getElapsedTime() - physics.explosionStartTime;
+            const activeStyle = physics.activeStyle >= 0 ? physics.activeStyle : state.motionStyle;
+            const activeExpDuration = state.activeExpansionDuration || state.expansionDuration;
+            const activeContrDuration = state.activeContractionDuration || state.contractionDuration;
+            const activeMaxDistMult = state.activeMaxDist || state.explosionMaxDistMultiplier;
+            const tDrift = (activeStyle === 0 || activeStyle === 3 || activeStyle === -1) ? 3.0 : 0.0;
+            const _res = { x: 0, y: 0, z: 0 };
+            const computed = new Float32Array(count);
+            for (let i = 0; i < count / 3; i++) {
+                const ix = i * 3, iy = ix + 1, iz = ix + 2;
+                if (activeStyle === 1) {
+                    evaluateTornadoParticle(i, home[ix], home[iy], home[iz], physics.funnelT ? physics.funnelT[i] : 0, physics.funnelRadialX ? physics.funnelRadialX[i] : 0, physics.funnelRadialZ ? physics.funnelRadialZ[i] : 0, (physics.randomSpeed ? physics.randomSpeed[i] : 1.0) * 0.35 + 0.85, elapsed, state.pattern, _res);
+                } else if (activeStyle === 2) {
+                    evaluateBreezeParticle(i, home[ix], home[iy], home[iz], (physics.randomSpeed ? physics.randomSpeed[i] : 1.0) * 0.35 + 0.85, elapsed, activeBreezeConfig, _res);
+                } else if (activeStyle === 3) {
+                    evaluateKineticParticle(i, home[ix], home[iy], home[iz], (physics.randomSpeed ? physics.randomSpeed[i] : 1.0) * 0.35 + 0.85, elapsed, state.pattern, _res);
+                } else {
+                    const maxDist = (physics.randomSpeed ? physics.randomSpeed[i] : 1.0) * activeMaxDistMult;
+                    const orig = origin || home;
+                    evaluateExplosionParticle(orig[ix], orig[iy], orig[iz], physics.randomDir ? physics.randomDir[ix] : 0, physics.randomDir ? physics.randomDir[iy] : 0, physics.randomDir ? physics.randomDir[iz] : 0, maxDist, activeExpDuration, tDrift, activeContrDuration, elapsed, _res);
+                }
+                computed[ix] = _res.x;
+                computed[iy] = _res.y;
+                computed[iz] = _res.z;
+            }
+            position = computed;
+        }
         return {
             position: position ? Array.from(position.slice(0, count)) : [],
             home: home ? Array.from(home.slice(0, count)) : [],

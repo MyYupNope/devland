@@ -280,33 +280,55 @@ select option {
     padding: 10px;
 }
 
-/* Capture Button */
-#capture-btn {
+/* Actions Row & Buttons */
+#actions-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 4px;
+}
+
+#actions-row button {
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid var(--panel-border);
     border-radius: 10px;
     color: var(--text-primary);
-    padding: 10px 16px;
+    padding: 10px 14px;
     font-family: inherit;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    gap: 6px;
     height: 40px;
-    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
     box-sizing: border-box;
 }
 
-#capture-btn:hover {
+#capture-btn {
+    flex: 1;
+}
+
+#share-btn {
+    flex: 1;
+}
+
+.icon-action-btn {
+    width: 40px;
+    padding: 10px 0 !important;
+    font-size: 15px !important;
+}
+
+#actions-row button:hover {
     background: var(--text-primary);
     color: var(--bg-color);
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
 }
 
-#capture-btn:active {
+#actions-row button:active {
     transform: translateY(0);
 }
 

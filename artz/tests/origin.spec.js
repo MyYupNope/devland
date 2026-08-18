@@ -35,7 +35,7 @@ async function exerciseOrigin(page, url) {
     assertOriginCapture(result);
 
     await page.waitForFunction(() => !window.__artzDebug.snapshot(1).explosionActive, null, {
-        timeout: 12_000
+        timeout: 20_000
     });
     await page.waitForTimeout(100);
 

@@ -277,30 +277,4 @@ export function playExplosionSound(stateParam, estimatedRecovery) {
     }, (explosionDur + 0.1) * 1000);
 }
 
-export function playContractionRumble(duration = 1.5) {
-    const ctx = getAudioContext();
-    if (!ctx) return;
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(35, now);
-    osc.frequency.linearRampToValueAtTime(55, now + duration * 0.7);
-    osc.frequency.exponentialRampToValueAtTime(20, now + duration);
 
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.linearRampToValueAtTime(0.15, now + duration * 0.5);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + duration + 0.05);
-
-    setTimeout(() => {
-        try {
-            osc.disconnect();
-            gain.disconnect();
-        } catch (_) {}
-    }, (duration + 0.1) * 1000);
-}

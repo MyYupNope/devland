@@ -6,7 +6,6 @@
 // particles. Operates via double-buffered Float32Arrays transferred with zero-copy.
 
 import {
-    tornadoRadius,
     evaluateTornadoParticle,
     evaluateBreezeParticle,
     evaluateKineticParticle,
@@ -250,7 +249,7 @@ self.onmessage = function (e) {
 
             if (distSq < mouseInfSq && distSq > 0.001) {
                 const dist = Math.sqrt(distSq);
-                const force = (1 - dist / mouseInfluence) * repulsionStr;
+                const force = (1 - dist / mouseInfluence) * repulsionStr * 60.0;
                 const invDist = 1 / dist;
                 springVel[ix] += dx * invDist * force * dt;
                 springVel[iy] += dy * invDist * force * dt;

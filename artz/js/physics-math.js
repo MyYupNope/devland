@@ -133,32 +133,45 @@ export function evaluateTornadoParticle(i, hx, hy, hz, u, fx, fz, cd, elapsed, p
     }
 }
 
-function computeBreezePlume(tWind, curElapsed, lambda, gX, gY, gZ, gx, cd, windSpeedMult, buoyancy, liftStart, seedZ, t2, i, out) {
-    if (lambda > 0.75) {
-        const groundTumble = tWind * 14.0 * windSpeedMult * cd + 1.2 * Math.sin(3.5 * curElapsed + i * 0.1);
+function computeBreezePlume(tWind, curElapsed, lambda, gX, gY, gZ, gx, intensity, cd, windSpeedMult, buoyancy, liftStart, seedZ, t2, i, out) {
+    if (lambda > 0.82) {
+        // Ground Layer Skitter: heavy particles tumble and skip along the floor surface
+        const groundTumble = (tWind * 16.0 * windSpeedMult + 1.2 * Math.sin(3.5 * curElapsed + i * 0.1)) * intensity;
         const rx = gX + gx * groundTumble;
-        const ry = gY + 0.40 * Math.abs(Math.sin(6.0 * curElapsed + i * 0.2));
-        const rz = gZ + 0.9 * Math.sin(2.5 * curElapsed + i * 0.15);
+        const ry = gY + 0.35 * Math.abs(Math.sin(7.0 * curElapsed + i * 0.25)) * intensity;
+        const rz = gZ + 1.2 * Math.sin(2.5 * curElapsed + i * 0.15) * intensity;
         if (out) { out.x = rx; out.y = ry; out.z = rz; return out; }
         return { x: rx, y: ry, z: rz };
     } else {
+        // Fluid Dynamics Aerodynamic Plume with Kelvin-Helmholtz Vortices & Velocity Shear
         const p = tWind / t2;
         const liftProg = Math.min(1.0, Math.max(0.0, (p - liftStart) / (1.0 - liftStart + 1e-4)));
         const eLift = liftProg * liftProg * (3.0 - 2.0 * liftProg);
 
-        const plumeSpread = 1.0 + tWind * 0.55;
-        const fuzzX = 6.0 * Math.sin(0.35 * gX + 4.1 * curElapsed + i * 0.13) + 3.0 * Math.cos(0.8 * gZ + 6.3 * curElapsed + i * 0.37);
-        const fuzzY = 6.5 * Math.sin(0.28 * gX + 3.7 * curElapsed + i * 0.21) * Math.cos(0.4 * gZ + 5.1 * curElapsed) + 3.5 * Math.sin(7.5 * curElapsed + i * 0.45);
-        const fuzzZ = 8.5 * Math.sin(0.25 * gX + 3.2 * curElapsed + i * 0.17) + 5.0 * Math.cos(0.6 * gY + 4.8 * curElapsed + i * 0.29);
+        // 1. Boundary-Layer Velocity Shear (particles higher up travel much faster)
+        const aloftSpeed = 24.0 * windSpeedMult * (0.40 + 0.60 * buoyancy) * intensity;
+        const xStreamline = gx * (aloftSpeed * tWind);
 
-        const xDrift = gx * (34.0 * windSpeedMult * cd * tWind + fuzzX * plumeSpread);
-        const hLift = 10.0 + 24.0 * buoyancy * cd;
-        const yWave = 4.5 * Math.sin(0.10 * (gX + gx * tWind * 25.0) - 2.8 * curElapsed) * Math.cos(0.12 * gZ);
-        const zRibbon = seedZ * 0.35 * plumeSpread + fuzzZ;
+        // 2. Rolling Kelvin-Helmholtz Vortices (transverse rolling eddies)
+        const vortexPhase = 0.14 * (gX * gx) - 2.8 * curElapsed + i * 0.08;
+        const vortexRadius = 4.0 * buoyancy * Math.min(1.0, tWind / 1.2) * intensity;
+        const rollY = vortexRadius * Math.sin(vortexPhase);
+        const rollX = gx * (vortexRadius * Math.cos(vortexPhase));
 
-        const rx = gX + xDrift;
-        const ry = gY + eLift * (hLift + yWave + fuzzY);
-        const rz = gZ + eLift * zRibbon;
+        // 3. Multi-scale Turbulent Wisps & Fluid Streamline Flutter
+        const wisp1 = (4.5 * Math.sin(0.15 * gX - 2.2 * curElapsed + seedZ * 0.05) * Math.cos(0.12 * gZ)) * intensity;
+        const wisp2 = (3.0 * Math.sin(0.32 * gX + 3.8 * curElapsed + i * 0.15) * Math.sin(0.25 * (gY + 11.0))) * intensity;
+        const flutterZ = ((5.5 * Math.sin(0.25 * gX - 4.2 * curElapsed + i * 0.18) + seedZ * 0.25) * (1.0 + tWind * 0.25)) * intensity;
+        const flutterY = (2.0 * Math.cos(0.28 * gX + 3.4 * curElapsed + i * 0.12)) * intensity;
+
+        // 4. Directional Buoyant Plume Lift (strictly positive above floor)
+        const baseLift = (7.0 + 22.0 * buoyancy) * intensity;
+        const totalLift = Math.max(0.0, baseLift + wisp1 + wisp2 + rollY + flutterY);
+
+        const rx = gX + xStreamline + rollX + gx * (wisp1 * 0.6);
+        const ry = gY + eLift * totalLift;
+        const rz = gZ + eLift * flutterZ;
+
         if (out) { out.x = rx; out.y = ry; out.z = rz; return out; }
         return { x: rx, y: ry, z: rz };
     }
@@ -167,6 +180,7 @@ function computeBreezePlume(tWind, curElapsed, lambda, gX, gY, gZ, gx, cd, windS
 export function evaluateBreezeParticle(i, hx, hy, hz, cd, elapsed, breezeConfig, out) {
     const b = breezeConfig || {};
     const gx = (b.blowDir != null) ? b.blowDir : 1.0;
+    const intensity = (b.intensity != null) ? b.intensity : 1.0;
 
     const t1 = 1.0;        // Phase 1: Straight Ground Fall (0 -> 1.0s)
     const tPause = 2.0;    // Ground Rest: 2 seconds on floor (1.0 -> 3.0s)
@@ -213,13 +227,13 @@ export function evaluateBreezeParticle(i, hx, hy, hz, cd, elapsed, breezeConfig,
     } else if (elapsed < t1 + tPause + t2) {
         // ── 2) Phase 2: Forward Fuzzy Breeze Lift ──
         const tWind = elapsed - (t1 + tPause);
-        return computeBreezePlume(tWind, elapsed, lambda, gX, gY, gZ, gx, cd, windSpeedMult, buoyancy, liftStart, seedZ, t2, i, out);
+        return computeBreezePlume(tWind, elapsed, lambda, gX, gY, gZ, gx, intensity, cd, windSpeedMult, buoyancy, liftStart, seedZ, t2, i, out);
     } else if (elapsed < t1 + tPause + t2 + t3) {
         // ── 3) Phase 3: Exact Reverse Breeze Flow back to Ground Floor ──
         const p3 = (elapsed - (t1 + tPause + t2)) / t3;
         const smoothP3 = p3 * p3 * (3.0 - 2.0 * p3);
         const tWindRev = t2 * (1.0 - smoothP3);
-        return computeBreezePlume(tWindRev, elapsed, lambda, gX, gY, gZ, gx, cd, windSpeedMult, buoyancy, liftStart, seedZ, t2, i, out);
+        return computeBreezePlume(tWindRev, elapsed, lambda, gX, gY, gZ, gx, intensity, cd, windSpeedMult, buoyancy, liftStart, seedZ, t2, i, out);
     } else {
         // ── 4) Phase 4: Reverse Drop (Straight Elevation to Rest) ──
         const p4 = Math.min(1.0, (elapsed - (t1 + tPause + t2 + t3)) / t4);
@@ -234,7 +248,7 @@ export function evaluateBreezeParticle(i, hx, hy, hz, cd, elapsed, breezeConfig,
 }
 
 export function evaluateExplosionParticle(ox, oy, oz, rx, ry, rz, maxDist, expDur, driftDur, contrDur, elapsed, out) {
-    const tDrift = driftDur || 3.0;
+    const tDrift = (driftDur !== undefined && driftDur !== null && driftDur > 0.0) ? driftDur : 3.0;
     const peakProg = (1.0 - EXP_NEG_2_8) * 0.82 + 0.18;
     const vLatest = (2.8 * EXP_NEG_2_8 * 0.82 + 0.18) / Math.max(0.1, expDur);
     const driftPeakProg = peakProg + vLatest * tDrift * 0.78;
@@ -249,9 +263,10 @@ export function evaluateExplosionParticle(ox, oy, oz, rx, ry, rz, maxDist, expDu
         const prog = peakProg + vLatest * dtDrift * (1.0 - 0.22 * driftRatio);
         dist = prog * maxDist;
     } else {
-        const v = Math.min(1.0, (elapsed - (expDur + tDrift)) / contrDur);
-        const returnProg = (1.0 - (0.35 * v + 0.65 * Math.pow(v, 2.2)));
-        dist = driftPeakProg * Math.max(0, returnProg) * maxDist;
+        const v = Math.min(1.0, Math.max(0.0, (elapsed - (expDur + tDrift)) / Math.max(0.1, contrDur)));
+        // Fast increasingly accelerated in-fall return
+        const returnProg = Math.max(0.0, 1.0 - Math.pow(v, 2.4));
+        dist = driftPeakProg * returnProg * maxDist;
     }
 
     const px = ox + rx * dist;
@@ -263,48 +278,46 @@ export function evaluateExplosionParticle(ox, oy, oz, rx, ry, rz, maxDist, expDu
 
 export function evaluateKineticParticle(i, hx, hy, hz, cd, elapsed, kineticConfig, out) {
     const totalDur = 7.5;
-    const p = Math.min(1.0, elapsed / totalDur);
+    const p = Math.min(1.0, Math.max(0.0, elapsed / totalDur));
 
-    // Wave peels diagonally across the stage from left to right
-    const xPeel = -38.0 + 76.0 * p;
+    // Wave travels smoothly and continuously all the way across the entire object (-48 to +48)
+    const xPeel = -48.0 + 96.0 * p;
 
     // Peeling wave distance function (slanted surf angle)
     const dPeel = (hx + 0.25 * hy) - xPeel;
-    const tubeWidth = 9.0; // Compact, clean wave width
+    const tubeWidth = 9.2; // Crisp, well-defined wave tube
 
-    // Gaussian wave packet envelope
+    // Gaussian wave packet envelope - strictly local to the wave front
     const env = Math.exp(-(dPeel * dPeel) / (2.0 * tubeWidth * tubeWidth));
+
+    // Smooth temporal envelope: clean entrance on left, smooth exit on right
+    const timeEnv = Math.sin(Math.PI * p);
+    const waveEnv = env * (0.35 + 0.65 * timeEnv);
 
     // Continuous wave phase angle
     const theta = (Math.PI * dPeel) / (2.0 * tubeWidth);
     const cosT = Math.cos(theta);
     const sinT = Math.sin(theta);
 
-    // Clean, scaled-down wave height (keeps emoji face fully intact and visible)
-    const waveHeight = 14.0;
+    // Dynamic wave height with curling crest
+    const waveHeight = 16.0;
 
-    // Completely continuous vertical weight function (NO boolean slicing or tears)
+    // Vertical blend for top lip curling
     const lipBlend = 0.5 + 0.5 * Math.tanh(hy / 8.0);
 
-    // Trochoidal wave face profile using double-angle identity: sin(2*theta) = 2*sinT*cosT
-    const baseWaveZ = waveHeight * (cosT - 0.30 * 2.0 * sinT * cosT);
+    // Trochoidal wave profile: steep crest, wide trough
+    const baseWaveZ = waveHeight * (cosT - 0.30 * Math.sin(2.0 * theta));
+    const curlZ = 5.0 * lipBlend * Math.max(0.0, cosT);
+    const curlY = -3.5 * lipBlend * Math.max(0.0, sinT);
 
-    // Smooth forward curl (+Z) and lip drop (-Y)
-    const curlZ = 4.5 * lipBlend * Math.max(0.0, cosT);
-    const curlY = -2.5 * lipBlend * Math.max(0.0, sinT);
+    // All motion is strictly bound to the active wave envelope (env) so resting areas stay 100% crisp
+    const deltaZ = waveEnv * (baseWaveZ + curlZ);
+    const deltaY = waveEnv * ((waveHeight * 0.14) * sinT + curlY);
+    const deltaX = -waveEnv * (waveHeight * 0.06) * sinT;
 
-    // Bounded, smooth continuous displacement across all coordinates
-    const deltaZ = env * (baseWaveZ + curlZ) * cd;
-    const deltaY = env * ((waveHeight * 0.12) * sinT + curlY);
-    const deltaX = -env * (waveHeight * 0.05) * sinT;
-
-    // Smooth exit ramp
-    const rawRamp = Math.max(0.0, (p - 0.92) / 0.08);
-    const exitRamp = Math.max(0.0, 1.0 - rawRamp * rawRamp);
-
-    const px = hx + deltaX * exitRamp;
-    const py = hy + deltaY * exitRamp;
-    const pz = hz + deltaZ * exitRamp;
+    const px = hx + deltaX;
+    const py = hy + deltaY;
+    const pz = hz + deltaZ;
     if (out) { out.x = px; out.y = py; out.z = pz; return out; }
     return { x: px, y: py, z: pz };
 }
