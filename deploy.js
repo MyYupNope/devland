@@ -32,15 +32,18 @@ try {
   console.log('1. Cloning target repository...');
   execSync(`git clone ${targetRepo} "${tempDir}"`, { stdio: 'inherit' });
 
-  // 3. Copy interviewz files if present
+  // 3. Sync interviewz files (or remove from live deployment if deleted locally)
+  const destDir = path.join(tempDir, 'interviewz');
   if (fs.existsSync(srcDir)) {
     console.log('2. Copying interviewz files (excluding documentation & introduction)...');
-    const destDir = path.join(tempDir, 'interviewz');
     if (fs.existsSync(destDir)) {
       fs.rmSync(destDir, { recursive: true, force: true });
     }
     fs.mkdirSync(destDir, { recursive: true });
     fs.cpSync(srcDir, destDir, { recursive: true, filter: copyDirFilter });
+  } else if (fs.existsSync(destDir)) {
+    console.log('2. Removing deleted interviewz folder from live deployment...');
+    fs.rmSync(destDir, { recursive: true, force: true });
   }
 
   // 3b. Copy resume files
