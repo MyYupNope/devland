@@ -77,11 +77,15 @@ try {
     fs.rmSync(artzDestDir, { recursive: true, force: true });
   }
 
-  // 3d. Copy root index.html if present
+  // 3d. Clean up root index.html if deleted locally
   const rootIndex = path.join(__dirname, 'index.html');
+  const targetRootIndex = path.join(tempDir, 'index.html');
   if (fs.existsSync(rootIndex)) {
     console.log('   Copying root index.html...');
-    fs.copyFileSync(rootIndex, path.join(tempDir, 'index.html'));
+    fs.copyFileSync(rootIndex, targetRootIndex);
+  } else if (fs.existsSync(targetRootIndex)) {
+    console.log('   Removing root index.html from live deployment...');
+    fs.rmSync(targetRootIndex, { force: true });
   }
 
   // 4. Commit and Push
